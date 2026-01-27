@@ -80,25 +80,26 @@ export default function AdminPanel() {
     });
   }
 
-  function demoteToTutor(id: string) {
-  return callSetAccess({
-    target_user_id: id,
-    new_role: "tutor",
-  });
-}
-async function setVet(id: string) {
-  return callSetAccess({
-    target_user_id: id,
-    new_role: "vet",
-  });
-}
+  function setTutor(id: string) {
+    return callSetAccess({
+      target_user_id: id,
+      new_role: "tutor",
+    });
+  }
 
-async function setClinic(id: string) {
-  return callSetAccess({
-    target_user_id: id,
-    new_role: "clinic",
-  });
-}
+  function setVet(id: string) {
+    return callSetAccess({
+      target_user_id: id,
+      new_role: "vet",
+    });
+  }
+
+  function setClinic(id: string) {
+    return callSetAccess({
+      target_user_id: id,
+      new_role: "clinic",
+    });
+  }
 
   useEffect(() => {
     load();
@@ -149,11 +150,15 @@ async function setClinic(id: string) {
                     <button onClick={() => setMaster(r.id)} style={btn}>
                       virar master
                     </button>
-                    <button onClick={() => demoteToTutor(r.id)} style={btn}>
+                    <button onClick={() => setTutor(r.id)} style={btn}>
                       virar tutor
                     </button>
-                    <button onClick={() => setVet(r.id)} style={btn}>virar vet</button>
-<button onClick={() => setClinic(r.id)} style={btn}>virar clinic</button>
+                    <button onClick={() => setVet(r.id)} style={btn}>
+                      virar vet
+                    </button>
+                    <button onClick={() => setClinic(r.id)} style={btn}>
+                      virar clinic
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -170,7 +175,14 @@ async function setClinic(id: string) {
         </table>
 
         {hasError && (
-          <div style={{ marginTop: 10, padding: 10, border: "1px solid #f3c2c2", borderRadius: 10 }}>
+          <div
+            style={{
+              marginTop: 10,
+              padding: 10,
+              border: "1px solid #f3c2c2",
+              borderRadius: 10,
+            }}
+          >
             <b>Erro:</b> {msg}
           </div>
         )}
