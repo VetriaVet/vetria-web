@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../../../lib/supabase/server";
+import LogoutButton from "../../LogoutButton";
 
-export default async function ClinicOnboardingPage() {
+export default async function TutorOnboardingPage() {
   const supabase = await createClient();
 
   const { data: userData } = await supabase.auth.getUser();
@@ -14,8 +15,8 @@ export default async function ClinicOnboardingPage() {
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.role !== "clinic") redirect("/app");
-  if (profile.onboarding_completed) redirect("/app/clinic");
+  if (!profile || profile.role !== "tutor") redirect("/app");
+  if (profile.onboarding_completed) redirect("/app/tutor");
 
   async function completeOnboarding() {
     "use server";
@@ -35,9 +36,9 @@ export default async function ClinicOnboardingPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 800 }}>Onboarding Clínica</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 800 }}>Onboarding Tutor</h1>
       <p style={{ marginTop: 8, opacity: 0.85 }}>
-        Placeholder. Por enquanto, apenas vamos marcar onboarding como completo.
+        Placeholder. Depois colocamos nome, cidade e preferências.
       </p>
 
       <form action={completeOnboarding} style={{ marginTop: 16 }}>
@@ -45,6 +46,10 @@ export default async function ClinicOnboardingPage() {
           Concluir onboarding
         </button>
       </form>
+
+      <div style={{ marginTop: 16 }}>
+        <LogoutButton />
+      </div>
     </div>
   );
 }

@@ -6,30 +6,28 @@ export default async function AppHome() {
 
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
-
   if (!user) redirect("/login");
 
-  const { data: profile, error } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, onboarding_completed")
     .eq("id", user.id)
     .single();
 
-  if (error || !profile?.role) {
-    // fallback seguro: se der ruim, manda pro login (ou uma página de erro)
-    redirect("/login");
+  if (!profile?.role) redirect("/login");
+
+  // 🔁 Onboarding obrigatório
+  if (!profile.onboarding_completed) {
+    if (profile.role === "tutor") redirect("/app/tutor/onboarding");
+    if (profile.role === "vet") redirect("/app/vet/onboarding");
+    if (profile.role === "clinic") redirect("/app/clinic/onboarding");
   }
 
-  switch (profile.role) {
-    case "tutor":
-      redirect("/app/tutor");
-    case "vet":
-      redirect("/app/vet");
-    case "clinic":
-      redirect("/app/clinic");
-    case "admin":
-      redirect("/admin");
-    default:
-      redirect("/login");
-  }
+  // ✅ Usuário já onboarded
+  if (profile.role === "tutor") redirect("/app/tutor");
+  if (profile.role === "vet") redirect("/app/vet");
+  if (profile.role === "clinic") redirect("/app/clinic");
+  if (profile.role === "admin") redirect("/admin");
+
+  redirect("/login");
 }
