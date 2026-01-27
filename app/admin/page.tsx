@@ -44,7 +44,13 @@ export default async function AdminPage() {
 
       <hr style={{ margin: "16px 0" }} />
 
-      <AdminPanel />
+{isMaster ? (
+  <AdminPanel />
+) : (
+  <p style={{ opacity: 0.7 }}>
+    Entre em contato com um administrador master para alterações de usuários.
+  </p>
+)}
     </div>
   );
 }
