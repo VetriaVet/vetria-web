@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client"; // ✅ só 1 import
+import { createClient } from "../../lib/supabase/browser";
 
 export default function LoginPage() {
   const supabase = createClient(); // ✅ só 1 vez
