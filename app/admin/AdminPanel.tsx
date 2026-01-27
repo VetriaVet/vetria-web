@@ -86,6 +86,19 @@ export default function AdminPanel() {
     new_role: "tutor",
   });
 }
+async function setVet(id: string) {
+  return callSetAccess({
+    target_user_id: id,
+    new_role: "vet",
+  });
+}
+
+async function setClinic(id: string) {
+  return callSetAccess({
+    target_user_id: id,
+    new_role: "clinic",
+  });
+}
 
   useEffect(() => {
     load();
@@ -139,6 +152,8 @@ export default function AdminPanel() {
                     <button onClick={() => demoteToTutor(r.id)} style={btn}>
                       virar tutor
                     </button>
+                    <button onClick={() => setVet(r.id)} style={btn}>virar vet</button>
+<button onClick={() => setClinic(r.id)} style={btn}>virar clinic</button>
                   </div>
                 </td>
               </tr>
