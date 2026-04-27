@@ -1,23 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "../../lib/supabase/browser";
+import { createClient } from "@/lib/supabase/browser";
+import { AuthShell } from "@/components/ui/AuthShell";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 export default function LoginPage() {
-  const supabase = createClient(); // ✅ só 1 vez
+  const supabase = createClient();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
+    setLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
+    setLoading(false);
 
     if (error) return setMsg(error.message);
     window.location.href = "/app";
@@ -25,11 +32,11 @@ export default function LoginPage() {
 
   async function signUp() {
     setMsg(null);
+    setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signUp({ email, password });
+
+    setLoading(false);
 
     if (error) return setMsg(error.message);
     setMsg("Conta criada. Confirme o email e depois faça login.");
@@ -49,52 +56,69 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ maxWidth: 420, margin: "40px auto", padding: 16 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700 }}>Vetria • Login</h1>
-
-      <form onSubmit={signIn} style={{ display: "grid", gap: 10, marginTop: 16 }}>
-        <input
-          placeholder="email"
+    <AuthShell
+      title="É bom te ver de novo..."
+      subtitle="Entre com seu email ou continue com Google."
+      footer={<>© Vetria 2026</>}
+    >
+      <form onSubmit={signIn} className="grid gap-4">
+        <Input
+          name="email"
+          type="email"
+          label="Email"
+          placeholder="seu@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          style={{ padding: 10, border: "1px solid #333", borderRadius: 8 }}
+          required
+          autoComplete="email"
         />
 
-        <input
-          placeholder="senha"
+        <Input
+          name="password"
           type="password"
+          label="Senha"
+          placeholder="Digite sua senha"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ padding: 10, border: "1px solid #333", borderRadius: 8 }}
+          required
+          autoComplete="current-password"
         />
 
-        <button type="submit" style={{ padding: 10, borderRadius: 8 }}>
-          Entrar
-        </button>
+        <Button type="submit" size="lg" block disabled={loading}>
+          {loading ? "Entrando..." : "Entrar"}
+        </Button>
 
-        {/* ✅ botão google não pode ser submit */}
-        <button
+        <div className="flex items-center gap-3 text-xs text-corpo-texto my-1">
+          <div className="flex-1 h-px bg-corpo-texto/15" />
+          ou
+          <div className="flex-1 h-px bg-corpo-texto/15" />
+        </div>
+
+        <Button
           type="button"
+          variant="secondary"
+          size="lg"
+          block
           onClick={loginWithGoogle}
-          style={{
-            width: "100%",
-            padding: 12,
-            borderRadius: 8,
-            border: "1px solid #ddd",
-            fontWeight: 600,
-            cursor: "pointer",
-            marginTop: 6,
-          }}
+          disabled={loading}
         >
           Continuar com Google
-        </button>
+        </Button>
 
-        <button type="button" onClick={signUp} style={{ padding: 10, borderRadius: 8 }}>
-          Criar conta
-        </button>
+        <Button
+          type="button"
+          variant="ghost"
+          block
+          onClick={signUp}
+          disabled={loading}
+        >
+          Ainda não tem conta? Criar conta
+        </Button>
 
-        {msg && <p style={{ marginTop: 8 }}>{msg}</p>}
+        {msg && (
+          <p className="text-sm text-center text-corpo-texto mt-1">{msg}</p>
+        )}
       </form>
-    </div>
+    </AuthShell>
   );
 }
