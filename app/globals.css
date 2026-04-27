@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -8,8 +9,20 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+
+  /* Cores oficiais Vetria (manual de marca) */
+  --color-principal: #1E4349;          /* verde-petróleo — CTAs, marca */
+  --color-fundo-claro: #F5F0E1;        /* creme suave — hero, identidade */
+  --color-titulo: #1A1A1A;             /* preto-grafite — H1, H2, H3 */
+  --color-corpo-texto: #4A6064;        /* verde-acinzentado — texto corpo */
+  --color-fundo-destaque: #EAFAF5;     /* verde-water — pills, alerts */
+
+  /* Fonte oficial: Inter (sans). Geist mono preservado. */
+  --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
+
+  /* Radius pill — inputs e botões (manual de marca) */
+  --radius-pill: 999px;
 }
 
 @media (prefers-color-scheme: dark) {

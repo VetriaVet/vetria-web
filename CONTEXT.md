@@ -341,6 +341,42 @@ _(preencher links acima)_
 **Decisão:** Os arquivos `app/app/{vet,clinic,tutor}/onboarding/page.tsx` serão **reescritos por completo** na Sprint 2.
 **Razão:** Lógica atual é stub funcional, mas não captura nenhum dado real necessário pras tabelas `vet_profiles`/`clinic_profiles`.
 
+### DL-005 — Tailwind versão pinada em v3 (REVOGADA)
+**Data:** 26 Abril 2026
+**Status:** REVOGADA pela DL-006 (mesma data).
+**Razão da revogação:** Premissa errada — não havíamos auditado `package.json`,
+que já tinha Tailwind v4 instalado pelo scaffolding do Next.js 16. Decisão de
+downgrade não tinha justificativa técnica suficiente pra pagar o custo de reverter.
+
+### DL-006 — Tailwind v4 mantido (substitui DL-005)
+**Data:** 26 Abril 2026
+**Decisão:** Manter Tailwind v4 (já instalado via scaffolding do Next.js 16).
+Configurar paleta Vetria + Inter + radius pill via bloco `@theme` no `app/globals.css`.
+**Razão:** v4 já está funcionando. Reverter pra v3 seria operação destrutiva sem ganho
+concreto. Resultado visual idêntico em ambas as versões. shadcn/ui já tem suporte v4
+(correção da informação anterior). Configuração via CSS é o padrão atual da Tailwind.
+**Reavaliar:** apenas se algum bloqueio técnico aparecer (improvável) ou se shadcn/ui
+tiver problema concreto na Sprint 3 (verificar antes de adotar).
+
+### DL-007 — Dívida técnica: middleware deprecated no Next.js 16
+**Data:** 26 Abril 2026
+**Status:** Pendente (não-bloqueante)
+**Contexto:** Next.js 16 emite warning: "The middleware file convention is
+deprecated. Please use proxy instead."
+**Decisão:** Manter `middleware.ts` por enquanto. Não migrar agora porque é mudança
+que merece task própria com testes (afeta RBAC).
+**Quando resolver:** Sprint 3+ ou quando alguma feature precisar tocar em middleware
+mesmo. Não adiar pra deprecation hard (Next.js 17+).
+
+### DL-008 — Lockfile residual fora do projeto
+**Data:** 26 Abril 2026
+**Status:** Pendente (não-bloqueante)
+**Contexto:** Existe um `package-lock.json` em `C:\Users\Elber Desinger\` (fora do
+projeto). Next.js detecta múltiplos lockfiles e infere root errado.
+**Decisão:** Deletar o lockfile residual em ~/, manter só o do projeto.
+**Ação:** humano (Elber) executa `rm "C:\Users\Elber Desinger\package-lock.json"`
+em sessão separada. Sem impacto no build atual.
+
 ---
 
 ## ÚLTIMA REGRA

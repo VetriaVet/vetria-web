@@ -17,10 +17,6 @@ export default async function AdminPage() {
 
   if (!profile || profile.role !== "admin") redirect("/app");
 
-  if (error || !profile?.role) {
-  redirect("/onboarding");
-}
-
   const isMaster = profile.admin_level === "master";
 
   return (
