@@ -2,11 +2,39 @@
 
 import { useState } from "react";
 
+type Role = "tutor" | "vet" | "clinic";
+
+const ROLES: Array<{
+  role: Role;
+  emoji: string;
+  title: string;
+  desc: string;
+}> = [
+  {
+    role: "tutor",
+    emoji: "🐶",
+    title: "Sou tutor de pet",
+    desc: "Encontre profissionais perto de você, agende consultas e cuide melhor do seu pet.",
+  },
+  {
+    role: "vet",
+    emoji: "🩺",
+    title: "Sou veterinário",
+    desc: "Crie seu perfil profissional, seja encontrado por tutores e organize sua agenda.",
+  },
+  {
+    role: "clinic",
+    emoji: "🏥",
+    title: "Sou uma clínica",
+    desc: "Cadastre sua clínica, gerencie sua equipe e fortaleça sua marca regional.",
+  },
+];
+
 export default function OnboardingClient() {
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState<Role | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  async function chooseRole(role: "tutor" | "vet" | "clinic") {
+  async function chooseRole(role: Role) {
     setMsg(null);
     setLoading(role);
 
@@ -33,48 +61,50 @@ export default function OnboardingClient() {
   }
 
   return (
-    <div style={{ maxWidth: 520, margin: "40px auto", padding: 16 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 800 }}>Bem-vindo à Vetria</h1>
-      <p style={{ marginTop: 6, opacity: 0.8 }}>
+    <div className="max-w-5xl mx-auto px-6 py-16">
+      <h1 className="text-3xl font-bold text-titulo mb-3 tracking-tight">
         Como você quer usar a Vetria?
+      </h1>
+      <p className="text-corpo-texto text-base mb-10 max-w-xl">
+        Escolha seu perfil. Cada um tem um painel próprio com ferramentas
+        específicas.
       </p>
 
-      <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
-        <button
-          onClick={() => chooseRole("tutor")}
-          disabled={!!loading}
-          style={btn}
-        >
-          {loading === "tutor" ? "Salvando..." : "Sou Tutor"}
-        </button>
+      <div className="grid md:grid-cols-3 gap-4">
+        {ROLES.map(({ role, emoji, title, desc }) => {
+          const isActive = loading === role;
+          const isDisabled = loading !== null && !isActive;
 
-        <button
-          onClick={() => chooseRole("vet")}
-          disabled={!!loading}
-          style={btn}
-        >
-          {loading === "vet" ? "Salvando..." : "Sou Veterinário"}
-        </button>
-
-        <button
-          onClick={() => chooseRole("clinic")}
-          disabled={!!loading}
-          style={btn}
-        >
-          {loading === "clinic" ? "Salvando..." : "Sou Clínica"}
-        </button>
-
-        {msg && <p style={{ marginTop: 8, color: "#b00020" }}>{msg}</p>}
+          return (
+            <button
+              key={role}
+              type="button"
+              onClick={() => chooseRole(role)}
+              disabled={loading !== null}
+              aria-busy={isActive}
+              className={`rounded-2xl border-2 border-gray-200 bg-white p-8 text-left w-full transition-all hover:border-principal hover:shadow-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-principal/40 ${
+                isDisabled
+                  ? "opacity-50 cursor-not-allowed pointer-events-none"
+                  : ""
+              }`}
+            >
+              <span className="text-5xl mb-4 block" aria-hidden="true">
+                {emoji}
+              </span>
+              <h2 className="text-titulo font-bold text-xl mb-2">{title}</h2>
+              <p className="text-corpo-texto text-sm leading-relaxed">
+                {isActive ? "Carregando..." : desc}
+              </p>
+            </button>
+          );
+        })}
       </div>
+
+      {msg && (
+        <p role="alert" className="text-red-600 font-medium text-sm mt-6">
+          {msg}
+        </p>
+      )}
     </div>
   );
 }
-
-const btn: React.CSSProperties = {
-  width: "100%",
-  padding: 12,
-  borderRadius: 10,
-  border: "1px solid #ddd",
-  fontWeight: 700,
-  cursor: "pointer",
-};
