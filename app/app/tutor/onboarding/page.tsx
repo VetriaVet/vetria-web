@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../../../lib/supabase/server";
 import LogoutButton from "../../LogoutButton";
+import TutorOnboardingForm from "./TutorOnboardingForm";
 
 export default async function TutorOnboardingPage() {
   const supabase = await createClient();
@@ -18,8 +19,15 @@ export default async function TutorOnboardingPage() {
   if (!profile || profile.role !== "tutor") redirect("/app");
   if (profile.onboarding_completed) redirect("/app/tutor");
 
-  async function completeOnboarding() {
+  async function completeOnboarding(formData: FormData) {
     "use server";
+
+    // TODO: persistir dados do pet (formData.get('petName'), petSpecies,
+    //       petAge, petWeight, cidade) quando schema permitir — depende de
+    //       migration futura criando tabela `pets` ou campo JSON em
+    //       profiles. Por enquanto FormData chega aqui mas é ignorado;
+    //       a action apenas marca onboarding_completed=true.
+    void formData;
 
     const supabase = await createClient();
     const { data: userData } = await supabase.auth.getUser();
@@ -31,23 +39,22 @@ export default async function TutorOnboardingPage() {
       .update({ onboarding_completed: true })
       .eq("id", user.id);
 
-    redirect("/app");
+    redirect("/app/tutor");
   }
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 800 }}>Onboarding Tutor</h1>
-      <p style={{ marginTop: 8, opacity: 0.85 }}>
-        Placeholder. Depois colocamos nome, cidade e preferências.
+    <div className="max-w-2xl mx-auto py-8">
+      <h1 className="text-3xl font-bold text-titulo mb-2 tracking-tight">
+        Vamos conhecer seu pet
+      </h1>
+      <p className="text-corpo-texto text-base mb-8 max-w-xl">
+        Esses dados ajudam a gente a recomendar veterinários e clínicas
+        adequados pro seu companheiro.
       </p>
 
-      <form action={completeOnboarding} style={{ marginTop: 16 }}>
-        <button style={{ padding: "10px 12px", borderRadius: 10 }}>
-          Concluir onboarding
-        </button>
-      </form>
+      <TutorOnboardingForm action={completeOnboarding} />
 
-      <div style={{ marginTop: 16 }}>
+      <div className="mt-8">
         <LogoutButton />
       </div>
     </div>
