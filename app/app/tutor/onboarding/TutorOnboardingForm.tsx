@@ -41,12 +41,8 @@ export default function TutorOnboardingForm({ action }: Props) {
 
   function handleAction(formData: FormData) {
     setMsg("");
-    startTransition(async () => {
-      try {
-        await action(formData);
-      } catch {
-        setMsg("Erro ao concluir. Tente novamente.");
-      }
+    startTransition(() => {
+      action(formData);
     });
   }
 
