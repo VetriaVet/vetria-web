@@ -34,10 +34,41 @@ export default async function TutorOnboardingPage() {
     const user = userData.user;
     if (!user) redirect("/login");
 
-    await supabase
+    console.log("[completeOnboarding] iniciando update", {
+      userId: user.id,
+      targetField: "onboarding_completed",
+      targetValue: true,
+    });
+
+    const { data, error } = await supabase
       .from("profiles")
       .update({ onboarding_completed: true })
-      .eq("id", user.id);
+      .eq("id", user.id)
+      .select();
+
+    if (error) {
+      console.error("[completeOnboarding] update error", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+      redirect("/app/tutor/onboarding?error=update_failed");
+    }
+
+    if (!data || data.length === 0) {
+      console.error("[completeOnboarding] update returned 0 rows", {
+        userId: user.id,
+        possibleCause: "RLS rejection or row not found",
+      });
+      redirect("/app/tutor/onboarding?error=no_rows_affected");
+    }
+
+    console.log("[completeOnboarding] update success", {
+      userId: user.id,
+      rowsAffected: data.length,
+      onboardingCompleted: data[0]?.onboarding_completed,
+    });
 
     redirect("/app/tutor");
   }
