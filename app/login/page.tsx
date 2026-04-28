@@ -24,7 +24,13 @@ export default function LoginPage() {
     setLoading(true);
 
     if (isSignup) {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const siteUrl =
+        process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${siteUrl}/auth/callback` },
+      });
       setLoading(false);
       if (error) return setMsg(error.message);
       setMsg("✅ Conta criada. Confirme o email e depois faça login.");
@@ -42,9 +48,11 @@ export default function LoginPage() {
 
   async function loginWithGoogle() {
     setMsg(null);
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/app` },
+      options: { redirectTo: `${siteUrl}/auth/callback` },
     });
     if (error) setMsg(error.message);
   }
