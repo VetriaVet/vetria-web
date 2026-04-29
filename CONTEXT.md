@@ -4,7 +4,7 @@
 >
 > Esse arquivo existe pra que toda sessão tenha o mesmo contexto e siga as mesmas regras.
 >
-> **Última atualização:** 26 de Abril de 2026 — diagnóstico completo do código + decisões de fundação
+> **Última atualização:** 28 de Abril de 2026 — fim do bloco auth + onboarding tutor (DL-009 a DL-016, TASK-001/002/003 + 5 fixes + 1 ad-hoc)
 
 ---
 
@@ -55,7 +55,26 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 - ❌ Páginas `/app/vet/aguardando` e `/app/clinic/aguardando`
 - ❌ Pasta `supabase/migrations/`
 - ❌ Email transacional (Resend não integrado)
-- ❌ Tailwind CSS instalado
+
+### Sprint 2 — concluído (até 28/04/2026)
+- ✅ TASK-000 — Fundação Tailwind v4 + paleta Vetria + Inter + admin fix
+- ✅ TASK-001 — `/login` refatorado com identidade Vetria (commit 78a43a1)
+- ✅ TASK-002 — `/onboarding` com 3 cards de role (commit b89e49b)
+- ✅ TASK-003 — `/cadastro` (escolha pública de role) (commit d59e041)
+- ✅ TASK-FIX-002 — `/auth/callback` route handler pra confirmação de email + OAuth (commit 4f7f87e)
+- ✅ TASK-FIX-MICRO-001 — logs de debug no callback handler (commit 1861a46)
+- ✅ TASK-AH-001 — refator visual ad-hoc do `/app/tutor/onboarding` com form Vetria (commit 4259924)
+- ✅ TASK-FIX-006 — `lib/supabase/server` migrado pra API getAll/setAll (commit 84d777d)
+- ✅ TASK-FIX-007 — `.select()` + logs no update da Server Action de onboarding tutor (commit 35c56e4)
+- ✅ TASK-FIX-008 — remover try/catch que engolia NEXT_REDIRECT no `TutorOnboardingForm` (commit ff26a75)
+- ✅ Bug crítico de RLS recursiva em `is_master_admin`/`is_admin_master` fixado via SQL direto (DL-014, fora do repo)
+
+### Próximas (priorizadas)
+- ⬜ TASK-004 — `/cadastro/tutor` (form de signup tutor)
+- ⬜ TASK-008 — refator `/app/tutor` (dashboard placeholder Sprint 1)
+- ⬜ TASK-009 — `/app/tutor/perfil`
+- ⬜ TASK-010 — `/app/tutor/historico`
+- ⬜ TASK-011 — `/app/tutor/avaliacoes`
 
 ---
 
@@ -66,7 +85,7 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 | App principal | Next.js (App Router) | ✅ Em produção |
 | Hosting | Vercel | ✅ Deploy automático ativo |
 | Auth + DB | Supabase | ✅ Em produção |
-| Styling | Tailwind CSS | ⏳ A instalar (DL-003) |
+| Styling | Tailwind CSS v4 | ✅ Em produção (DL-006) |
 | Email transacional | Resend | ❌ A integrar (Sprint 2) |
 | Pagamentos | Stripe | ❌ Sprint 6 |
 | OAuth | Google Cloud | ✅ Funcionando |
@@ -376,6 +395,166 @@ projeto). Next.js detecta múltiplos lockfiles e infere root errado.
 **Decisão:** Deletar o lockfile residual em ~/, manter só o do projeto.
 **Ação:** humano (Elber) executa `rm "C:\Users\Elber Desinger\package-lock.json"`
 em sessão separada. Sem impacto no build atual.
+
+### DL-009 — Email confirmation ON no Supabase mantido em produção
+**Data:** 28 Abril 2026
+**Sprint:** 2
+**Contexto:** Em desenvolvimento ativo de auth, email confirmation poderia ser
+desligado no Supabase pra acelerar testes. Decisão consciente de manter ON
+desde Sprint 1, mesmo antes de ter Resend integrado.
+**Decisão:** Manter ON em produção. Mais seguro, alinhado com cenário de
+produção real desde o início. Trade-off explícito: emails vêm do Supabase
+built-in (baixa entregabilidade) até TASK-030 integrar Resend.
+**Implicação operacional:** Em desenvolvimento, usar emails reais que você
+consiga acessar. Considerar provedores variados (Outlook, ProtonMail,
+descartáveis) pra contornar rate limit (DL-010).
+**Status:** Em vigor.
+
+### DL-010 — Rate limit do Supabase email built-in (~2-4 por hora)
+**Data:** 28 Abril 2026
+**Sprint:** 2
+**Contexto:** Durante debug do callback handler (TASK-FIX-002), criamos várias
+contas de teste (`teste+001`, `teste+002`, etc) e batemos no rate limit
+silencioso do Supabase built-in. Resposta vem como `email rate limit exceeded`
+mas é fácil ignorar — parece "nada acontece após signup".
+**Decisão:** Registrar como limite operacional conhecido. Não atuar agora —
+TASK-030 (Resend) elimina.
+**Implicações:**
+- Em desenvolvimento ativo de auth, fácil bater no limite
+- Boa prática: ter 3-4 emails de provedores diferentes prontos pra rotacionar
+- Resend tem limites bem maiores (3000/dia free tier)
+**Status:** Mitigação operacional até TASK-030.
+
+### DL-011 — Padrão de logs em handlers de auth
+**Data:** 28 Abril 2026
+**Sprint:** 2 — estabelecido em TASK-FIX-MICRO-001 (commit 1861a46) e reforçado
+em TASK-FIX-007 (commit 35c56e4).
+**Contexto:** Vercel Hobby plan oculta stack traces detalhados em runtime logs.
+Durante debug do callback handler, isso forçou adicionar logs estruturados
+explícitos pra ter triagem direta nos runtime logs sem precisar de stack trace.
+**Decisão:** Padrão estabelecido — handlers auth-related sempre incluem:
+- `console.log` na entrada com flags resumidas (sem tokens completos, só
+  prefixo de 12 chars)
+- `console.error` em cada caminho de erro com objeto
+  `{message, status, name, code}` do error retornado pelo Supabase
+- `console.log` no caminho de sucesso com `{userId, hasRole, destination}` ou
+  equivalente
+**Aplicar em:** handlers futuros como `/api/auth/*`, `/api/onboarding/set-role`
+(ver TASK-FIX-003), qualquer rota que toque auth ou role. Server Actions
+também (já aplicado em `completeOnboarding` do tutor).
+**Status:** Em vigor.
+
+### DL-012 — Padrão Server Component + Server Action + Client Form
+**Data:** 28 Abril 2026
+**Sprint:** 2 — estabelecido em TASK-AH-001 (commit 4259924), refator visual
+ad-hoc do `/app/tutor/onboarding`.
+**Contexto:** Refatorações visuais de telas em `/app/*` que precisam de
+`useState`, `useTransition` ou interação client-side colidem com a arquitetura
+Sprint 1 (RBAC server-side, guards no topo da página, sem `"use client"` no
+arquivo de rota).
+**Decisão:** Padrão de 2 arquivos por tela:
+- `page.tsx` — Server Component com guards SSR (auth, role, status) no topo +
+  Server Action `"use server"` inline pra mutações
+- `XxxForm.tsx` — Client Component (`"use client"`) recebendo a Server Action
+  via prop tipada `(formData: FormData) => Promise<void>`
+
+A Server Action faz tudo que envolve banco/auth dentro do contexto SSR; o
+Client Form cuida apenas de useState/useTransition/UX. Form usa
+`<form action={handleAction}>` invocando a Server Action via `startTransition`
+(ver DL-016 pra forma correta).
+**Aplicar em:** refatorações futuras de `/app/tutor/perfil`,
+`/app/tutor/historico`, `/app/vet/onboarding`, `/app/clinic/onboarding` quando
+exigirem interação client-side.
+**Status:** Aplicado em onboarding tutor.
+
+### DL-013 — Migração lib/supabase/server pra API getAll/setAll
+**Data:** 28 Abril 2026
+**Sprint:** 2 — TASK-FIX-006 (commit 84d777d).
+**Contexto:** Helper `createClient` em `lib/supabase/server.ts` (Sprint 1)
+usava API legada de cookies do `@supabase/ssr` (`get`/`set`/`remove`). Essa
+API tem comportamento inconsistente em Server Actions — refresh token rotation
+não consegue escrever cookie atualizado em alguns contextos, resultando em
+`auth.uid()` null e RLS rejeitando updates silenciosamente. Era débito
+Sprint 1 que precisava ser pago de qualquer jeito.
+**Decisão:** Migrar pra API atual `getAll`/`setAll` recomendada pelo
+`@supabase/ssr` 0.8+. `setAll` envolto em try/catch silencioso é o padrão
+oficial pra Server Components que não podem set cookies. Tipagem com
+`CookieOptions` importado direto do pacote.
+**Implicação:** Sem breaking changes nos 11 consumidores (assinatura externa
+preservada). Não resolveu sozinho o bug de persistência do
+`onboarding_completed` — esse era causado por DL-014.
+**Status:** Resolvido.
+
+### DL-014 — BUG CRÍTICO: is_master_admin/is_admin_master SECURITY INVOKER causava recursão infinita de RLS
+**Data:** 28 Abril 2026
+**Sprint:** 2 — fixado via SQL direto no Supabase Dashboard (fora do fluxo
+Claude Code, fora do repo).
+**Contexto:** Bug de persistência onde Server Action `completeOnboarding`
+chamava `redirect("/app/tutor")` (303) mas `profiles.onboarding_completed`
+continuava `false`. Diagnose foi longa: TASK-FIX-006 (cookies) e TASK-FIX-007
+(`.select()` + logs) ajudaram a identificar o sintoma — `data` vazio ou erro
+PostgreSQL `stack depth limit exceeded` (code 54001) — mas não resolveram a
+causa raiz.
+**Causa raiz:** Funções `is_master_admin()` e `is_admin_master()` no banco
+estavam definidas como `SECURITY INVOKER` (default do Postgres). Como ambas
+fazem `SELECT FROM profiles` e a policy `profiles_update_all_master` usa
+`is_master_admin()` no `qual`, isso criava recursão infinita: UPDATE em
+`profiles` → policy avaliada → função executada como caller (tutor) → SELECT
+em `profiles` → policy avaliada de novo → ... → stack overflow.
+**Fix aplicado:** `CREATE OR REPLACE FUNCTION` em ambas com
+`SECURITY DEFINER` + `SET search_path = public`. Aplicado direto no SQL
+Editor do Supabase Dashboard — alteração de função via migration ainda não
+está estabelecida (Sprint 2 cria a pasta `supabase/migrations/`).
+**Implicação:** Onboarding tutor passou a persistir `onboarding_completed=true`
+corretamente. TASK-FIX-006/007/008 ficaram como diagnóstico+blindagem (ainda
+valiosos isoladamente).
+**Pendência:** Versionar essa alteração de função em SQL versionado quando
+Sprint 2 oficialmente criar `supabase/migrations/`.
+**Status:** Resolvido em produção, não versionado no repo.
+
+### DL-015 — Lição: TODA função customizada em RLS deve ser SECURITY DEFINER + SET search_path = public
+**Data:** 28 Abril 2026
+**Sprint:** 2 — derivado de DL-014.
+**Contexto:** O bug de DL-014 não foi código do projeto — era padrão SQL.
+`SECURITY INVOKER` (default do Postgres) executa a função com permissões do
+caller, o que aplica RLS na função. Se a função consulta a mesma tabela cuja
+policy chama a função, vira recursão.
+**Decisão:** Padrão Vetria, alinhado com docs oficiais do Supabase:
+- TODA função customizada usada em policy de RLS declara `SECURITY DEFINER`
+- TODA função `SECURITY DEFINER` declara `SET search_path = public` pra
+  prevenir hijack via search_path (regra de hardening Postgres)
+**Aplicar em:** futuras funções helper em RLS. Migration 001 (Sprint 2) que
+vier criar funções helper pra `vet_profiles`/`clinic_profiles` deve seguir
+esse padrão por default.
+**Status:** Padrão estabelecido. Aguardando primeira aplicação versionada
+em migration.
+
+### DL-016 — useTransition + Server Action: callback síncrono sem try/catch
+**Data:** 28 Abril 2026
+**Sprint:** 2 — TASK-FIX-008 (commit ff26a75).
+**Contexto:** Form do onboarding tutor usava
+`startTransition(async () => { try { await action(formData); } catch { setMsg("Erro..."); }})`.
+NEXT_REDIRECT (exceção especial do Next.js que sinaliza redirect) era
+capturado pelo catch como "erro genérico", causando flash visual de mensagem
+vermelha por ~200ms antes do redirect efetivo.
+**Decisão:** Padrão correto pra Client Forms invocando Server Action:
+
+```ts
+function handleAction(formData: FormData) {
+  setMsg("");
+  startTransition(() => {
+    action(formData);  // sem await, sem try/catch
+  });
+}
+```
+
+NEXT_REDIRECT borbulha pro framework normalmente. Erros legítimos da Server
+Action vão pro error boundary do Next.js (próximo `error.tsx` ascendente).
+**Implicação:** Aplicar em todos os Client Forms futuros (TutorOnboardingForm
+já feito, VetOnboardingForm, ClinicOnboardingForm pendentes). Se feedback de
+erro for crítico em alguma rota, criar `error.tsx` ali — não envolver Server
+Action em try/catch.
+**Status:** Aplicado em `TutorOnboardingForm.tsx`.
 
 ---
 

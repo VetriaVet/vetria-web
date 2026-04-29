@@ -16,7 +16,7 @@
 ## 🟢 FASE 1 — Telas estáticas (push direto autorizado)
 
 ### TASK-001 — Refatorar `/login` 🟢
-**Status:** ⬜ pendente (próxima)
+**Status:** ✅ feita em 28/04/2026 (commit 78a43a1)
 **Pré-req:** assets em `public/vetria/` (logo-square.png, vet-portrait.jpg)
 **Tempo:** 45-60 min
 
@@ -96,7 +96,7 @@ Salvaguardas:
 ---
 
 ### TASK-002 — Refatorar `/onboarding` (escolha de role) 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 28/04/2026 (commit b89e49b)
 **Pré-req:** TASK-001 mergeada
 **Tempo:** 30-45 min
 
@@ -155,7 +155,7 @@ Saídas esperadas:
 ---
 
 ### TASK-003 — Criar `/cadastro` (escolha de role pública) 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 28/04/2026 (commit d59e041)
 **Pré-req:** TASK-001
 **Tempo:** 30-45 min
 
@@ -537,6 +537,117 @@ Mensagem: feat(ui): criar componentes reutilizáveis Button, Input, Card
 
 ---
 
+### TASK-FIX-003 — Trocar update por upsert em /api/onboarding/set-role 🟡
+**Status:** ⬜ pendente (não urgente)
+**Pré-req:** —
+**Tempo:** 15 min
+
+```
+Task: Em app/api/onboarding/set-role/route.ts, trocar .update() por .upsert()
+na tabela profiles, mais defensivo contra falha de trigger SQL.
+Nível de autonomia: 🟡 AMARELO — diff obrigatório (mexe em /api/*).
+
+Auditoria descobriu que o endpoint hoje assume row em profiles existe (criada
+por trigger handle_new_user no signup). Se trigger falhar uma vez, set-role
+falha silenciosamente. .upsert() torna fluxo idempotente.
+
+Adiciona também log conforme padrão DL-011 (logs em handlers de auth):
+- console.log de entrada com {userId, role}
+- console.error em error de DB com {message, code}
+- console.log de sucesso com {userId, role, action: 'inserted' | 'updated'}
+
+Mensagem: refactor(api): tornar set-role idempotente com upsert
+```
+
+---
+
+## 🟢 FIXES E AD-HOC (concluídas — Sprint 2 bloco auth/onboarding)
+
+### TASK-FIX-002 — Auth callback handler `/auth/callback` 🟢
+**Status:** ✅ feita em 28/04/2026 (commit 4f7f87e)
+
+Criado `app/auth/callback/route.ts` pra processar `?code=` de email
+confirmation + corrigir Google OAuth que estava broken silenciosamente.
+Documentado em DL-009. Padrão de exchangeCodeForSession + getUser +
+maybeSingle em profiles.
+
+---
+
+### TASK-FIX-MICRO-001 — Logs de debug no callback handler 🟢
+**Status:** ✅ feita em 28/04/2026 (commit 1861a46)
+
+Adicionou logs estruturados no callback handler pra triagem em runtime
+logs da Vercel (Hobby plan oculta stack traces). Estabeleceu padrão
+formal de logs em handlers de auth — DL-011.
+
+---
+
+### TASK-AH-001 — Refator visual ad-hoc do `/app/tutor/onboarding` 🟢
+**Status:** ✅ feita em 28/04/2026 (commit 4259924)
+
+Refator visual com form Vetria + dados do pet (nome, espécie, idade,
+peso, cidade). Lógica de persistência ainda placeholder (apenas seta
+`onboarding_completed=true` — captura real dos dados depende de
+migration futura). Estabeleceu padrão Server Component + Server Action
++ Client Form — DL-012.
+
+---
+
+### TASK-FIX-006 — Migrar `lib/supabase/server` pra API getAll/setAll 🟡
+**Status:** ✅ feita em 28/04/2026 (commit 84d777d)
+
+API legada de cookies (`get`/`set`/`remove`) substituída por
+`getAll`/`setAll` recomendada pelo `@supabase/ssr` 0.8+. Documentado
+em DL-013. Sem breaking change pros 11 consumidores.
+
+---
+
+### TASK-FIX-007 — `.select()` + logs no update da Server Action 🟡
+**Status:** ✅ feita em 28/04/2026 (commit 35c56e4)
+
+Update do `onboarding_completed` em `app/app/tutor/onboarding/page.tsx`
+agora usa `.select()` pra forçar PostgREST retornar rows afetadas (sem
+isso, RLS rejection silencia error). Logs estruturados em 3 caminhos
+conforme padrão DL-011. Querystring `?error=...` placeholder pra futura
+UI de feedback.
+
+---
+
+### TASK-FIX-008 — Remover try/catch que engolia NEXT_REDIRECT 🟡
+**Status:** ✅ feita em 28/04/2026 (commit ff26a75)
+
+Em `TutorOnboardingForm.tsx`, callback de `startTransition` virou
+síncrono fire-and-forget sem try/catch. NEXT_REDIRECT agora borbulha
+pro framework. Documentado em DL-016.
+
+---
+
+## 🟢 BACKLOG novo descoberto durante a Sprint 2
+
+### TASK-034 — Refator do header compartilhado `app/app/layout.tsx` 🟢
+**Status:** ⬜ pendente (prioridade baixa)
+**Pré-req:** —
+**Tempo:** 30-45 min
+
+```
+Task: Refatorar header compartilhado em app/app/layout.tsx pra padrão Vetria.
+Nível: 🟢 VERDE.
+
+Contexto: Header atual é inline-style serif Sprint 1 (placeholder). Aparece em
+todas as rotas /app/* (tutor, vet, clinic). Refator visual isolado, sem mudar
+lógica de RBAC.
+
+Implementação:
+- Logo Vetria à esquerda (vetria/logo-square.png + wordmark)
+- Nav contextual à direita (depende da role — começar simples)
+- Inter, paleta Vetria, h-16 px-6 border-b border-gray-100
+- Mobile responsivo
+
+Mensagem: style(app): refatorar header compartilhado com identidade Vetria
+```
+
+---
+
 ## 🔴 FASE 7 — NÃO autônomo (sessão presencial obrigatória)
 
 ### TASK-029 — Migration 001: schema Sprint 2 🔴
@@ -564,6 +675,17 @@ estar presente pra rotacionar variáveis na Vercel.
 ### TASK-033 — Sprint 6: Stripe 🔴
 **Status:** 🔴 NÃO autônomo
 **Quando:** Sprint 6 (longe)
+
+### TASK-FIX-009 — Consolidar duplicação `is_master_admin` e `is_admin_master` 🔴
+**Status:** 🔴 NÃO autônomo (não urgente)
+**Pré-req:** Pasta `supabase/migrations/` criada (TASK-029)
+**Por quê:** Funções idênticas no banco, ambas SECURITY DEFINER + SET
+search_path = public após fix de DL-014. Decidir qual manter, dropar a
+outra atualizando policies que a referenciem. Mexe em RLS policies +
+funções SQL — vermelha por padrão.
+
+**Quando rodar:** sessão presencial junto com migration 001 (TASK-029),
+versionando também a redefinição já aplicada via SQL Editor (DL-014/015).
 
 ---
 
@@ -622,11 +744,29 @@ Se descoberta task nova (bug, refactor, decisão):
 
 ---
 
-## 🚦 STATUS ATUAL (Abril 2026)
+## 🚦 STATUS ATUAL (28 Abril 2026)
 
 ```
-✅ TASK-000 — Fundação Sprint 2 (Tailwind + paleta + admin fix) — completa
-⬜ TASK-001 — Refatorar /login — PRÓXIMA
-⬜ TASK-002 a TASK-028 — backlog
+✅ TASK-000 — Fundação Sprint 2 (Tailwind + paleta + admin fix)
+✅ TASK-001 — /login refatorado (78a43a1)
+✅ TASK-002 — /onboarding com 3 cards (b89e49b)
+✅ TASK-003 — /cadastro escolha de role (d59e041)
+✅ TASK-FIX-002 — auth callback handler (4f7f87e)
+✅ TASK-FIX-MICRO-001 — logs no callback (1861a46)
+✅ TASK-AH-001 — /app/tutor/onboarding visual ad-hoc (4259924)
+✅ TASK-FIX-006 — cookies getAll/setAll (84d777d)
+✅ TASK-FIX-007 — .select() + logs no update (35c56e4)
+✅ TASK-FIX-008 — remover try/catch NEXT_REDIRECT (ff26a75)
+✅ Bug DL-014 fixado via SQL direto (is_master_admin SECURITY DEFINER)
+
+⬜ TASK-004 — /cadastro/tutor — PRÓXIMA
+⬜ TASK-005 a TASK-007 — cadastro vet/clínica/recuperar-senha
+⬜ TASK-008 a TASK-011 — painel tutor (dashboard, perfil, histórico, avaliações)
+⬜ TASK-012 a TASK-020 — painéis vet/clinic
+⬜ TASK-021 a TASK-025 — painel admin
+⬜ TASK-026 a TASK-028 — homepage + vercelignore + componentes UI
+⬜ TASK-FIX-003 — set-role idempotente (não urgente)
+⬜ TASK-034 — refator header app (verde, prioridade baixa)
 🔴 TASK-029 a TASK-033 — vermelhas, presenciais
+🔴 TASK-FIX-009 — consolidar is_master_admin/is_admin_master (vermelha futura)
 ```
