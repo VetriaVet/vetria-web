@@ -1,21 +1,76 @@
 import Link from "next/link";
+import Image from "next/image";
+import { createClient } from "../../lib/supabase/server";
+import LogoutButton from "./LogoutButton";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+// Navegação contextual por role. Inclui APENAS rotas que já existem hoje
+// (não linka 404). Telas internas (perfil/historico/avaliacoes/equipe/
+// aguardando) entram aqui conforme forem criadas em tasks futuras.
+const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
+  tutor: [{ href: "/app/tutor", label: "Painel" }],
+  vet: [{ href: "/app/vet", label: "Painel" }],
+  clinic: [{ href: "/app/clinic", label: "Painel" }],
+  admin: [{ href: "/admin", label: "Admin" }],
+  master: [{ href: "/admin", label: "Admin" }],
+};
+
+export default async function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData.user;
+
+  // Os guards das pages /app/* já redirecionam quem não tem sessão.
+  // Aqui tratamos role ausente de forma defensiva: header mínimo, sem quebrar.
+  let navLinks: { href: string; label: string }[] = [];
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    if (profile?.role) {
+      navLinks = NAV_BY_ROLE[profile.role] ?? [];
+    }
+  }
+
   return (
-    <div style={{ maxWidth: 980, margin: "0 auto", padding: 24 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontWeight: 800 }}>Vetria</div>
+    <div className="min-h-screen bg-white">
+      <header className="border-b border-gray-100">
+        <div className="max-w-[980px] mx-auto px-6 h-16 flex items-center justify-between">
+          <Link
+            href="/app"
+            className="inline-flex items-center gap-2.5 no-underline"
+          >
+            <Image
+              src="/vetria/logo-square.png"
+              alt="Vetria"
+              width={32}
+              height={32}
+              className="rounded-md"
+            />
+            <span className="text-titulo font-bold text-xl">Vetria</span>
+          </Link>
 
-        <nav style={{ display: "flex", gap: 14 }}>
-          <Link href="/app">Dashboard</Link>
-          <Link href="/admin">Admin</Link>
-          <Link href="/login">Login</Link>
-        </nav>
+          <nav className="flex items-center gap-5">
+            {navLinks.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="text-sm text-corpo-texto hover:text-principal transition"
+              >
+                {l.label}
+              </Link>
+            ))}
+            <LogoutButton />
+          </nav>
+        </div>
       </header>
 
-      <hr style={{ margin: "16px 0" }} />
-
-      {children}
+      <main className="max-w-[980px] mx-auto px-6 py-8">{children}</main>
     </div>
   );
 }
