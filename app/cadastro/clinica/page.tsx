@@ -7,6 +7,7 @@ import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
 import { Button } from "../../../components/ui/Button";
 
+// Funil B2B / empresarial — acessado pelas landings de profissionais (não pelo fluxo do tutor).
 // Cadastro da clínica — casca preparada (TASK-006). Form com CNPJ + aside.
 // signUp escrito como TODO (padrão /login, role=clinic), pronto pra ligar na
 // fase pesada. Após criar conta → /app/clinic/onboarding.

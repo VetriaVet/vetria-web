@@ -7,6 +7,7 @@ import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
 import { Button } from "../../../components/ui/Button";
 
+// Funil B2B / empresarial — acessado pelas landings de profissionais (não pelo fluxo do tutor).
 // Cadastro do veterinário — casca preparada (TASK-005). Form + aside corporativo.
 // signUp escrito como TODO (padrão /login, role=vet), pronto pra ligar na fase
 // pesada. Após criar conta → /app/vet/onboarding (multi-step já existe).

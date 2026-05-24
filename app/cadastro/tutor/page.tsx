@@ -7,6 +7,7 @@ import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
 import { Button } from "../../../components/ui/Button";
 
+// Funil HUMANO / consumidor — entrada direta do tutor (também alvo de `/cadastro`).
 // Cadastro do tutor — casca preparada (TASK-004). Form visual + validação
 // client. A criação de conta (signUp) está escrita como TODO abaixo, pronta
 // pra ligar na fase pesada (mesmo padrão do /login). Por ora NÃO cria conta —
