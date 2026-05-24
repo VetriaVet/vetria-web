@@ -142,22 +142,6 @@ export default async function VetPage() {
 
             <EmptyState
               icon={CalendarDays}
-              preview={
-                <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 [mask-image:linear-gradient(to_bottom,black,transparent)]">
-                  {Array.from({ length: 2 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 rounded-xl border border-neutro-border-soft bg-neutro-bg-alt/40 p-3"
-                    >
-                      <Skeleton className="h-11 w-11 shrink-0 rounded-lg" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-3 w-2/3" />
-                        <Skeleton className="h-2.5 w-1/2" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              }
               title="A agenda chega em breve"
               description="Você poderá organizar horários e receber agendamentos diretos pela Vetria. Por enquanto, tutores entram em contato pelo WhatsApp."
             />

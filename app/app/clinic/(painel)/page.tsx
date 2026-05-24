@@ -2,13 +2,24 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
+import { EmptyState, Skeleton } from "@/components/ui/EmptyState";
+import {
+  ArrowRight,
+  Eye,
+  MessageCircle,
+  Users,
+  Star,
+  Search,
+  Inbox,
+  Plus,
+  Check,
+  type LucideIcon,
+} from "lucide-react";
 
-// Dashboard clínica — casca fiel ao produto, mesma linguagem do painel vet.
-// Estrutura institucional (equipe, métricas, ativação) pensada pras próximas
-// fases, com estados honestos "em breve" até o backend real (migration 029:
-// clinic_profiles + equipe; busca Sprint 3; planos Sprint 6). Sem mock.
-// Pontos de integração marcados com // TODO. Card de plano/cobrança fica de
-// fora de propósito — pré-anunciar preço é Sprint 6.
+// Dashboard clínica — casca, mesma linguagem do painel vet. Blocos sem backend
+// (equipe, atividade, métricas) usam estado GHOST (DL-034): esqueleto + texto
+// honesto, sem mock (DL-020). Card de plano/cobrança fica de fora de propósito
+// (Sprint 6). Pontos de integração marcados com // TODO.
 
 export default async function ClinicPage() {
   const supabase = await createClient();
@@ -41,139 +52,119 @@ export default async function ClinicPage() {
   });
 
   const completo = profile.onboarding_completed;
+  const ctaHref = completo ? "/app/clinic/perfil" : "/app/clinic/onboarding";
+  const ctaLabel = completo ? "Editar perfil" : "Completar cadastro";
 
   return (
     <div className="flex flex-col gap-6">
       {/* Greeting card */}
-      <section className="rounded-2xl bg-principal text-white p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <section className="flex flex-col gap-6 rounded-2xl bg-principal p-8 text-white md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-white/60 mb-2">
+          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/60">
             {hoje}
           </div>
-          <h1 className="font-bold text-[26px] sm:text-[30px] leading-tight mb-2">
+          <h1 className="mb-2 text-[26px] font-bold leading-tight sm:text-[30px]">
             Bem-vindo, {displayName}.
           </h1>
-          <p className="text-[15px] text-white/80 leading-relaxed max-w-lg">
+          <p className="max-w-lg text-[15px] leading-relaxed text-white/80">
             {completo
               ? "O cadastro da clínica está completo. Em breve seu perfil entra na busca pública da Vetria."
               : "Complete o cadastro da clínica para que tutores possam encontrar sua equipe na Vetria."}
           </p>
         </div>
-        {completo ? (
-          <Link
-            href="/app/clinic/perfil"
-            className="shrink-0 inline-flex items-center justify-center gap-2 rounded-pill bg-fundo-claro text-principal px-6 py-3 font-semibold text-sm hover:bg-white transition no-underline"
-          >
-            Editar perfil
-            <ArrowRightIcon />
-          </Link>
-        ) : (
-          <Link
-            href="/app/clinic/onboarding"
-            className="shrink-0 inline-flex items-center justify-center gap-2 rounded-pill bg-fundo-claro text-principal px-6 py-3 font-semibold text-sm hover:bg-white transition no-underline"
-          >
-            Completar cadastro
-            <ArrowRightIcon />
-          </Link>
-        )}
+        <Link
+          href={ctaHref}
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-pill bg-fundo-claro px-6 py-3 text-sm font-semibold text-principal no-underline transition hover:bg-white"
+        >
+          {ctaLabel}
+          <ArrowRight size={16} />
+        </Link>
       </section>
 
-      {/* Busca — visual/preparada (// TODO: busca real na fase pesada) */}
-      <div className="bg-white rounded-pill border border-gray-200 flex items-center gap-3 pl-5 pr-3 py-2.5 max-w-xl">
-        <span className="text-corpo-texto/60 shrink-0">
-          <SearchIcon />
-        </span>
+      {/* Busca — preparada (// TODO: busca real na fase pesada) */}
+      <div className="flex max-w-xl items-center gap-3 rounded-pill border border-neutro-border bg-white py-2.5 pl-5 pr-3">
+        <Search size={18} className="shrink-0 text-corpo-texto/60" />
         <input
           type="text"
           disabled
           placeholder="Buscar contatos e equipe..."
-          className="flex-1 bg-transparent text-[14px] text-titulo placeholder:text-corpo-texto/60 outline-none disabled:cursor-not-allowed"
+          className="flex-1 bg-transparent text-[14px] text-titulo outline-none placeholder:text-corpo-texto/60 disabled:cursor-not-allowed"
         />
-        <span className="text-[11px] uppercase tracking-wider text-corpo-texto/50 shrink-0">
+        <span className="shrink-0 text-[11px] uppercase tracking-wider text-corpo-texto/50">
           em breve
         </span>
       </div>
 
-      {/* Stats — estrutura pronta; valores chegam com a busca pública (Sprint 3) */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats — valor fantasma até a busca pública (Sprint 3) */}
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {/* TODO: ligar a métricas reais quando o perfil público existir */}
-        <StatCard icon={<EyeIcon />} label="Visualizações" />
-        <StatCard icon={<MessageIcon />} label="Contatos" />
-        <StatCard icon={<UsersIcon />} label="Equipe ativa" />
-        <StatCard icon={<StarIcon />} label="Avaliações" />
+        <StatCard icon={Eye} label="Visualizações" />
+        <StatCard icon={MessageCircle} label="Contatos" />
+        <StatCard icon={Users} label="Equipe ativa" />
+        <StatCard icon={Star} label="Avaliações" />
       </section>
 
       {/* Grid principal */}
-      <section className="grid lg:grid-cols-3 gap-6">
+      <section className="grid gap-6 lg:grid-cols-3">
         {/* Coluna esquerda (2/3): equipe + atividade */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <Card>
-            <h2 className="font-bold text-lg text-titulo mb-1">
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <Card className="border-neutro-border p-6">
+            <h2 className="mb-1 text-lg font-bold text-titulo">
               Equipe profissional
             </h2>
-            <p className="text-[13px] text-corpo-texto mb-5">
+            <p className="mb-5 text-[13px] text-corpo-texto">
               Os veterinários vinculados à clínica.
             </p>
 
             {/* TODO: lista real da equipe (clinic_profiles + vínculos) — migration 029 */}
-            <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
-              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-fundo-claro text-corpo-texto flex items-center justify-center">
-                <UsersIcon />
-              </div>
-              <p className="font-semibold text-titulo mb-1">Monte sua equipe</p>
-              <p className="text-[13px] text-corpo-texto leading-relaxed max-w-sm mx-auto">
-                Em breve você poderá cadastrar e validar os veterinários da
-                clínica, cada um com seu CRMV e especialidade.
-              </p>
-            </div>
+            <EmptyState
+              icon={Users}
+              ghost={2}
+              title="Monte sua equipe"
+              description="Você poderá convidar e validar os veterinários da clínica, cada um com seu CRMV e especialidade — eles aparecem aqui com foto, nome e status."
+            />
 
             <Link
               href="/app/clinic/equipe"
-              className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 text-corpo-texto py-3 text-sm font-medium hover:border-principal hover:text-principal transition no-underline"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutro-border py-3 text-sm font-medium text-corpo-texto no-underline transition hover:border-principal hover:text-principal"
             >
-              <PlusIcon />
+              <Plus size={14} />
               Gerenciar equipe
             </Link>
           </Card>
 
-          <Card>
-            <h2 className="font-bold text-lg text-titulo mb-1">
+          <Card className="border-neutro-border p-6">
+            <h2 className="mb-1 text-lg font-bold text-titulo">
               Atividade recente
             </h2>
-            <p className="text-[13px] text-corpo-texto mb-5">
+            <p className="mb-5 text-[13px] text-corpo-texto">
               Movimentações no perfil da clínica
             </p>
 
             {/* TODO: feed real (contatos, avaliações, equipe) — Sprint 3+ */}
-            <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
-              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-fundo-claro text-corpo-texto flex items-center justify-center">
-                <InboxIcon />
-              </div>
-              <p className="font-semibold text-titulo mb-1">
-                Nenhuma atividade ainda
-              </p>
-              <p className="text-[13px] text-corpo-texto leading-relaxed max-w-sm mx-auto">
-                Assim que tutores interagirem com o perfil da clínica, as
-                movimentações aparecem aqui.
-              </p>
-            </div>
+            <EmptyState
+              icon={Inbox}
+              ghost={3}
+              title="Nenhuma atividade ainda"
+              description="Assim que tutores interagirem com o perfil da clínica, as movimentações aparecem aqui — cada uma com tipo, origem e data."
+            />
           </Card>
         </div>
 
         {/* Coluna direita (1/3): pipeline de ativação */}
         <div className="flex flex-col gap-6">
-          <Card>
-            <h2 className="font-bold text-lg text-titulo mb-1">
+          <Card className="border-neutro-border p-6">
+            <h2 className="mb-1 text-lg font-bold text-titulo">
               Ativação do perfil
             </h2>
-            <p className="text-[13px] text-corpo-texto mb-5">
+            <p className="mb-5 text-[13px] text-corpo-texto">
               As etapas até a clínica ficar visível na busca pública.
             </p>
 
             {/* Pipeline = fluxo real de status do CONTEXT §4.3
                 (incomplete → pending_validation → active). Hoje derivado de
                 onboarding_completed; liga ao campo `status` na migration 029. */}
-            <ol className="flex flex-col gap-4 mb-6">
+            <ol className="mb-6 flex flex-col gap-4">
               <StepItem
                 title="Cadastro da clínica"
                 desc="Dados institucionais e CNPJ"
@@ -191,23 +182,13 @@ export default async function ClinicPage() {
               />
             </ol>
 
-            {completo ? (
-              <Link
-                href="/app/clinic/perfil"
-                className="w-full inline-flex items-center justify-center gap-2 rounded-pill bg-principal text-white py-3 font-semibold text-sm hover:bg-[#142E33] transition no-underline"
-              >
-                Editar perfil
-                <ArrowRightIcon />
-              </Link>
-            ) : (
-              <Link
-                href="/app/clinic/onboarding"
-                className="w-full inline-flex items-center justify-center gap-2 rounded-pill bg-principal text-white py-3 font-semibold text-sm hover:bg-[#142E33] transition no-underline"
-              >
-                Completar cadastro
-                <ArrowRightIcon />
-              </Link>
-            )}
+            <Link
+              href={ctaHref}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-principal py-3 text-sm font-semibold text-white no-underline transition hover:bg-principal-deep"
+            >
+              {ctaLabel}
+              <ArrowRight size={16} />
+            </Link>
           </Card>
         </div>
       </section>
@@ -215,21 +196,15 @@ export default async function ClinicPage() {
   );
 }
 
-function StatCard({
-  icon,
-  label,
-}: {
-  icon: React.ReactNode;
-  label: string;
-}) {
+function StatCard({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
-      <div className="w-9 h-9 rounded-lg bg-fundo-destaque text-principal flex items-center justify-center mb-3">
-        {icon}
+    <div className="rounded-2xl border border-neutro-border bg-white p-5">
+      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-fundo-destaque text-principal">
+        <Icon size={18} />
       </div>
-      <div className="text-[13px] text-corpo-texto mb-1">{label}</div>
-      <div className="text-2xl font-bold text-titulo/30">—</div>
-      <div className="text-xs text-corpo-texto/70 mt-1">Em breve</div>
+      <div className="mb-2 text-[13px] text-corpo-texto">{label}</div>
+      <Skeleton className="h-7 w-12" />
+      <div className="mt-2 text-xs text-corpo-texto/70">Em breve</div>
     </div>
   );
 }
@@ -247,29 +222,29 @@ function StepItem({
 }) {
   const marker =
     state === "done" ? (
-      <span className="w-6 h-6 rounded-full bg-principal text-white flex items-center justify-center shrink-0">
-        <CheckIcon />
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-principal text-white">
+        <Check size={14} strokeWidth={3} />
       </span>
     ) : state === "current" ? (
-      <span className="w-6 h-6 rounded-full border-2 border-principal bg-white shrink-0" />
+      <span className="h-6 w-6 shrink-0 rounded-full border-2 border-principal bg-white" />
     ) : (
-      <span className="w-6 h-6 rounded-full border-2 border-gray-200 bg-white shrink-0" />
+      <span className="h-6 w-6 shrink-0 rounded-full border-2 border-neutro-border bg-white" />
     );
 
   return (
     <li className="flex items-start gap-3">
       {marker}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span
-            className={`font-medium text-sm ${
+            className={`text-sm font-medium ${
               state === "soon" ? "text-corpo-texto" : "text-titulo"
             }`}
           >
             {title}
           </span>
           {state === "soon" && (
-            <span className="text-[10px] uppercase tracking-wider rounded-pill bg-fundo-claro text-corpo-texto px-2 py-0.5">
+            <span className="rounded-pill bg-fundo-claro px-2 py-0.5 text-[10px] uppercase tracking-wider text-corpo-texto">
               Em breve
             </span>
           )}
@@ -277,82 +252,5 @@ function StepItem({
         <div className="text-[12px] text-corpo-texto/80">{desc}</div>
       </div>
     </li>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.3-4.3" />
-    </svg>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function MessageIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-    </svg>
-  );
-}
-
-function StarIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M11.5 2.8a.6.6 0 0 1 1 0l2.4 5 5.4.8a.6.6 0 0 1 .3 1l-3.9 3.8.9 5.4a.6.6 0 0 1-.9.6l-4.8-2.5-4.8 2.5a.6.6 0 0 1-.9-.6l.9-5.4L2.4 9.6a.6.6 0 0 1 .3-1l5.4-.8z" />
-    </svg>
-  );
-}
-
-function UsersIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-
-function InboxIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M22 12h-6l-2 3h-4l-2-3H2" />
-      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 12h14M12 5v14" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 12h14M12 5l7 7-7 7" />
-    </svg>
   );
 }

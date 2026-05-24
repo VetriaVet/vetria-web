@@ -1,6 +1,18 @@
 import { redirect } from "next/navigation";
-import { createClient } from "../../../lib/supabase/server";
-import { Card } from "../../../components/ui/Card";
+import { createClient } from "@/lib/supabase/server";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import {
+  Search,
+  CalendarClock,
+  Star,
+  PawPrint,
+  type LucideIcon,
+} from "lucide-react";
+
+// Dashboard do tutor (lado B2C/humano — hero claro, não o card verde do B2B).
+// Blocos sem backend usam estado GHOST (DL-034); nada de mock (DL-020) — os
+// pets de exemplo "Mel/Pingo" foram removidos. // TODO marca integrações.
 
 export default async function TutorHome() {
   const supabase = await createClient();
@@ -35,82 +47,79 @@ export default async function TutorHome() {
   return (
     <div className="flex flex-col gap-8">
       {/* Greeting hero */}
-      <section className="bg-fundo-claro rounded-2xl p-8 sm:p-10">
-        <div className="text-5xl mb-4 leading-none" aria-hidden="true">
+      <section className="rounded-2xl bg-fundo-claro p-8 sm:p-10">
+        <div className="mb-4 text-5xl leading-none" aria-hidden="true">
           👋
         </div>
-        <h1 className="font-bold text-[28px] sm:text-[32px] leading-tight tracking-tight text-titulo mb-2">
+        <h1 className="mb-2 text-[28px] font-bold leading-tight tracking-tight text-titulo sm:text-[32px]">
           Oi <span className="text-principal">{displayName}</span>
         </h1>
-        <p className="text-[15px] text-corpo-texto leading-relaxed max-w-xl mb-6">
+        <p className="mb-6 max-w-xl text-[15px] leading-relaxed text-corpo-texto">
           Aqui você acompanha a saúde dos seus pets, encontra novos
           profissionais e mantém tudo organizado em um só lugar.
         </p>
 
         {/* Busca — visual por enquanto. TODO: busca real (Sprint 3) */}
-        <div className="bg-white rounded-pill shadow-sm flex items-center gap-3 pl-5 pr-2 py-2 max-w-xl">
-          <span className="text-corpo-texto/60 shrink-0">
-            <SearchIcon />
-          </span>
+        <div className="flex max-w-xl items-center gap-3 rounded-pill bg-white py-2 pl-5 pr-2 shadow-sm">
+          <Search size={18} className="shrink-0 text-corpo-texto/60" />
           <input
             type="text"
             disabled
             placeholder="Buscar veterinário, especialidade ou clínica..."
-            className="flex-1 bg-transparent text-[14px] text-titulo placeholder:text-corpo-texto/60 outline-none disabled:cursor-not-allowed"
+            className="flex-1 bg-transparent text-[14px] text-titulo outline-none placeholder:text-corpo-texto/60 disabled:cursor-not-allowed"
           />
         </div>
       </section>
 
-      {/* Quick actions — estáticos por ora. TODO: rotas de destino */}
-      <section className="grid md:grid-cols-3 gap-4">
+      {/* Quick actions — informativos por ora. TODO: rotas de destino */}
+      <section className="grid gap-4 md:grid-cols-3">
         <QuickAction
-          icon={<SearchIcon />}
+          icon={Search}
           title="Buscar profissional"
           desc="Encontre vets e clínicas verificadas perto de você."
         />
         <QuickAction
-          icon={<CalendarIcon />}
+          icon={CalendarClock}
           title="Meus agendamentos"
           desc="Veja consultas passadas e próximas em um só lugar."
         />
         <QuickAction
-          icon={<StarIcon />}
+          icon={Star}
           title="Minhas avaliações"
           desc="Compartilhe sua experiência depois do atendimento."
         />
       </section>
 
       {/* Próximas consultas + Meus pets */}
-      <section className="grid lg:grid-cols-2 gap-6">
-        <Card>
-          <h2 className="font-bold text-xl text-titulo mb-1">
+      <section className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-neutro-border p-6">
+          <h2 className="mb-1 text-xl font-bold text-titulo">
             Próximas consultas
           </h2>
-          <p className="text-[13px] text-corpo-texto mb-6">
-            Você não tem nenhuma consulta agendada.
+          <p className="mb-5 text-[13px] text-corpo-texto">
+            Suas consultas marcadas pela Vetria.
           </p>
 
-          <div className="text-center py-8">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-fundo-destaque text-principal flex items-center justify-center">
-              <CalendarIcon />
-            </div>
-            <p className="font-semibold text-titulo mb-1.5">
-              Tudo tranquilo por enquanto
-            </p>
-            <p className="text-[13px] text-corpo-texto leading-relaxed max-w-xs mx-auto">
-              Quando precisar, é só buscar um profissional e agendar.
-            </p>
-          </div>
+          {/* TODO: agendamentos reais (fase de backend) */}
+          <EmptyState
+            icon={CalendarClock}
+            title="Tudo tranquilo por enquanto"
+            description="Quando você marcar uma consulta, ela aparece aqui — com data, profissional e lembrete. Por ora, é só buscar um profissional e agendar."
+          />
         </Card>
 
-        <Card>
-          <h2 className="font-bold text-xl text-titulo mb-4">Meus pets</h2>
+        <Card className="border-neutro-border p-6">
+          <h2 className="mb-1 text-xl font-bold text-titulo">Meus pets</h2>
+          <p className="mb-5 text-[13px] text-corpo-texto">
+            O perfil de saúde de cada um dos seus animais.
+          </p>
 
-          {/* TODO: integrar com banco — dados de exemplo até a captura real de pets */}
-          <div className="flex flex-col gap-3">
-            <PetItem emoji="🐶" name="Mel" meta="Yorkshire · 9 anos · Fêmea" />
-            <PetItem emoji="🐱" name="Pingo" meta="SRD · 4 anos · Macho" />
-          </div>
+          {/* TODO: captura/edição de pets real — sem mock (DL-020) */}
+          <EmptyState
+            icon={PawPrint}
+            title="Nenhum pet cadastrado ainda"
+            description="Você poderá cadastrar seus pets (espécie, raça, idade) pra agilizar agendamentos e manter o histórico de saúde reunido aqui."
+          />
         </Card>
       </section>
     </div>
@@ -118,106 +127,23 @@ export default async function TutorHome() {
 }
 
 function QuickAction({
-  icon,
+  icon: Icon,
   title,
   desc,
 }: {
-  icon: React.ReactNode;
+  icon: LucideIcon;
   title: string;
   desc: string;
 }) {
   return (
-    <Card>
+    <Card className="border-neutro-border p-6">
       <div className="flex flex-col gap-3">
-        <span className="w-11 h-11 rounded-xl bg-fundo-destaque text-principal flex items-center justify-center">
-          {icon}
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-fundo-destaque text-principal">
+          <Icon size={20} />
         </span>
-        <div className="font-semibold text-[15px] text-titulo">{title}</div>
-        <p className="text-[13px] text-corpo-texto leading-relaxed">{desc}</p>
+        <div className="text-[15px] font-semibold text-titulo">{title}</div>
+        <p className="text-[13px] leading-relaxed text-corpo-texto">{desc}</p>
       </div>
     </Card>
-  );
-}
-
-function PetItem({
-  emoji,
-  name,
-  meta,
-}: {
-  emoji: string;
-  name: string;
-  meta: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 p-3 rounded-xl bg-fundo-claro/50">
-      <span
-        className="w-9 h-9 rounded-full bg-fundo-destaque flex items-center justify-center text-lg shrink-0"
-        aria-hidden="true"
-      >
-        {emoji}
-      </span>
-      <div className="min-w-0">
-        <div className="font-semibold text-sm text-titulo">{name}</div>
-        <div className="text-xs text-corpo-texto">{meta}</div>
-      </div>
-    </div>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.3-4.3" />
-    </svg>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M8 2v4M16 2v4" />
-      <rect width="18" height="18" x="3" y="4" rx="2" />
-      <path d="M3 10h18" />
-      <path d="m9 16 2 2 4-4" />
-    </svg>
-  );
-}
-
-function StarIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M11.5 2.8a.6.6 0 0 1 1 0l2.4 5 5.4.8a.6.6 0 0 1 .3 1l-3.9 3.8.9 5.4a.6.6 0 0 1-.9.6l-4.8-2.5-4.8 2.5a.6.6 0 0 1-.9-.6l.9-5.4L2.4 9.6a.6.6 0 0 1 .3-1l5.4-.8z" />
-    </svg>
   );
 }
