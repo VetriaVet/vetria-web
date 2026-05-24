@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
 import AdminPanel from "./AdminPanel";
 
+export const metadata = {
+  title: "Admin",
+};
+
 export default async function AdminPage() {
   const supabase = await createClient();
 
@@ -20,37 +24,39 @@ export default async function AdminPage() {
   const isMaster = profile.admin_level === "master";
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700 }}>Admin • Vetria</h1>
+    <div>
+      <header className="bg-[#0F1F22]/90 backdrop-blur border-b border-white/[0.06] px-6 py-4 sticky top-0 z-10 flex items-center justify-between">
+        <h1 className="font-bold text-lg text-white">Dashboard administrativo</h1>
+        <span className="text-[12px] text-white/50">
+          level: <b className="text-white/80">{profile.admin_level ?? "-"}</b> · team:{" "}
+          <b className="text-white/80">{profile.admin_team ?? "-"}</b>
+        </span>
+      </header>
 
-      <p style={{ marginTop: 6 }}>
-        level: <b>{profile.admin_level ?? "-"}</b> • team:{" "}
-        <b>{profile.admin_team ?? "-"}</b>
-      </p>
+      <div className="p-6 max-w-[1280px] mx-auto">
+        {!isMaster && (
+          <div className="rounded-md border border-white/[0.06] bg-[#1A2A2D] p-4 text-[13px] text-white/70 mb-5">
+            Você é <b className="text-white">admin</b> (acesso limitado). Apenas{" "}
+            <b className="text-white">master</b> pode alterar permissões de usuários.
+          </div>
+        )}
 
-      {!isMaster && (
-        <div
-          style={{
-            marginTop: 12,
-            padding: 12,
-            border: "1px solid #ddd",
-            borderRadius: 10,
-          }}
-        >
-          Você é <b>admin</b> (acesso limitado). Apenas <b>master</b> pode
-          alterar permissões.
-        </div>
-      )}
-
-      <hr style={{ margin: "16px 0" }} />
-
-      {isMaster ? (
-        <AdminPanel />
-      ) : (
-        <p style={{ opacity: 0.7 }}>
-          Entre em contato com um administrador master para alterações de usuários.
-        </p>
-      )}
+        {isMaster ? (
+          <div className="rounded-md border border-white/[0.06] bg-[#1A2A2D] overflow-hidden">
+            <div className="px-[18px] py-3.5 border-b border-white/[0.06]">
+              <div className="font-bold text-sm text-white">Usuários & permissões</div>
+              <div className="text-[12px] text-white/50">
+                Gerencie role e nível de acesso dos usuários da plataforma.
+              </div>
+            </div>
+            <AdminPanel />
+          </div>
+        ) : (
+          <p className="text-white/60 text-sm">
+            Entre em contato com um administrador master para alterações de usuários.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

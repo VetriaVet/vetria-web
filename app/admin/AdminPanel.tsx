@@ -11,6 +11,8 @@ type Row = {
   created_at: string;
 };
 
+// TASK-021: refator SÓ visual (dark). Lógica de fetch + set-access PRESERVADA
+// da Sprint 1 — chama /api/admin/profiles e /api/admin/set-access.
 export default function AdminPanel() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
@@ -81,24 +83,15 @@ export default function AdminPanel() {
   }
 
   function setTutor(id: string) {
-    return callSetAccess({
-      target_user_id: id,
-      new_role: "tutor",
-    });
+    return callSetAccess({ target_user_id: id, new_role: "tutor" });
   }
 
   function setVet(id: string) {
-    return callSetAccess({
-      target_user_id: id,
-      new_role: "vet",
-    });
+    return callSetAccess({ target_user_id: id, new_role: "vet" });
   }
 
   function setClinic(id: string) {
-    return callSetAccess({
-      target_user_id: id,
-      new_role: "clinic",
-    });
+    return callSetAccess({ target_user_id: id, new_role: "clinic" });
   }
 
   useEffect(() => {
@@ -110,55 +103,57 @@ export default function AdminPanel() {
   const showEmpty = !hasError && rows.length === 0 && !loading;
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+    <div>
+      <div className="flex items-center gap-3 px-[18px] py-3 border-b border-white/[0.06]">
         <button
           onClick={load}
           disabled={loading}
-          style={{ padding: 10, borderRadius: 8, opacity: loading ? 0.7 : 1 }}
+          className="rounded-md border border-white/10 text-white/70 px-3 py-1.5 text-[12px] hover:bg-white/[0.06] hover:text-white transition disabled:opacity-50"
         >
           {loading ? "Carregando..." : "Recarregar"}
         </button>
-
-        {msg && <span>{msg}</span>}
+        {msg && (
+          <span
+            className={`text-[12px] ${
+              hasError ? "text-[#FF7A7A]" : "text-[#5DD9A2]"
+            }`}
+          >
+            {msg}
+          </span>
+        )}
       </div>
 
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[13px] text-white/85">
           <thead>
             <tr>
-              <th style={th}>id</th>
-              <th style={th}>role</th>
-              <th style={th}>admin_level</th>
-              <th style={th}>admin_team</th>
-              <th style={th}>ações</th>
+              {["id", "role", "admin_level", "admin_team", "ações"].map((h) => (
+                <th
+                  key={h}
+                  className="text-left px-[18px] py-2.5 text-[11px] uppercase tracking-[0.08em] text-white/50 font-semibold bg-black/15 whitespace-nowrap"
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
 
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id}>
-                <td style={td}>{r.id}</td>
-                <td style={td}>{r.role}</td>
-                <td style={td}>{r.admin_level ?? "-"}</td>
-                <td style={td}>{r.admin_team ?? "-"}</td>
-                <td style={td}>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button onClick={() => promoteToAdmin(r.id)} style={btn}>
-                      virar admin
-                    </button>
-                    <button onClick={() => setMaster(r.id)} style={btn}>
-                      virar master
-                    </button>
-                    <button onClick={() => setTutor(r.id)} style={btn}>
-                      virar tutor
-                    </button>
-                    <button onClick={() => setVet(r.id)} style={btn}>
-                      virar vet
-                    </button>
-                    <button onClick={() => setClinic(r.id)} style={btn}>
-                      virar clinic
-                    </button>
+              <tr key={r.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                <td className="px-[18px] py-3 align-top font-mono text-[11px] text-white/60">
+                  {r.id}
+                </td>
+                <td className="px-[18px] py-3 align-top">{r.role}</td>
+                <td className="px-[18px] py-3 align-top">{r.admin_level ?? "-"}</td>
+                <td className="px-[18px] py-3 align-top">{r.admin_team ?? "-"}</td>
+                <td className="px-[18px] py-3 align-top">
+                  <div className="flex gap-2 flex-wrap">
+                    <ActionBtn onClick={() => promoteToAdmin(r.id)}>virar admin</ActionBtn>
+                    <ActionBtn onClick={() => setMaster(r.id)}>virar master</ActionBtn>
+                    <ActionBtn onClick={() => setTutor(r.id)}>virar tutor</ActionBtn>
+                    <ActionBtn onClick={() => setVet(r.id)}>virar vet</ActionBtn>
+                    <ActionBtn onClick={() => setClinic(r.id)}>virar clinic</ActionBtn>
                   </div>
                 </td>
               </tr>
@@ -166,7 +161,7 @@ export default function AdminPanel() {
 
             {showEmpty && (
               <tr>
-                <td style={td} colSpan={5}>
+                <td className="px-[18px] py-4 text-white/50" colSpan={5}>
                   Nenhum profile encontrado.
                 </td>
               </tr>
@@ -175,14 +170,7 @@ export default function AdminPanel() {
         </table>
 
         {hasError && (
-          <div
-            style={{
-              marginTop: 10,
-              padding: 10,
-              border: "1px solid #f3c2c2",
-              borderRadius: 10,
-            }}
-          >
+          <div className="m-[18px] rounded-md border border-[#FF7A7A]/40 bg-[#FF7A7A]/10 p-3 text-[13px] text-[#FF7A7A]">
             <b>Erro:</b> {msg}
           </div>
         )}
@@ -191,21 +179,19 @@ export default function AdminPanel() {
   );
 }
 
-const th: React.CSSProperties = {
-  textAlign: "left",
-  borderBottom: "1px solid #ddd",
-  padding: 8,
-  fontWeight: 700,
-  whiteSpace: "nowrap",
-};
-
-const td: React.CSSProperties = {
-  borderBottom: "1px solid #eee",
-  padding: 8,
-  verticalAlign: "top",
-};
-
-const btn: React.CSSProperties = {
-  padding: "8px 10px",
-  borderRadius: 8,
-};
+function ActionBtn({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-md border border-white/10 text-white/70 px-2.5 py-1 text-[12px] hover:bg-white/[0.06] hover:text-white transition whitespace-nowrap"
+    >
+      {children}
+    </button>
+  );
+}
