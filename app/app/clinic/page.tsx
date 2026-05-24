@@ -60,10 +60,13 @@ export default async function ClinicPage() {
           </p>
         </div>
         {completo ? (
-          <span className="shrink-0 inline-flex items-center gap-2 rounded-pill bg-white/15 text-white px-5 py-2.5 font-medium text-sm">
-            <CheckIcon />
-            Cadastro completo
-          </span>
+          <Link
+            href="/app/clinic/perfil"
+            className="shrink-0 inline-flex items-center justify-center gap-2 rounded-pill bg-fundo-claro text-principal px-6 py-3 font-semibold text-sm hover:bg-white transition no-underline"
+          >
+            Editar perfil
+            <ArrowRightIcon />
+          </Link>
         ) : (
           <Link
             href="/app/clinic/onboarding"
@@ -174,7 +177,15 @@ export default async function ClinicPage() {
               />
             </ol>
 
-            {!completo && (
+            {completo ? (
+              <Link
+                href="/app/clinic/perfil"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-pill bg-principal text-white py-3 font-semibold text-sm hover:bg-[#142E33] transition no-underline"
+              >
+                Editar perfil
+                <ArrowRightIcon />
+              </Link>
+            ) : (
               <Link
                 href="/app/clinic/onboarding"
                 className="w-full inline-flex items-center justify-center gap-2 rounded-pill bg-principal text-white py-3 font-semibold text-sm hover:bg-[#142E33] transition no-underline"
