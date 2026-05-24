@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "../../lib/supabase/server";
-import LogoutButton from "./LogoutButton";
+import AppHeaderNav from "./AppHeaderNav";
 
 // Navegação contextual por role. Inclui APENAS rotas que já existem hoje
 // (não linka 404). Telas internas (perfil/historico/avaliacoes/equipe/
@@ -67,18 +67,7 @@ export default async function AppLayout({
             <span className="text-titulo font-bold text-xl">Vetria</span>
           </Link>
 
-          <nav className="flex items-center gap-5">
-            {navLinks.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="text-sm text-corpo-texto hover:text-principal transition"
-              >
-                {l.label}
-              </Link>
-            ))}
-            <LogoutButton />
-          </nav>
+          <AppHeaderNav nav={navLinks} />
         </div>
       </header>
 
