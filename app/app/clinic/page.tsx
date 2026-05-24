@@ -111,15 +111,13 @@ export default async function ClinicPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              disabled
-              className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 text-corpo-texto/60 py-3 text-sm font-medium cursor-not-allowed"
+            <Link
+              href="/app/clinic/equipe"
+              className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 text-corpo-texto py-3 text-sm font-medium hover:border-principal hover:text-principal transition no-underline"
             >
-              {/* TODO: abrir cadastro de profissional quando a equipe existir (TASK-017) */}
               <PlusIcon />
-              Adicionar profissional
-            </button>
+              Gerenciar equipe
+            </Link>
           </Card>
 
           <Card>
