@@ -13,17 +13,17 @@ const SECTIONS: ShellSection[] = [
       { label: "Dashboard", href: "/app/clinic", icon: "dashboard" },
       { label: "Perfil da clínica", href: "/app/clinic/perfil", icon: "building" },
       { label: "Equipe", href: "/app/clinic/equipe", icon: "users" },
-      { label: "Contatos recebidos", icon: "message", soon: true },
-      { label: "Agenda", icon: "calendar", soon: true },
-      { label: "Avaliações", icon: "star", soon: true },
+      { label: "Contatos recebidos", href: "/app/clinic/contatos", icon: "message" },
+      { label: "Agenda", href: "/app/clinic/agenda", icon: "calendar" },
+      { label: "Avaliações", href: "/app/clinic/avaliacoes", icon: "star" },
     ],
   },
   {
     title: "Conta",
     items: [
-      { label: "Meu plano", icon: "crown", soon: true },
-      { label: "Configurações", icon: "settings", soon: true },
-      { label: "Ajuda", icon: "help", soon: true },
+      { label: "Meu plano", href: "/app/clinic/plano", icon: "crown" },
+      { label: "Configurações", href: "/app/clinic/configuracoes", icon: "settings" },
+      { label: "Ajuda", href: "/app/clinic/ajuda", icon: "help" },
     ],
   },
 ];

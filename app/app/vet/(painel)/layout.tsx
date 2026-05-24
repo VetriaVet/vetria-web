@@ -12,17 +12,17 @@ const SECTIONS: ShellSection[] = [
     items: [
       { label: "Dashboard", href: "/app/vet", icon: "dashboard" },
       { label: "Meu perfil", href: "/app/vet/perfil", icon: "user" },
-      { label: "Contatos recebidos", icon: "message", soon: true },
-      { label: "Agenda", icon: "calendar", soon: true },
-      { label: "Avaliações", icon: "star", soon: true },
+      { label: "Contatos recebidos", href: "/app/vet/contatos", icon: "message" },
+      { label: "Agenda", href: "/app/vet/agenda", icon: "calendar" },
+      { label: "Avaliações", href: "/app/vet/avaliacoes", icon: "star" },
     ],
   },
   {
     title: "Conta",
     items: [
-      { label: "Meu plano", icon: "crown", soon: true },
-      { label: "Configurações", icon: "settings", soon: true },
-      { label: "Ajuda", icon: "help", soon: true },
+      { label: "Meu plano", href: "/app/vet/plano", icon: "crown" },
+      { label: "Configurações", href: "/app/vet/configuracoes", icon: "settings" },
+      { label: "Ajuda", href: "/app/vet/ajuda", icon: "help" },
     ],
   },
 ];
