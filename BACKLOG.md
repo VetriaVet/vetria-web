@@ -197,7 +197,7 @@ Mensagem: feat(cadastro): criar /cadastro com escolha de role
 ---
 
 ### TASK-004 — Criar `/cadastro/tutor` (form de signup tutor) 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 24/05/2026 (commit df1514c) — ver DL-023 (form visual; signUp como TODO)
 **Pré-req:** TASK-003
 **Tempo:** 45-60 min
 
@@ -240,7 +240,7 @@ Mensagem: feat(cadastro): formulário de cadastro do tutor
 ---
 
 ### TASK-005 — Criar `/cadastro/vet` (form de signup vet) 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 24/05/2026 (commit 87de08c) — ver DL-023 (signUp como TODO)
 **Pré-req:** TASK-003
 **Tempo:** 45-60 min
 
@@ -262,7 +262,7 @@ Mensagem: feat(cadastro): formulário de cadastro do veterinário
 ---
 
 ### TASK-006 — Criar `/cadastro/clinica` 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 24/05/2026 (commit 87de08c) — ver DL-023 (com CNPJ; signUp como TODO)
 **Pré-req:** TASK-003
 **Tempo:** 45-60 min
 
@@ -275,7 +275,7 @@ Mensagem: feat(cadastro): formulário de cadastro da clínica
 ---
 
 ### TASK-007 — Criar `/recuperar-senha` 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 24/05/2026 (commit 4607744) — mock visual + wire no login
 **Pré-req:** TASK-001
 **Tempo:** 20-30 min
 
@@ -473,10 +473,15 @@ vetria-proto/app/clinic/]
 ## 🟢 FASE 5 — Painel admin (push direto autorizado, mas tom diferente)
 
 ### TASK-021 — Refatorar `/admin` 🟢
+**Status:** ✅ feita em 24/05/2026 (commit 7533d50) — ver DL-024 (dark, RBAC preservado; dashboard virou overview)
 ### TASK-022 — `/admin/usuarios` 🟢
+**Status:** ✅ feita em 24/05/2026 (commit 15c38db) — ver DL-024 (hospeda o painel RBAC funcional, master-gated)
 ### TASK-023 — `/admin/validacoes` 🟢
+**Status:** ✅ feita em 24/05/2026 (commit 15c38db) — empty-state dark (DL-024)
 ### TASK-024 — `/admin/moderacao` 🟢
+**Status:** ✅ feita em 24/05/2026 (commit 15c38db) — empty-state dark (DL-024)
 ### TASK-025 — `/admin/conteudo` 🟢
+**Status:** ✅ feita em 24/05/2026 (commit 15c38db) — empty-state dark (DL-024)
 
 ```
 [Tom dark, denso, técnico. Referências em vetria-proto/admin/]
@@ -755,28 +760,22 @@ Se descoberta task nova (bug, refactor, decisão):
 
 ---
 
-## 🚦 STATUS ATUAL (24 Maio 2026)
+## 🚦 STATUS ATUAL (24 Maio 2026) — 🥚 CASCA COMPLETA
 
 ```
-✅ TASK-000 a 003 — fundação + login + onboarding role + /cadastro
-✅ TASK-008/012/016 — dashboards tutor/vet/clínica (DL-019/020)
-✅ TASK-009/013/018 — perfis tutor/vet/clínica (editor + preview, DL-022)
-✅ TASK-010/011 — histórico e avaliações do tutor (empty-states)
-✅ TASK-014/019 — aguardando vet/clínica (DL-022)
-✅ TASK-017 — equipe da clínica (empty-state)
-✅ TASK-015/020 — onboardings multi-step vet/clínica (DL-022)
-✅ TASK-026 — homepage redireciona por sessão (c45d98a)
-✅ TASK-028 — biblioteca components/ui/ (DL-017)
-✅ TASK-034 — header por role + nav expandida por telas existentes (DL-018)
-✅ TASK-035/036 — higiene do layout raiz + 404/favicon Vetria
-✅ Fixes auth/onboarding (FIX-002/006/007/008 + bug DL-014)
+✅ Públicas — login · /onboarding (role) · /cadastro + /cadastro/{tutor,vet,clinica} · /recuperar-senha · homepage redirect · 404
+✅ Tutor — dashboard · perfil · histórico · avaliações (DL-019/022)
+✅ Vet — dashboard · perfil · aguardando · onboarding multi-step (DL-020/022)
+✅ Clínica — dashboard · perfil · aguardando · equipe · onboarding multi-step (DL-020/022)
+✅ Admin (dark) — dashboard · usuários (RBAC real) · validações · moderação · conteúdo (DL-024)
+✅ Infra — components/ui (DL-017) · header por role + nav + sino + busca + hambúrguer mobile (DL-018/025) · higiene layout/404 (035/036)
+✅ TASK-037 — nav mobile (hambúrguer) entregue no header (DL-025)
 🚫 TASK-027 — .vercelignore N/A (DL-021)
 
-⬜ TASK-007 — /recuperar-senha (mock visual) — PRÓXIMA verde
-⬜ TASK-021 a TASK-025 — painel admin (auditar lógica; aplicar DL-020/022)
-⬜ TASK-037 — nav mobile (hambúrguer) do header /app/* — prioridade baixa
+PENDENTE (precisa navegador / sessão presencial):
+🟡 TASK-038 — sidebar vet/clínica (route group pro onboarding) — testar no navegador (DL-025)
+🔴 TASK-029 → 031 → 032 → 030 — presencial: migration → onboarding real → middleware por status → Resend
+🔴 Wire dos cadastros (signUp) + signup real — junto da migration (DL-023)
 ⬜ TASK-FIX-003 — set-role idempotente (não urgente)
-🔴 TASK-004/005/006 — cadastros (signUp = auth, não-autônomo)
-🔴 TASK-029 a TASK-033 — vermelhas, presenciais
 🔴 TASK-FIX-009 — consolidar is_master_admin/is_admin_master (vermelha futura)
 ```

@@ -4,7 +4,7 @@
 >
 > Esse arquivo existe pra que toda sessão tenha o mesmo contexto e siga as mesmas regras.
 >
-> **Última atualização:** 24 de Maio de 2026 — casca dos 3 painéis completa (DL-022): perfis com preview, onboardings multi-step, telas de aguardando e internas do tutor + higiene de layout/404
+> **Última atualização:** 24 de Maio de 2026 — 🥚 CASCA COMPLETA (DL-023 a DL-025): cadastros preparados, admin dark, recuperar-senha, chrome (notificação/busca/menu mobile). Pendentes: sidebar vet/clínica (adiada, testar no navegador) + bloco 🔴 presencial.
 
 ---
 
@@ -83,12 +83,19 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 - ✅ TASK-010 / TASK-011 — histórico e avaliações do tutor (empty-states) (fc5982f, DL-022)
 - ✅ TASK-015 / TASK-020 — onboardings multi-step vet/clínica (cd119a0/f4877b2, DL-022)
 - ✅ Nav do header expandida por role com as telas internas existentes (6e5b749, DL-018)
+- ✅ TASK-007 — `/recuperar-senha` (mock visual) + wire no login (4607744)
+- ✅ TASK-021 — `/admin` refatorado dark, lógica RBAC preservada (7533d50, DL-024)
+- ✅ TASK-022/023/024/025 — admin: usuários (painel RBAC) + validações/moderação/conteúdo (15c38db, DL-024)
+- ✅ TASK-004/005/006 — `/cadastro/{tutor,vet,clinica}` forms preparados, signUp como TODO (df1514c/87de08c, DL-023)
+- ✅ Chrome do app: sino de notificações + menu hambúrguer mobile + busca vet/clínica (cc887c9/9955bfe, DL-025)
+
+> 🥚 **CASCA COMPLETA** — app visualmente completo em todos os painéis e fluxos (público, tutor, vet, clínica, admin). Sem dado fake; pontos de integração marcados com `// TODO`.
 
 ### Próximas (priorizadas)
-- ⬜ TASK-007 — `/recuperar-senha` (mock visual — verde)
-- ⬜ TASK-021 a TASK-025 — painel admin (auditar lógica existente; aplicar casca DL-020/022)
-- 🔴 TASK-004 / TASK-005 / TASK-006 — `/cadastro/{tutor,vet,clinica}` (usam `signUp` = auth; não-autônomo, tratar com cuidado)
-- 🔴 TASK-029 a TASK-032 — bloco presencial (migration, onboarding real, middleware, Resend)
+- 🟡 TASK-038 — migrar `/app` vet/clínica pra **sidebar** (refator de rota + route group pro onboarding) — **fazer com navegador pra testar** (DL-025)
+- 🔴 TASK-029 → 031 → 032 → 030 — **bloco presencial** que dá vida: migration (status + vet/clinic_profiles) → onboarding real → middleware por status → Resend
+- 🔴 Wire dos cadastros (`signUp`) + signup real — junto da migration (DL-023)
+- ⬜ TASK-FIX-003 — set-role idempotente (não urgente)
 
 ---
 
@@ -693,6 +700,54 @@ casca fiel ao produto (DL-020). Registrados como molde pro painel admin e telas 
 nunca apontam pra rota inexistente — quando o destino não existe, viram botão
 desabilitado com `// TODO`.
 **Status:** Aplicado nos painéis tutor/vet/clínica.
+
+### DL-023 — Cadastros: casca preparada com signUp escrito mas NÃO-ligado
+**Data:** 24 Maio 2026
+**Sprint:** 2 — TASK-004/005/006 (commits df1514c, 87de08c).
+**Contexto:** Os forms de `/cadastro/{tutor,vet,clinica}` criariam conta via
+`supabase.auth.signUp` — auth, que o HANDOFF marca como sensível e que o Elber não
+consegue testar fora do navegador/Vercel.
+**Decisão:** Entregar os forms como casca: visual Vetria (reusa `components/ui`) +
+validação client (senha ≥8, senhas iguais, termos), mas com o `signUp` escrito como
+bloco `// TODO` comentado (padrão exato do `/login`: `data` com full_name/cidade/role
++ `emailRedirectTo`). Submit válido mostra estado "ativado na próxima fase" — nada de
+auth ao vivo em produção não-testada. Fecha os 404 dos cards de `/cadastro`.
+**Implicações:** na fase pesada, descomentar o bloco liga o cadastro de verdade
+(redireciona pro onboarding do role). Wire junto da migration/Resend.
+**Status:** Forms no ar; `signUp` pendente de ligar.
+
+### DL-024 — Admin dark: dashboard vira overview e /admin/usuarios hospeda o painel RBAC
+**Data:** 24 Maio 2026
+**Sprint:** 2 — TASK-021-025 (commits 7533d50, 15c38db).
+**Contexto:** O `/admin` da Sprint 1 tinha layout/page inline + `AdminPanel`
+FUNCIONAL (fetch `/api/admin/profiles` + ações `/api/admin/set-access`). O refator
+visual dark exigia preservar essa lógica e organizar as 5 telas (021-025).
+**Decisão:** Layout admin dark com sidebar própria (separada do header `/app`). O
+**dashboard `/admin` virou overview** (stat cards "em breve" + cards de seção) e o
+**painel funcional de RBAC migrou pra `/admin/usuarios`** (master-gated, lógica 100%
+preservada — mesmo `AdminPanel`). `/admin/validacoes`, `/moderacao` e `/conteudo` são
+empty-states dark honestos (sem backend; `// TODO` migration 031 / Sprint 5).
+**Implicações:** a gestão de usuários agora vive em `/admin/usuarios`, não no
+dashboard. Guards `role=admin` + gating `master` mantidos.
+**Status:** Aplicado.
+
+### DL-025 — Chrome do /app e layout por role (tutor=header, vet/clínica=sidebar — sidebar ADIADA)
+**Data:** 24 Maio 2026
+**Sprint:** 2 — chrome em cc887c9/9955bfe; decisão de layout registrada.
+**Contexto:** Elber pediu "cara de app" (menu, sidebar, busca, notificação) e definiu:
+**tutor = header topo clean** (experiência rápida, sem distração); **vet/clínica =
+sidebar lateral** (tom corporativo, como os protótipos).
+**Decisão (entregue agora):** no header `/app` entraram sino de notificações (dropdown
+vazio honesto), menu hambúrguer mobile (`AppHeaderNav`) e busca in-page nos dashboards
+vet/clínica — casca preparada, sem dado fake, `// TODO` pra ligar.
+**Decisão (ADIADA):** a migração vet/clínica pra sidebar é refator de arquitetura —
+exige **route group** pra tirar os onboardings do shell (senão fica sidebar dupla, já
+que o onboarding tem sidebar de progresso própria) e reorganiza o layout raiz. Como
+reformata todo o `/app` e o build verde NÃO garante a UX, **fica pra uma sessão com
+navegador** (não fazer no escuro/mobile). Registrada como TASK-038.
+**Implicações:** próxima sessão com browser pega a TASK-038 (sidebar + route group do
+onboarding + busca na topbar). Tutor permanece no header.
+**Status:** Chrome aplicado; sidebar pendente (TASK-038).
 
 ---
 
