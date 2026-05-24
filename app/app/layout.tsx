@@ -7,9 +7,21 @@ import LogoutButton from "./LogoutButton";
 // (não linka 404). Telas internas (perfil/historico/avaliacoes/equipe/
 // aguardando) entram aqui conforme forem criadas em tasks futuras.
 const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
-  tutor: [{ href: "/app/tutor", label: "Painel" }],
-  vet: [{ href: "/app/vet", label: "Painel" }],
-  clinic: [{ href: "/app/clinic", label: "Painel" }],
+  tutor: [
+    { href: "/app/tutor", label: "Início" },
+    { href: "/app/tutor/perfil", label: "Perfil" },
+    { href: "/app/tutor/historico", label: "Histórico" },
+    { href: "/app/tutor/avaliacoes", label: "Avaliações" },
+  ],
+  vet: [
+    { href: "/app/vet", label: "Painel" },
+    { href: "/app/vet/perfil", label: "Meu perfil" },
+  ],
+  clinic: [
+    { href: "/app/clinic", label: "Painel" },
+    { href: "/app/clinic/equipe", label: "Equipe" },
+    { href: "/app/clinic/perfil", label: "Perfil" },
+  ],
   admin: [{ href: "/admin", label: "Admin" }],
   master: [{ href: "/admin", label: "Admin" }],
 };
