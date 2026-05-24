@@ -42,5 +42,11 @@ next-env.d.ts
 
 vetria-proto/
 
+# Referências locais de design (protótipos HTML, zips, visualizadores).
+# NÃO vão pra produção, mas NÃO devem ser apagadas — são peças-base pra criar
+# o design das telas. Ficam só no disco local.
+/*.html
+/*.zip
+
 # Claude Code local config (não vai pro repo)
 .claude/
