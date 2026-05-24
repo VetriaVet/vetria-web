@@ -1,5 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../../../lib/supabase/server";
+import VetOnboardingForm from "./VetOnboardingForm";
+
+export const metadata = {
+  title: "Configurar perfil profissional",
+};
 
 export default async function VetOnboardingPage() {
   const supabase = await createClient();
@@ -17,6 +22,15 @@ export default async function VetOnboardingPage() {
   if (!profile || profile.role !== "vet") redirect("/app");
   if (profile.onboarding_completed) redirect("/app/vet");
 
+  const meta = (user.user_metadata ?? {}) as {
+    full_name?: string;
+    name?: string;
+  };
+  const displayName = (meta.full_name ?? meta.name ?? "").trim();
+
+  // Server Action: por enquanto só marca onboarding_completed (lógica
+  // preservada da Sprint 1). A captura real dos dados do multi-step depende
+  // de vet_profiles (migration 031 — TASK-031, vermelha). Logs DL-011.
   async function completeOnboarding() {
     "use server";
 
@@ -25,26 +39,25 @@ export default async function VetOnboardingPage() {
     const user = userData.user;
     if (!user) redirect("/login");
 
-    await supabase
+    console.log("[vet/onboarding] complete:start", { userId: user.id });
+
+    const { error } = await supabase
       .from("profiles")
       .update({ onboarding_completed: true })
-      .eq("id", user.id);
+      .eq("id", user.id)
+      .select();
 
-    redirect("/app");
+    if (error) {
+      console.error("[vet/onboarding] complete:error", {
+        message: error.message,
+        code: error.code,
+      });
+      redirect("/app/vet/onboarding?error=1");
+    }
+
+    console.log("[vet/onboarding] complete:done", { userId: user.id });
+    redirect("/app/vet/aguardando");
   }
 
-  return (
-    <div style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 800 }}>Onboarding Vet</h1>
-      <p style={{ marginTop: 8, opacity: 0.85 }}>
-        Placeholder. Por enquanto, apenas vamos marcar onboarding como completo.
-      </p>
-
-      <form action={completeOnboarding} style={{ marginTop: 16 }}>
-        <button style={{ padding: "10px 12px", borderRadius: 10 }}>
-          Concluir onboarding
-        </button>
-      </form>
-    </div>
-  );
+  return <VetOnboardingForm initialName={displayName} action={completeOnboarding} />;
 }
