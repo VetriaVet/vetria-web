@@ -674,9 +674,18 @@ testar em Supabase staging primeiro, garantir RLS correto.
 Quando rodar: sessão presencial dedicada de 1-2 horas.
 
 ### TASK-030 — Integração Resend 🔴
-**Status:** 🔴 NÃO autônomo
-**Por quê:** Exige API key, configuração de DNS (DKIM, SPF, DMARC), Elber precisa
-estar presente pra rotacionar variáveis na Vercel.
+**Status:** 🟡 PARCIAL (24/05/2026) — Resend ligado como Custom SMTP do Supabase, **modo
+teste validado** (sender `onboarding@resend.dev`, email chega pro endereço da conta
+Resend). Ver DL-030.
+**Falta (produção):** verificar domínio `vetria.com.br` no Resend (DKIM/SPF/DMARC no
+Hostinger) pra enviar pra qualquer endereço + remetente corporativo. Elber fará ao
+configurar domínio + email corporativo.
+**Por quê (a parte restante segue 🔴/presencial):** mexe em DNS do domínio e remetente
+oficial.
+
+**Descoberta:** o SMTP fica no painel do Supabase (Auth → Emails → SMTP), NÃO via
+`RESEND_API_KEY` na Vercel (o envio é o Supabase Auth que faz, não a app). A API key vive
+só no Supabase. Plano original assumia env var na Vercel — revisado.
 
 ### TASK-031 — Reescrever onboarding vet/clinic com banco real 🔴
 **Pré-req:** TASK-029 (migration 001) + TASK-015 (visual)
@@ -788,14 +797,17 @@ Bloco de 3 passos (estilo Doctoralia — separação tutor/B2B):
 ✅ Infra — components/ui (DL-017) · header por role + nav + sino + busca + hambúrguer mobile (DL-018/025) · higiene layout/404 (035/036)
 ✅ Arquitetura — separação tutor(B2C)/vet+clínica(B2B): login único, separação no funil (DL-026)
 ✅ DB — pasta supabase/migrations/ + migration 0001 (trigger lê role do metadata) aplicada (DL-027)
+✅ Auth validado — cadastro por rota → role correto → painel certo + onboarding (tutor/vet/clínica) (DL-028)
+✅ Email — Resend como SMTP do Supabase, modo teste validado (email chega) (DL-030)
 ✅ TASK-037 — nav mobile (hambúrguer) entregue no header (DL-025)
 ✅ TASK-039 — rotas tutor/B2B + signUp ligado + migration 0001 (DL-026/027/028)
 🚫 TASK-027 — .vercelignore N/A (DL-021)
 
 PENDENTE:
-🧪 Elber valida cadastros no navegador (criar conta por rota → confirmar email → painel certo) — já no ar (DL-028)
+📧 TASK-030 (resto) — verificar domínio vetria.com.br no Resend (DNS Hostinger) → email pra qualquer endereço + remetente corporativo (DL-030). Depende do Elber pôr o domínio no ar.
+🟢 TASK-007b — recuperação de senha real + templates de email (§9) — depende do domínio no Resend
 🟡 TASK-038 — sidebar vet/clínica (route group pro onboarding) — testar no navegador (DL-025)
-🔴 TASK-029 → 031 → 032 → 030 — presencial: migration GRANDE (status + vet/clinic_profiles) → onboarding real → middleware por status → Resend
+🔴 TASK-029 → 031 → 032 — presencial: migration GRANDE (status + vet/clinic_profiles) → onboarding real (persistir dados) → middleware por status
 ⬜ TASK-FIX-003 — set-role idempotente (não urgente)
 🔴 TASK-FIX-009 — consolidar is_master_admin/is_admin_master (vermelha futura; versionar DL-014/015)
 ```

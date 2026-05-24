@@ -4,7 +4,7 @@
 >
 > Esse arquivo existe pra que toda sessão tenha o mesmo contexto e siga as mesmas regras.
 >
-> **Última atualização:** 24 de Maio de 2026 — separação tutor/B2B + 1ª migration versionada (DL-026 a DL-029): `/cadastro` vira entrada direta do tutor (login único, separação no funil), trigger `handle_new_user` lê role do metadata (migration 0001 aplicada), signUp ligado nos 3 cadastros. Pendentes: Elber validar cadastros no navegador, sidebar vet/clínica (TASK-038) + bloco 🔴 presencial (schema grande).
+> **Última atualização:** 24 de Maio de 2026 — separação tutor/B2B + 1ª migration + Resend SMTP (DL-026 a DL-030): `/cadastro` vira entrada do tutor (login único, separação no funil), trigger lê role do metadata (migration 0001), signUp ligado nos 3 cadastros (✅ roteamento de role + onboarding validados no navegador), Resend integrado como SMTP (✅ modo teste validado — email chega). Pendentes: verificar domínio vetria.com.br no Resend, sidebar vet/clínica (TASK-038) + bloco 🔴 presencial (schema grande).
 
 ---
 
@@ -54,7 +54,7 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 - ❌ Campo `status` em `profiles` (enum incomplete|pending_validation|active|suspended)
 - ❌ Páginas `/app/vet/aguardando` e `/app/clinic/aguardando` (✅ visuais criadas — DL-022)
 - ✅ Pasta `supabase/migrations/` criada + migration 0001 aplicada (DL-027)
-- ❌ Email transacional (Resend não integrado)
+- 🟡 Email transacional: Resend integrado como SMTP do Supabase em **modo teste** (DL-030); falta verificar domínio `vetria.com.br` pra produção
 
 ### Sprint 2 — concluído (até 24/05/2026)
 - ✅ TASK-000 — Fundação Tailwind v4 + paleta Vetria + Inter + admin fix
@@ -95,9 +95,11 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 > 🥚 **CASCA COMPLETA** — app visualmente completo em todos os painéis e fluxos (público, tutor, vet, clínica, admin). Sem dado fake; pontos de integração marcados com `// TODO`.
 
 ### Próximas (priorizadas)
-- 🧪 **Elber valida no navegador**: criar conta tutor/vet/clínica por rota → confirmar email → cair no painel certo (login social + recuperação de senha de quebra). Depende só de deploy (já no ar). Ver DL-028.
+- ✅ Roteamento de role + onboarding validados no navegador (DL-028); Resend SMTP em modo teste validado (DL-030).
+- 📧 **Verificar domínio `vetria.com.br` no Resend** (DKIM/SPF/DMARC no Hostinger) → emails pra qualquer endereço + remetente corporativo. Depende do Elber configurar domínio/email corporativo (DL-030).
 - 🟡 TASK-038 — migrar `/app` vet/clínica pra **sidebar** (refator de rota + route group pro onboarding) — **fazer com navegador pra testar** (DL-025)
-- 🔴 TASK-029 → 031 → 032 → 030 — **bloco presencial** que dá vida: migration grande (status + vet/clinic_profiles) → onboarding real → middleware por status → Resend
+- 🔴 TASK-029 → 031 → 032 — **bloco presencial** que dá vida: migration grande (status + vet/clinic_profiles) → onboarding real (persistir dados) → middleware por status
+- 🟢 TASK-007b — ligar recuperação de senha real (`resetPasswordForEmail`) + templates de email (§9) — depende do domínio no Resend
 - ⬜ TASK-FIX-003 — set-role idempotente (não urgente)
 
 ---
@@ -815,10 +817,11 @@ aplicada (DL-027), o caminho ficou seguro pra ligar.
 `/cadastro/vet → signUp(role:vet) → email de confirmação → /auth/callback → /app/vet/onboarding`
 (idem tutor e clínica pros respectivos onboardings).
 **Implicações:**
-- O Elber ainda vai **testar no navegador** (criar conta vet/clínica por rota e ver caindo
-  no painel certo) — sujeito ao rate limit do email built-in (DL-010).
 - DL-023 fica superada nesta parte (signUp deixou de ser TODO).
-**Status:** No ar (908ba5e); validação no navegador pendente (Elber).
+**Status:** ✅ Validado no navegador (24/05/2026): cadastro tutor/vet/clínica por rota →
+cai no painel certo (`/app/vet`, `/app/clinic`, `/app/tutor`); onboarding dos dois
+funcional. signUp + role via metadata + trigger confirmado de ponta a ponta. (A entrega
+de email passou a funcionar via DL-030.)
 
 ### DL-029 — Referências locais de design (HTML/zip) gitignored, mas preservadas
 **Data:** 24 Maio 2026
@@ -832,6 +835,31 @@ local, fora do repo/build. (Next.js não tem HTML rastreável na raiz, então o 
 **Implicações:** novas referências de design soltas na raiz (`.html`/`.zip`) são
 auto-ignoradas. Se algum HTML de raiz precisar ser versionado um dia, reavaliar o padrão.
 **Status:** Aplicado.
+
+### DL-030 — Resend integrado como Custom SMTP do Supabase (modo teste validado; produção depende do domínio)
+**Data:** 24 Maio 2026
+**Sprint:** 2 — TASK-030 (config no painel, sem código no repo).
+**Contexto:** Na validação da DL-028, confirmou-se na prática o que DL-009/DL-010 previam:
+os emails de confirmação do **servidor built-in do Supabase NÃO chegavam** (nem no spam) —
+baixa entregabilidade + rate limit. O login social (Google) funcionava por não depender
+de email. Sem email, os funis B2B (vet/clínica, que são email+senha por causa do role —
+DL-026/027) ficavam sem como confirmar conta.
+**Decisão:** Integrar o **Resend como Custom SMTP** no Supabase (Authentication → Emails →
+SMTP Settings). Validado em **MODO TESTE**: sender `onboarding@resend.dev`, host
+`smtp.resend.com`, porta `465`, user `resend`, password = API key do Resend (guardada só
+no painel do Supabase, NUNCA no repo). Nesse modo o Resend só entrega pro email da própria
+conta Resend — o teste foi feito com o email da Vetria cadastrado no Resend e **o email
+chegou**. O **"Confirm email" foi religado** (DL-009 restaurado) — durante a Parte 1 da
+investigação ele foi desligado temporariamente só pra provar que o roteamento de role
+funciona sem depender de email (provou: ✅).
+**Implicações:**
+- Pra enviar pra **qualquer endereço** e com remetente **@vetria.com.br**, falta
+  **verificar o domínio `vetria.com.br` no Resend** (DKIM/SPF/DMARC no DNS do Hostinger).
+  O Elber fará quando configurar o domínio + email corporativo da Vetria.
+- Com o domínio no ar, dá pra ligar de verdade a recuperação de senha (`/recuperar-senha`
+  hoje é mock, TASK-007) e os templates de email (welcome/aprovado/rejeitado — §9).
+- A API key vive no Supabase. Se rotacionada no Resend, atualizar no painel.
+**Status:** Modo teste validado (24/05/2026). Verificação de domínio = pendente (Elber).
 
 ---
 
