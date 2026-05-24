@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -17,8 +16,11 @@
   --color-corpo-texto: #4A6064;        /* verde-acinzentado — texto corpo */
   --color-fundo-destaque: #EAFAF5;     /* verde-water — pills, alerts */
 
-  /* Fonte oficial: Inter (sans). Mono = stack do sistema. */
-  --font-sans: 'Inter', system-ui, sans-serif;
+  /* Tipografia oficial Vetria v2 (DL-031): corpo Poppins, títulos Cormorant
+     Garamond (serif). Variáveis injetadas via next/font no layout raiz.
+     `font-sans` = corpo (default do body); `font-display` = títulos serifados. */
+  --font-sans: var(--font-poppins), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-cormorant), 'Times New Roman', Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Radius pill — inputs e botões (manual de marca) */
