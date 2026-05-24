@@ -17,9 +17,9 @@
   --color-corpo-texto: #4A6064;        /* verde-acinzentado — texto corpo */
   --color-fundo-destaque: #EAFAF5;     /* verde-water — pills, alerts */
 
-  /* Fonte oficial: Inter (sans). Geist mono preservado. */
+  /* Fonte oficial: Inter (sans). Mono = stack do sistema. */
   --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Radius pill — inputs e botões (manual de marca) */
   --radius-pill: 999px;
