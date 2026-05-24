@@ -1,10 +1,17 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
-import AdminPanel from "./AdminPanel";
 
 export const metadata = {
   title: "Admin",
 };
+
+const SECOES = [
+  { href: "/admin/usuarios", label: "Usuários", desc: "Gerencie role e nível de acesso." },
+  { href: "/admin/validacoes", label: "Validações", desc: "Aprove CRMV de vets e clínicas." },
+  { href: "/admin/moderacao", label: "Moderação", desc: "Avaliações e conteúdo reportado." },
+  { href: "/admin/conteudo", label: "Conteúdo", desc: "Especialidades e textos da plataforma." },
+];
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -21,8 +28,6 @@ export default async function AdminPage() {
 
   if (!profile || profile.role !== "admin") redirect("/app");
 
-  const isMaster = profile.admin_level === "master";
-
   return (
     <div>
       <header className="bg-[#0F1F22]/90 backdrop-blur border-b border-white/[0.06] px-6 py-4 sticky top-0 z-10 flex items-center justify-between">
@@ -33,30 +38,41 @@ export default async function AdminPage() {
         </span>
       </header>
 
-      <div className="p-6 max-w-[1280px] mx-auto">
-        {!isMaster && (
-          <div className="rounded-md border border-white/[0.06] bg-[#1A2A2D] p-4 text-[13px] text-white/70 mb-5">
-            Você é <b className="text-white">admin</b> (acesso limitado). Apenas{" "}
-            <b className="text-white">master</b> pode alterar permissões de usuários.
-          </div>
-        )}
+      <div className="p-6 max-w-[1280px] mx-auto flex flex-col gap-6">
+        {/* Stats — TODO: métricas reais (contagens do banco) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <AdminStat label="Usuários totais" />
+          <AdminStat label="Vets ativos" />
+          <AdminStat label="Validações pendentes" />
+          <AdminStat label="Moderação aberta" />
+        </div>
 
-        {isMaster ? (
-          <div className="rounded-md border border-white/[0.06] bg-[#1A2A2D] overflow-hidden">
-            <div className="px-[18px] py-3.5 border-b border-white/[0.06]">
-              <div className="font-bold text-sm text-white">Usuários & permissões</div>
-              <div className="text-[12px] text-white/50">
-                Gerencie role e nível de acesso dos usuários da plataforma.
-              </div>
-            </div>
-            <AdminPanel />
-          </div>
-        ) : (
-          <p className="text-white/60 text-sm">
-            Entre em contato com um administrador master para alterações de usuários.
-          </p>
-        )}
+        {/* Seções */}
+        <div className="grid sm:grid-cols-2 gap-3">
+          {SECOES.map((s) => (
+            <Link
+              key={s.href}
+              href={s.href}
+              className="rounded-md border border-white/[0.06] bg-[#1A2A2D] p-5 hover:border-white/20 transition no-underline block"
+            >
+              <div className="font-bold text-white mb-1">{s.label}</div>
+              <div className="text-[13px] text-white/50">{s.desc}</div>
+            </Link>
+          ))}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function AdminStat({ label }: { label: string }) {
+  return (
+    <div className="rounded-md border border-white/[0.06] bg-[#1A2A2D] p-[18px]">
+      <div className="text-[11px] uppercase tracking-[0.08em] text-white/50 mb-2">
+        {label}
+      </div>
+      <div className="font-bold text-[28px] text-white/30 leading-none">—</div>
+      <div className="text-[12px] text-white/40 mt-2">Em breve</div>
     </div>
   );
 }

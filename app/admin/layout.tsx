@@ -2,16 +2,14 @@ import Link from "next/link";
 import Image from "next/image";
 import LogoutButton from "../app/LogoutButton";
 
-// Admin tem layout próprio (dark/denso, DL-022 não se aplica — linguagem
-// distinta). Itens de nav ainda não criados (Usuários/Validações/Moderação/
-// Conteúdo = TASK-022-025) ficam desabilitados até existirem (zero 404).
+// Admin tem layout próprio (dark/denso, DL-022 não se aplica — linguagem distinta).
 
 const NAV_OPERACAO = [
   { label: "Dashboard", href: "/admin", enabled: true },
-  { label: "Usuários", enabled: false },
-  { label: "Validações", enabled: false },
-  { label: "Moderação", enabled: false },
-  { label: "Conteúdo", enabled: false },
+  { label: "Usuários", href: "/admin/usuarios", enabled: true },
+  { label: "Validações", href: "/admin/validacoes", enabled: true },
+  { label: "Moderação", href: "/admin/moderacao", enabled: true },
+  { label: "Conteúdo", href: "/admin/conteudo", enabled: true },
 ];
 
 export default function AdminLayout({
@@ -41,7 +39,7 @@ export default function AdminLayout({
               <Link
                 key={item.label}
                 href={item.href}
-                className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] font-medium text-white bg-white/[0.06] no-underline"
+                className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] font-medium text-white/70 hover:bg-white/[0.04] hover:text-white transition no-underline"
               >
                 {item.label}
               </Link>
