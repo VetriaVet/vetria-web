@@ -1,12 +1,15 @@
 import { redirect } from "next/navigation";
-import { createClient } from "../../../../lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
+import { EmptyState, Skeleton } from "@/components/ui/EmptyState";
+import { CalendarClock } from "lucide-react";
 
 export const metadata = {
   title: "Histórico",
 };
 
-// Histórico de agendamentos do tutor — casca fiel (DL-020). Agendamento é
-// Sprint 4; sem consultas reais, é um empty-state honesto (sem mock).
+// Histórico de agendamentos do tutor — casca (DL-020). Agendamento é fase de
+// backend; sem consultas reais, usa estado GHOST (DL-034): mostra o formato
+// dos cards de consulta (data + profissional + status) sem inventar dado.
 
 export default async function TutorHistoricoPage() {
   const supabase = await createClient();
@@ -24,37 +27,38 @@ export default async function TutorHistoricoPage() {
   if (!profile || profile.role !== "tutor") redirect("/app");
 
   return (
-    <div className="flex flex-col gap-6 max-w-3xl">
+    <div className="flex max-w-3xl flex-col gap-6">
       <div>
-        <h1 className="font-bold text-2xl text-titulo">Seus agendamentos</h1>
-        <p className="text-[14px] text-corpo-texto mt-1">
+        <h1 className="text-2xl font-bold text-titulo">Seus agendamentos</h1>
+        <p className="mt-1 text-[14px] text-corpo-texto">
           Aqui ficam as consultas que você marcar pela Vetria.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
-        <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-fundo-destaque text-principal flex items-center justify-center">
-          <CalendarIcon />
-        </div>
-        <h2 className="font-bold text-xl text-titulo mb-2">
-          Nenhum agendamento ainda
-        </h2>
-        <p className="text-[14px] text-corpo-texto leading-relaxed max-w-md mx-auto">
-          {/* TODO: lista de agendamentos real (Sprint 4 — Google Calendar) */}
-          Em breve você vai poder buscar profissionais e marcar consultas direto
-          pela Vetria. Suas consultas passadas e futuras aparecem aqui.
-        </p>
-      </div>
+      {/* TODO: lista de agendamentos real + abas Próximos/Realizados/Cancelados */}
+      <EmptyState
+        icon={CalendarClock}
+        preview={
+          <div className="mb-6 space-y-3 [mask-image:linear-gradient(to_bottom,black,transparent)]">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-4 rounded-xl border border-neutro-border-soft bg-neutro-bg-alt/40 p-4"
+              >
+                <Skeleton className="h-14 w-12 shrink-0 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3.5 w-2/5" />
+                  <Skeleton className="h-2.5 w-3/5" />
+                  <Skeleton className="h-4 w-20 rounded-pill" />
+                </div>
+                <Skeleton className="h-6 w-24 shrink-0 rounded-pill" />
+              </div>
+            ))}
+          </div>
+        }
+        title="Nenhum agendamento ainda"
+        description="Quando você marcar uma consulta pela Vetria, ela aparece aqui — com data, profissional, especialidade e status (confirmado, realizado ou cancelado)."
+      />
     </div>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M8 2v4M16 2v4" />
-      <rect width="18" height="18" x="3" y="4" rx="2" />
-      <path d="M3 10h18" />
-    </svg>
   );
 }
