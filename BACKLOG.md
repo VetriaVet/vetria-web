@@ -304,7 +304,7 @@ Mensagem: feat(auth): página visual de recuperação de senha
 ## 🟢 FASE 2 — Painel do tutor (push direto autorizado)
 
 ### TASK-008 — Refatorar `/app/tutor` (dashboard) 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 23/05/2026 (commit 4ba2219) — ver DL-019
 **Pré-req:** TASK-001
 **Tempo:** 60-90 min
 
@@ -517,8 +517,13 @@ Mensagem: chore(deploy): adicionar .vercelignore
 ---
 
 ### TASK-028 — Componentes reutilizáveis (botão, input, card) 🟡
+**Status:** ✅ feita em 23/05/2026 (commit f24d874) — ver DL-017
 **Pré-req:** TASK-001 + TASK-008 (precisa de uso real)
 **Tempo:** 60 min
+**Obs (divergência do prompt original):** entregue = Button (primary+google), Input
+(pill, label separado), Select, Card, Label. `secondary`/`ghost` NÃO criados (sem
+referência em tela); `AuthShell` órfão do commit 081e51b removido. Telas existentes
+NÃO refatoradas ainda (continua task futura).
 
 ```
 Task: Extrair componentes reutilizáveis pra components/ui/ baseado nos padrões já
@@ -625,7 +630,7 @@ pro framework. Documentado em DL-016.
 ## 🟢 BACKLOG novo descoberto durante a Sprint 2
 
 ### TASK-034 — Refator do header compartilhado `app/app/layout.tsx` 🟢
-**Status:** ⬜ pendente (prioridade baixa)
+**Status:** ✅ feita em 23/05/2026 (commit a93dfb9) — ver DL-018
 **Pré-req:** —
 **Tempo:** 30-45 min
 
@@ -744,7 +749,7 @@ Se descoberta task nova (bug, refactor, decisão):
 
 ---
 
-## 🚦 STATUS ATUAL (28 Abril 2026)
+## 🚦 STATUS ATUAL (23 Maio 2026)
 
 ```
 ✅ TASK-000 — Fundação Sprint 2 (Tailwind + paleta + admin fix)
@@ -758,15 +763,17 @@ Se descoberta task nova (bug, refactor, decisão):
 ✅ TASK-FIX-007 — .select() + logs no update (35c56e4)
 ✅ TASK-FIX-008 — remover try/catch NEXT_REDIRECT (ff26a75)
 ✅ Bug DL-014 fixado via SQL direto (is_master_admin SECURITY DEFINER)
+✅ TASK-028 — biblioteca components/ui/ (f24d874, DL-017)
+✅ TASK-034 — header compartilhado com nav por role (a93dfb9, DL-018)
+✅ TASK-008 — dashboard /app/tutor com visual Vetria (4ba2219, DL-019)
 
 ⬜ TASK-004 — /cadastro/tutor — PRÓXIMA
 ⬜ TASK-005 a TASK-007 — cadastro vet/clínica/recuperar-senha
-⬜ TASK-008 a TASK-011 — painel tutor (dashboard, perfil, histórico, avaliações)
+⬜ TASK-009 a TASK-011 — painel tutor (perfil, histórico, avaliações)
 ⬜ TASK-012 a TASK-020 — painéis vet/clinic
 ⬜ TASK-021 a TASK-025 — painel admin
-⬜ TASK-026 a TASK-028 — homepage + vercelignore + componentes UI
+⬜ TASK-026 + TASK-027 — homepage redirect + vercelignore (amarelas)
 ⬜ TASK-FIX-003 — set-role idempotente (não urgente)
-⬜ TASK-034 — refator header app (verde, prioridade baixa)
 🔴 TASK-029 a TASK-033 — vermelhas, presenciais
 🔴 TASK-FIX-009 — consolidar is_master_admin/is_admin_master (vermelha futura)
 ```

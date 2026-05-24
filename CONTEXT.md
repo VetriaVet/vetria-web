@@ -4,7 +4,7 @@
 >
 > Esse arquivo existe pra que toda sessão tenha o mesmo contexto e siga as mesmas regras.
 >
-> **Última atualização:** 28 de Abril de 2026 — fim do bloco auth + onboarding tutor (DL-009 a DL-016, TASK-001/002/003 + 5 fixes + 1 ad-hoc)
+> **Última atualização:** 23 de Maio de 2026 — bloco visual UI (DL-017 a DL-019, TASK-028/034/008: biblioteca `components/ui/`, header compartilhado, dashboard tutor)
 
 ---
 
@@ -56,7 +56,7 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 - ❌ Pasta `supabase/migrations/`
 - ❌ Email transacional (Resend não integrado)
 
-### Sprint 2 — concluído (até 28/04/2026)
+### Sprint 2 — concluído (até 23/05/2026)
 - ✅ TASK-000 — Fundação Tailwind v4 + paleta Vetria + Inter + admin fix
 - ✅ TASK-001 — `/login` refatorado com identidade Vetria (commit 78a43a1)
 - ✅ TASK-002 — `/onboarding` com 3 cards de role (commit b89e49b)
@@ -68,13 +68,16 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 - ✅ TASK-FIX-007 — `.select()` + logs no update da Server Action de onboarding tutor (commit 35c56e4)
 - ✅ TASK-FIX-008 — remover try/catch que engolia NEXT_REDIRECT no `TutorOnboardingForm` (commit ff26a75)
 - ✅ Bug crítico de RLS recursiva em `is_master_admin`/`is_admin_master` fixado via SQL direto (DL-014, fora do repo)
+- ✅ TASK-028 — biblioteca `components/ui/` (Button, Input, Select, Card, Label) extraída das telas canônicas; `AuthShell` órfão removido (commit f24d874, DL-017)
+- ✅ TASK-034 — header compartilhado `app/app/layout.tsx` refatorado: Server Component com nav por role (commit a93dfb9, DL-018)
+- ✅ TASK-008 — dashboard `/app/tutor` refatorado com visual Vetria (commit 4ba2219, DL-019)
 
 ### Próximas (priorizadas)
 - ⬜ TASK-004 — `/cadastro/tutor` (form de signup tutor)
-- ⬜ TASK-008 — refator `/app/tutor` (dashboard placeholder Sprint 1)
 - ⬜ TASK-009 — `/app/tutor/perfil`
 - ⬜ TASK-010 — `/app/tutor/historico`
 - ⬜ TASK-011 — `/app/tutor/avaliacoes`
+- ⬜ TASK-012 / TASK-016 — dashboards vet/clínica (uniformizar identidade dos 3 painéis)
 
 ---
 
@@ -555,6 +558,67 @@ já feito, VetOnboardingForm, ClinicOnboardingForm pendentes). Se feedback de
 erro for crítico em alguma rota, criar `error.tsx` ali — não envolver Server
 Action em try/catch.
 **Status:** Aplicado em `TutorOnboardingForm.tsx`.
+
+### DL-017 — Biblioteca `components/ui/`: telas de produção são a fonte canônica
+**Data:** 23 Maio 2026
+**Sprint:** 2 — TASK-028 (commit f24d874).
+**Contexto:** Já existia um `components/ui/` versionado (commit 081e51b: Button,
+Input, AuthShell) que NÃO batia com o visual das telas de produção (login/
+onboarding/cadastro) e não era importado por nenhuma tela — código órfão de uma
+tentativa abandonada. A task pedia "extrair os padrões exatos das telas".
+**Decisão:** As telas de produção são a fonte visual canônica. `Button` e `Input`
+foram reescritos pra bater EXATAMENTE com elas (primary `hover:bg-[#142E33]`,
+`font-semibold`, `text-[15px]`, `py-3.5`; input pill `bg-fundo-claro/40` +
+`border-transparent` + `focus:bg-white`). Criados `Select` (clone do SelectPill do
+TutorOnboardingForm), `Card` (base dos cards de role do `/cadastro`) e `Label`
+separado. `AuthShell.tsx` removido como dead code. Variantes `secondary`/`ghost` do
+Button NÃO foram criadas (sem referência em tela); variante `google` incluída
+(existe no `/login`).
+**Implicações:**
+- Não há `tailwind-merge` no projeto. Como o merge de `className` é só concatenação,
+  utilitários conflitantes (ex.: `p-6` sobre o `p-8` base do `Card`) NÃO são
+  resolvidos pela ordem da string — a ordem no CSS gerado decide. Regra prática:
+  não sobrescrever via `className` um utilitário já presente na base; ajustar a base
+  ou criar variante.
+- As telas existentes ainda NÃO foram refatoradas pra usar os componentes (task futura).
+**Status:** Resolvido.
+
+### DL-018 — Header compartilhado `/app/*` vira Server Component com navegação por role
+**Data:** 23 Maio 2026
+**Sprint:** 2 — TASK-034 (commit a93dfb9).
+**Contexto:** `app/app/layout.tsx` era placeholder estático (logo serif inline,
+`<hr>`, nav fixa "Dashboard/Admin/Login" que ignorava role e mostrava "Login" pra
+quem já estava logado).
+**Decisão:** O layout virou Server Component async que busca `role` em `profiles`
+(padrão DL-012: createClient server + getUser + select) e monta a navegação
+contextual via um mapa `NAV_BY_ROLE`. Política firmada: a nav linka APENAS rotas que
+já existem — nunca linka 404. Como as telas internas (perfil/histórico/avaliações/
+equipe/aguardando) ainda não existem, hoje cada role vê só "Painel" + "Sair"; novas
+entradas entram conforme as rotas forem criadas. `LogoutButton` restilizado (pill
+ghost) com prop `className` opcional — lógica de signOut intacta.
+**Implicações:**
+- Trade-off aceito: o layout faz `getUser` + 1 query em `profiles` por render de
+  `/app/*`, além da query da própria page. Aceitável pro estágio atual.
+- Role ausente é tratado de forma defensiva (header mínimo, sem quebrar).
+**Status:** Resolvido.
+
+### DL-019 — `profiles` não tem `full_name`: identidade do usuário vem de `user_metadata`
+**Data:** 23 Maio 2026
+**Sprint:** 2 — TASK-008 (commit 4ba2219).
+**Contexto:** A refatoração do dashboard `/app/tutor` precisava saudar o usuário pelo
+nome ("Oi {nome}"). A auditoria confirmou que `profiles` NÃO tem coluna `full_name`
+(só role, admin_level, admin_team, onboarding_completed, status, timestamps) e que
+nenhum dado de pet é persistido (o onboarding só seta `onboarding_completed`).
+**Decisão:** O greeting usa `user.user_metadata` (Google OAuth traz `full_name`/
+`name`) com fallback pro prefixo do email e, por fim, "tutor". O dashboard é casca:
+busca e quick-cards são visuais (sem destino — busca real é Sprint 3) e "Meus pets"
+é mock com `// TODO`. A page não tem topbar próprio (o header da DL-018 cobre); o
+`LogoutButton` duplicado do corpo foi removido.
+**Implicações:**
+- TASK-004 (`/cadastro/tutor`) deve gravar o nome em `user_metadata` (ou em coluna
+  nova de `profiles` na migration 001) pra alimentar greeting/perfil.
+- Telas de perfil (TASK-009 etc) e captura real de pets dependem do schema da TASK-029.
+**Status:** Registrado.
 
 ---
 
