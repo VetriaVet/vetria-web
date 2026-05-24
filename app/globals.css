@@ -82,3 +82,10 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
+
+/* Em superfícies escuras (ancestral com .text-white, ex.: o card verde do
+   "Olá, {nome}"), os títulos herdam a cor clara em vez do --color-titulo —
+   senão a regra global acima pinta o título de preto e some no fundo. */
+.text-white :is(h1, h2, h3, h4, h5, h6) {
+  color: inherit;
+}
