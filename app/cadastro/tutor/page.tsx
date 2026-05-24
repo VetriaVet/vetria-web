@@ -6,12 +6,12 @@ import Image from "next/image";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
 import { Button } from "../../../components/ui/Button";
+import { createClient } from "@/lib/supabase/browser";
 
 // Funil HUMANO / consumidor — entrada direta do tutor (também alvo de `/cadastro`).
-// Cadastro do tutor — casca preparada (TASK-004). Form visual + validação
-// client. A criação de conta (signUp) está escrita como TODO abaixo, pronta
-// pra ligar na fase pesada (mesmo padrão do /login). Por ora NÃO cria conta —
-// só valida e mostra estado preparado, sem tocar auth em produção.
+// Cadastro do tutor (TASK-004). signUp LIGADO (mesmo padrão do /login): cria a
+// conta com role=tutor no metadata → o trigger handle_new_user grava o role
+// (migration 0001). Email confirmation ON (DL-009): confirma o email antes de logar.
 
 export default function CadastroTutorPage() {
   const [nome, setNome] = useState("");
@@ -20,9 +20,10 @@ export default function CadastroTutorPage() {
   const [confirmar, setConfirmar] = useState("");
   const [cidade, setCidade] = useState("");
   const [termos, setTermos] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
 
@@ -39,22 +40,24 @@ export default function CadastroTutorPage() {
       return;
     }
 
-    // TODO (fase pesada — ligar reusando o padrão do /login):
-    //   const supabase = createClient(); // @/lib/supabase/browser
-    //   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
-    //   const { error } = await supabase.auth.signUp({
-    //     email,
-    //     password: senha,
-    //     options: {
-    //       data: { full_name: nome, cidade, role: "tutor" },
-    //       emailRedirectTo: `${siteUrl}/auth/callback`,
-    //     },
-    //   });
-    //   if (error) return setMsg({ tipo: "erro", texto: error.message });
-    //   // sucesso → confirma email → login → /app/tutor/onboarding
+    setLoading(true);
+    const supabase = createClient();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+    const { error } = await supabase.auth.signUp({
+      email,
+      password: senha,
+      options: {
+        data: { full_name: nome, cidade, role: "tutor" },
+        emailRedirectTo: `${siteUrl}/auth/callback`,
+      },
+    });
+    setLoading(false);
+
+    if (error) return setMsg({ tipo: "erro", texto: error.message });
     setMsg({
       tipo: "ok",
-      texto: "Tudo certo por aqui ✅ A criação de conta é ativada na próxima fase.",
+      texto:
+        "Conta criada! Enviamos um email de confirmação — confirme pra ativar e fazer login.",
     });
   }
 
@@ -109,7 +112,9 @@ export default function CadastroTutorPage() {
               </span>
             </label>
 
-            <Button type="submit" className="mt-2">Criar conta</Button>
+            <Button type="submit" loading={loading} className="mt-2">
+              Criar conta
+            </Button>
 
             {msg && (
               <p

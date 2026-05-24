@@ -6,11 +6,12 @@ import Image from "next/image";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
 import { Button } from "../../../components/ui/Button";
+import { createClient } from "@/lib/supabase/browser";
 
 // Funil B2B / empresarial — acessado pelas landings de profissionais (não pelo fluxo do tutor).
-// Cadastro da clínica — casca preparada (TASK-006). Form com CNPJ + aside.
-// signUp escrito como TODO (padrão /login, role=clinic), pronto pra ligar na
-// fase pesada. Após criar conta → /app/clinic/onboarding.
+// Cadastro da clínica (TASK-006). signUp LIGADO (padrão /login, role=clinic no
+// metadata → trigger grava o role, migration 0001). Email confirmation ON (DL-009).
+// Após confirmar e logar → /app/clinic/onboarding.
 
 const FEATURES = [
   "Perfil da clínica na busca pública",
@@ -26,25 +27,35 @@ export default function CadastroClinicaPage() {
   const [confirmar, setConfirmar] = useState("");
   const [cidade, setCidade] = useState("");
   const [termos, setTermos] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
     if (senha.length < 8) return setMsg({ tipo: "erro", texto: "A senha precisa ter ao menos 8 caracteres." });
     if (senha !== confirmar) return setMsg({ tipo: "erro", texto: "As senhas não conferem." });
     if (!termos) return setMsg({ tipo: "erro", texto: "Você precisa aceitar os termos de uso." });
 
-    // TODO (fase pesada — ligar reusando o padrão do /login):
-    //   const supabase = createClient();
-    //   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
-    //   const { error } = await supabase.auth.signUp({
-    //     email, password: senha,
-    //     options: { data: { full_name: nomeFantasia, cnpj, cidade, role: "clinic" }, emailRedirectTo: `${siteUrl}/auth/callback` },
-    //   });
-    //   if (error) return setMsg({ tipo: "erro", texto: error.message });
-    //   // sucesso → confirma email → login → /app/clinic/onboarding
-    setMsg({ tipo: "ok", texto: "Tudo certo por aqui ✅ A criação de conta é ativada na próxima fase." });
+    setLoading(true);
+    const supabase = createClient();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+    const { error } = await supabase.auth.signUp({
+      email,
+      password: senha,
+      options: {
+        data: { full_name: nomeFantasia, cnpj, cidade, role: "clinic" },
+        emailRedirectTo: `${siteUrl}/auth/callback`,
+      },
+    });
+    setLoading(false);
+
+    if (error) return setMsg({ tipo: "erro", texto: error.message });
+    setMsg({
+      tipo: "ok",
+      texto:
+        "Conta criada! Enviamos um email de confirmação — confirme pra ativar e fazer login.",
+    });
   }
 
   return (
@@ -120,7 +131,9 @@ export default function CadastroClinicaPage() {
                 </span>
               </label>
 
-              <Button type="submit" className="mt-2">Criar conta</Button>
+              <Button type="submit" loading={loading} className="mt-2">
+                Criar conta
+              </Button>
 
               {msg && (
                 <p role={msg.tipo === "erro" ? "alert" : undefined} className={`text-sm font-medium ${msg.tipo === "erro" ? "text-red-600" : "text-principal"}`}>
