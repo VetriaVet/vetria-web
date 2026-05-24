@@ -79,6 +79,22 @@ export default async function VetPage() {
         )}
       </section>
 
+      {/* Busca — visual/preparada (// TODO: busca real na fase pesada) */}
+      <div className="bg-white rounded-pill border border-gray-200 flex items-center gap-3 pl-5 pr-3 py-2.5 max-w-xl">
+        <span className="text-corpo-texto/60 shrink-0">
+          <SearchIcon />
+        </span>
+        <input
+          type="text"
+          disabled
+          placeholder="Buscar contatos e avaliações..."
+          className="flex-1 bg-transparent text-[14px] text-titulo placeholder:text-corpo-texto/60 outline-none disabled:cursor-not-allowed"
+        />
+        <span className="text-[11px] uppercase tracking-wider text-corpo-texto/50 shrink-0">
+          em breve
+        </span>
+      </div>
+
       {/* Stats — estrutura pronta; valores chegam com a busca pública (Sprint 3) */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* TODO: ligar a métricas reais quando o perfil público existir */}
@@ -261,6 +277,15 @@ function StepItem({
         <div className="text-[12px] text-corpo-texto/80">{desc}</div>
       </div>
     </li>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
   );
 }
 
