@@ -372,7 +372,7 @@ Mensagem: feat(tutor): criar página de avaliações
 ## 🟢 FASE 3 — Painel do veterinário (push direto autorizado)
 
 ### TASK-012 — Refatorar `/app/vet` (dashboard) 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 24/05/2026 (commit b30c08d) — ver DL-020 (casca fiel ao produto, sem mock)
 **Pré-req:** TASK-001
 **Tempo:** 60-90 min
 
@@ -453,6 +453,7 @@ Mensagem: refactor(vet): refatorar onboarding multi-step visual
 ## 🟢 FASE 4 — Painel da clínica (push direto autorizado)
 
 ### TASK-016 — `/app/clinic` (dashboard) 🟢
+**Status:** ✅ feita em 24/05/2026 (commit a52e234) — ver DL-020 (casca fiel ao produto; card de plano omitido = Sprint 6)
 ### TASK-017 — `/app/clinic/equipe` 🟢
 ### TASK-018 — `/app/clinic/perfil` 🟢
 ### TASK-019 — `/app/clinic/aguardando` 🟢
@@ -482,7 +483,7 @@ vetria-proto/app/clinic/]
 ## 🟡 FASE 6 — Tasks técnicas (diff obrigatório)
 
 ### TASK-026 — Resolver homepage `/` 🟡
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 24/05/2026 (commit c45d98a)
 **Pré-req:** TASK-001
 **Tempo:** 20 min
 
@@ -501,6 +502,7 @@ Mensagem: feat(home): substituir página default por redirect baseado em sessão
 ---
 
 ### TASK-027 — Adicionar `.vercelignore` 🟡
+**Status:** 🚫 N/A (24/05/2026) — redundante: `vetria-proto/` já está no `.gitignore` e não é rastreado, logo nunca chega ao build da Vercel. Ver DL-021.
 **Pré-req:** —
 **Tempo:** 10 min
 
@@ -749,7 +751,7 @@ Se descoberta task nova (bug, refactor, decisão):
 
 ---
 
-## 🚦 STATUS ATUAL (23 Maio 2026)
+## 🚦 STATUS ATUAL (24 Maio 2026)
 
 ```
 ✅ TASK-000 — Fundação Sprint 2 (Tailwind + paleta + admin fix)
@@ -765,14 +767,18 @@ Se descoberta task nova (bug, refactor, decisão):
 ✅ Bug DL-014 fixado via SQL direto (is_master_admin SECURITY DEFINER)
 ✅ TASK-028 — biblioteca components/ui/ (f24d874, DL-017)
 ✅ TASK-034 — header compartilhado com nav por role (a93dfb9, DL-018)
-✅ TASK-008 — dashboard /app/tutor com visual Vetria (4ba2219, DL-019)
+✅ TASK-008 — dashboard /app/tutor (4ba2219, DL-019)
+✅ TASK-012 — dashboard /app/vet (b30c08d, DL-020)
+✅ TASK-016 — dashboard /app/clinic (a52e234, DL-020)
+✅ TASK-026 — homepage / redireciona por sessão (c45d98a)
+🚫 TASK-027 — .vercelignore N/A (redundante; DL-021)
 
 ⬜ TASK-004 — /cadastro/tutor — PRÓXIMA
 ⬜ TASK-005 a TASK-007 — cadastro vet/clínica/recuperar-senha
 ⬜ TASK-009 a TASK-011 — painel tutor (perfil, histórico, avaliações)
-⬜ TASK-012 a TASK-020 — painéis vet/clinic
+⬜ TASK-013 a TASK-015 — vet (perfil, aguardando, onboarding visual)
+⬜ TASK-017 a TASK-020 — clínica (equipe, perfil, aguardando, onboarding visual)
 ⬜ TASK-021 a TASK-025 — painel admin
-⬜ TASK-026 + TASK-027 — homepage redirect + vercelignore (amarelas)
 ⬜ TASK-FIX-003 — set-role idempotente (não urgente)
 🔴 TASK-029 a TASK-033 — vermelhas, presenciais
 🔴 TASK-FIX-009 — consolidar is_master_admin/is_admin_master (vermelha futura)

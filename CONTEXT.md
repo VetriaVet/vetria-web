@@ -4,7 +4,7 @@
 >
 > Esse arquivo existe pra que toda sessão tenha o mesmo contexto e siga as mesmas regras.
 >
-> **Última atualização:** 23 de Maio de 2026 — bloco visual UI (DL-017 a DL-019, TASK-028/034/008: biblioteca `components/ui/`, header compartilhado, dashboard tutor)
+> **Última atualização:** 24 de Maio de 2026 — dashboards vet/clínica + homepage redirect (DL-020 a DL-021, TASK-012/016/026; TASK-027 N/A)
 
 ---
 
@@ -56,7 +56,7 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 - ❌ Pasta `supabase/migrations/`
 - ❌ Email transacional (Resend não integrado)
 
-### Sprint 2 — concluído (até 23/05/2026)
+### Sprint 2 — concluído (até 24/05/2026)
 - ✅ TASK-000 — Fundação Tailwind v4 + paleta Vetria + Inter + admin fix
 - ✅ TASK-001 — `/login` refatorado com identidade Vetria (commit 78a43a1)
 - ✅ TASK-002 — `/onboarding` com 3 cards de role (commit b89e49b)
@@ -71,13 +71,16 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 - ✅ TASK-028 — biblioteca `components/ui/` (Button, Input, Select, Card, Label) extraída das telas canônicas; `AuthShell` órfão removido (commit f24d874, DL-017)
 - ✅ TASK-034 — header compartilhado `app/app/layout.tsx` refatorado: Server Component com nav por role (commit a93dfb9, DL-018)
 - ✅ TASK-008 — dashboard `/app/tutor` refatorado com visual Vetria (commit 4ba2219, DL-019)
+- ✅ TASK-012 — dashboard `/app/vet` refatorado (casca fiel ao produto, sem mock) (commit b30c08d, DL-020)
+- ✅ TASK-016 — dashboard `/app/clinic` refatorado (coeso com o vet) (commit a52e234, DL-020)
+- ✅ TASK-026 — homepage `/` redireciona por sessão (login/app) (commit c45d98a)
+- 🚫 TASK-027 — `.vercelignore` dispensada (N/A — `vetria-proto/` já gitignored; DL-021)
 
 ### Próximas (priorizadas)
 - ⬜ TASK-004 — `/cadastro/tutor` (form de signup tutor)
-- ⬜ TASK-009 — `/app/tutor/perfil`
-- ⬜ TASK-010 — `/app/tutor/historico`
-- ⬜ TASK-011 — `/app/tutor/avaliacoes`
-- ⬜ TASK-012 / TASK-016 — dashboards vet/clínica (uniformizar identidade dos 3 painéis)
+- ⬜ TASK-005 a TASK-007 — `/cadastro/{vet,clinica}` + `/recuperar-senha`
+- ⬜ TASK-009 / TASK-010 / TASK-011 — telas internas do tutor (perfil, histórico, avaliações)
+- ⬜ TASK-021 a TASK-025 — painel admin (refatorar com a mesma casca fiel ao produto — DL-020)
 
 ---
 
@@ -619,6 +622,45 @@ busca e quick-cards são visuais (sem destino — busca real é Sprint 3) e "Meu
   nova de `profiles` na migration 001) pra alimentar greeting/perfil.
 - Telas de perfil (TASK-009 etc) e captura real de pets dependem do schema da TASK-029.
 **Status:** Registrado.
+
+### DL-020 — Dashboards de role são "casca fiel ao produto": sem mock, estado honesto + pipeline de status scaffolded
+**Data:** 24 Maio 2026
+**Sprint:** 2 — TASK-012 (`/app/vet`, commit b30c08d) e TASK-016 (`/app/clinic`, commit a52e234).
+**Contexto:** Os protótipos de dashboard (vet/clínica) trazem métricas, feeds de
+atividade, equipe e contatos com dados fictícios ricos. Surgiu a opção de portar
+esses mocks pra impressionar numa apresentação aos donos. Mas tudo é pushado direto
+na `main` → produção pública: números fake ("3 contatos, 47 visualizações", equipe
+fictícia, plano R$ 499,90/mês) seriam vistos por qualquer usuário real como verdade,
+e virariam dívida de limpeza quando o backend chegasse.
+**Decisão:** Os dashboards são casca **fiel ao produto**, sem dado inventado. Mantêm
+a estrutura corporativa densa (greeting, stat cards, painéis), mas em **estados
+honestos**: métricas em "—/Em breve", listas em empty-state, e um card "Ativação do
+perfil" que faz **scaffold do fluxo real de status** do §4.3 (incomplete →
+pending_validation → active), hoje derivado de `onboarding_completed`. Mock pra demo,
+se necessário, vai em preview deploy/branch separado — nunca na `main`.
+**Implicações:**
+- Padrão pros próximos painéis e telas internas (admin, perfil, etc): estrutura
+  pensada pro futuro + estado honesto + `// TODO` em cada ponto de integração.
+- Cada bloco "liga" ao backend na fase técnica (migration 029, busca Sprint 3, planos
+  Sprint 6) sem mock a remover.
+- CTAs nunca apontam pra rota inexistente (404): quando o destino ainda não existe,
+  viram botão visual desabilitado com `// TODO` da task que o criará.
+- O card de plano/cobrança da clínica foi omitido de propósito (monetização = Sprint 6).
+**Status:** Aplicado em `/app/vet` e `/app/clinic` (coeso com `/app/tutor`, DL-019).
+
+### DL-021 — `.vercelignore` dispensada: `vetria-proto/` já é invisível ao build
+**Data:** 24 Maio 2026
+**Sprint:** 2 — TASK-027 (não executada).
+**Contexto:** A TASK-027 pedia criar `.vercelignore` com `vetria-proto/` pra evitar
+que o protótipo fosse pro build da Vercel. A auditoria mostrou que `vetria-proto/` já
+está no `.gitignore` (confirmado por `git check-ignore`) e não é rastreado
+(`git ls-files` vazio). Como a Vercel buildA a partir do repo Git, o protótipo nunca
+chega ao build — o `.vercelignore` seria redundante (e não há Vercel CLI instalado
+pra deploy local).
+**Decisão:** Não criar o arquivo. TASK-027 marcada N/A no BACKLOG.
+**Implicações:** Se um dia `vetria-proto/` sair do `.gitignore` ou passar a ser
+rastreado, reavaliar.
+**Status:** Registrado (N/A).
 
 ---
 
