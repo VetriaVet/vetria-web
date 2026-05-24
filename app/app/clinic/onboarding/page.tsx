@@ -1,5 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../../../lib/supabase/server";
+import ClinicOnboardingForm from "./ClinicOnboardingForm";
+
+export const metadata = {
+  title: "Configurar cadastro da clínica",
+};
 
 export default async function ClinicOnboardingPage() {
   const supabase = await createClient();
@@ -17,6 +22,14 @@ export default async function ClinicOnboardingPage() {
   if (!profile || profile.role !== "clinic") redirect("/app");
   if (profile.onboarding_completed) redirect("/app/clinic");
 
+  const meta = (user.user_metadata ?? {}) as {
+    full_name?: string;
+    name?: string;
+  };
+  const displayName = (meta.full_name ?? meta.name ?? "").trim();
+
+  // Server Action: só marca onboarding_completed (lógica preservada). Captura
+  // real dos dados depende de clinic_profiles (migration 031). Logs DL-011.
   async function completeOnboarding() {
     "use server";
 
@@ -25,26 +38,27 @@ export default async function ClinicOnboardingPage() {
     const user = userData.user;
     if (!user) redirect("/login");
 
-    await supabase
+    console.log("[clinic/onboarding] complete:start", { userId: user.id });
+
+    const { error } = await supabase
       .from("profiles")
       .update({ onboarding_completed: true })
-      .eq("id", user.id);
+      .eq("id", user.id)
+      .select();
 
-    redirect("/app");
+    if (error) {
+      console.error("[clinic/onboarding] complete:error", {
+        message: error.message,
+        code: error.code,
+      });
+      redirect("/app/clinic/onboarding?error=1");
+    }
+
+    console.log("[clinic/onboarding] complete:done", { userId: user.id });
+    redirect("/app/clinic/aguardando");
   }
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 800 }}>Onboarding Clínica</h1>
-      <p style={{ marginTop: 8, opacity: 0.85 }}>
-        Placeholder. Por enquanto, apenas vamos marcar onboarding como completo.
-      </p>
-
-      <form action={completeOnboarding} style={{ marginTop: 16 }}>
-        <button style={{ padding: "10px 12px", borderRadius: 10 }}>
-          Concluir onboarding
-        </button>
-      </form>
-    </div>
+    <ClinicOnboardingForm initialName={displayName} action={completeOnboarding} />
   );
 }
