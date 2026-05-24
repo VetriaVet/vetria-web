@@ -1,22 +1,15 @@
 import type { Metadata } from "next";
-import { Poppins, Cormorant_Garamond } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-// Tipografia oficial Vetria v2 (design-system): corpo Poppins, títulos em
-// Cormorant Garamond (serif elegante — substituta web da "Marie Regular").
-// Carregadas via next/font (self-hosted, sem layout shift). Substitui o Inter
-// único anterior (DL-006 § tipografia revogado por DL-031).
-const poppins = Poppins({
+// Tipografia oficial Vetria (manual de marca): Inter ÚNICA, no corpo e nos
+// títulos (--fs-body e --fs-display da referência v2 são ambos Inter). A serif
+// (Poppins+Cormorant da DL-031) foi revertida — destoava do manual (DL-033).
+// next/font self-hosta a fonte (sem layout shift); a variável vira --font-sans.
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-poppins",
-  display: "swap",
-});
-
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-cormorant",
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -35,10 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="pt-BR"
-      className={`${poppins.variable} ${cormorant.variable}`}
-    >
+    <html lang="pt-BR" className={inter.variable}>
       <body className="antialiased">{children}</body>
     </html>
   );

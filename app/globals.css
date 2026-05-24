@@ -1,41 +1,84 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ================================================================
+   VETRIA — Design System v2 (espelha vetria-visualizador-v2.html,
+   "corrigido com manual oficial"). Tokens expostos via @theme do
+   Tailwind v4 → geram utilitários (bg-principal, text-titulo,
+   shadow-md, rounded-lg…). Tipografia: Inter ÚNICA (DL-033).
+   ================================================================ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+@theme {
+  /* ---- PALETA OFICIAL (5 cores nomeadas do manual) ---- */
+  --color-principal: #1E4349;        /* verde-petróleo — CTAs, marca */
+  --color-fundo-claro: #F5F0E1;      /* creme suave — hero, identidade */
+  --color-titulo: #1A1A1A;           /* preto-grafite — títulos */
+  --color-corpo-texto: #4A6064;      /* verde-acinzentado — texto corpo */
+  --color-fundo-destaque: #EAFAF5;   /* verde-water — pills, alerts */
 
-  /* Cores oficiais Vetria (manual de marca) */
-  --color-principal: #1E4349;          /* verde-petróleo — CTAs, marca */
-  --color-fundo-claro: #F5F0E1;        /* creme suave — hero, identidade */
-  --color-titulo: #1A1A1A;             /* preto-grafite — H1, H2, H3 */
-  --color-corpo-texto: #4A6064;        /* verde-acinzentado — texto corpo */
-  --color-fundo-destaque: #EAFAF5;     /* verde-water — pills, alerts */
+  /* ---- Variações funcionais ---- */
+  --color-principal-deep: #142E33;
+  --color-principal-soft: #2C5C64;
+  --color-fundo-claro-deep: #E5DCC2;
+  --color-fundo-claro-soft: #FAF6EC;
+  --color-text-muted: #8FA0A2;
 
-  /* Tipografia oficial Vetria v2 (DL-031): corpo Poppins, títulos Cormorant
-     Garamond (serif). Variáveis injetadas via next/font no layout raiz.
-     `font-sans` = corpo (default do body); `font-display` = títulos serifados. */
-  --font-sans: var(--font-poppins), system-ui, -apple-system, sans-serif;
-  --font-display: var(--font-cormorant), 'Times New Roman', Georgia, serif;
+  /* ---- Neutros ---- */
+  --color-neutro-bg: #FFFFFF;
+  --color-neutro-bg-alt: #F8F9FA;
+  --color-neutro-border: #E5E7EB;
+  --color-neutro-border-soft: #EFF1F3;
+
+  /* ---- Estados ---- */
+  --color-success: #2D7A4F;
+  --color-success-soft: #E6F2EC;
+  --color-error: #C84A4A;
+  --color-error-soft: #FBEBEB;
+  --color-warning: #D4923A;
+  --color-warning-soft: #FBF0DD;
+  --color-info-blue: #2563EB;
+  --color-whatsapp: #25D366;
+  --color-focus: #4A8B92;
+
+  /* ---- Tipografia: Inter única (corpo e títulos) ---- */
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Radius pill — inputs e botões (manual de marca) */
+  /* ---- Raios (referência) ---- */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
   --radius-pill: 999px;
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* ---- Sombras (referência) ---- */
+  --shadow-sm: 0 1px 2px rgba(20, 46, 51, 0.04), 0 1px 3px rgba(20, 46, 51, 0.06);
+  --shadow-md: 0 4px 14px rgba(20, 46, 51, 0.06), 0 2px 4px rgba(20, 46, 51, 0.04);
+  --shadow-lg: 0 16px 40px rgba(20, 46, 51, 0.08), 0 4px 12px rgba(20, 46, 51, 0.04);
+  --shadow-focus: 0 0 0 3px rgba(74, 139, 146, 0.18);
+
+  /* ---- Easing ---- */
+  --ease-vetria: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-neutro-bg);
+  color: var(--color-corpo-texto);
   font-family: var(--font-sans);
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--color-principal);
+  color: #fff;
+}
+
+/* Títulos: peso e tracking da referência (h1..h6 herdam por padrão) */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-titulo);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
