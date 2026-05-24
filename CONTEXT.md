@@ -4,7 +4,7 @@
 >
 > Esse arquivo existe pra que toda sessão tenha o mesmo contexto e siga as mesmas regras.
 >
-> **Última atualização:** 24 de Maio de 2026 — 🥚 CASCA COMPLETA (DL-023 a DL-025): cadastros preparados, admin dark, recuperar-senha, chrome (notificação/busca/menu mobile). Pendentes: sidebar vet/clínica (adiada, testar no navegador) + bloco 🔴 presencial.
+> **Última atualização:** 24 de Maio de 2026 — separação tutor/B2B + 1ª migration versionada (DL-026 a DL-029): `/cadastro` vira entrada direta do tutor (login único, separação no funil), trigger `handle_new_user` lê role do metadata (migration 0001 aplicada), signUp ligado nos 3 cadastros. Pendentes: Elber validar cadastros no navegador, sidebar vet/clínica (TASK-038) + bloco 🔴 presencial (schema grande).
 
 ---
 
@@ -52,8 +52,8 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 - ❌ Tabela `vet_profiles` no Supabase
 - ❌ Tabela `clinic_profiles` no Supabase
 - ❌ Campo `status` em `profiles` (enum incomplete|pending_validation|active|suspended)
-- ❌ Páginas `/app/vet/aguardando` e `/app/clinic/aguardando`
-- ❌ Pasta `supabase/migrations/`
+- ❌ Páginas `/app/vet/aguardando` e `/app/clinic/aguardando` (✅ visuais criadas — DL-022)
+- ✅ Pasta `supabase/migrations/` criada + migration 0001 aplicada (DL-027)
 - ❌ Email transacional (Resend não integrado)
 
 ### Sprint 2 — concluído (até 24/05/2026)
@@ -88,13 +88,16 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 - ✅ TASK-022/023/024/025 — admin: usuários (painel RBAC) + validações/moderação/conteúdo (15c38db, DL-024)
 - ✅ TASK-004/005/006 — `/cadastro/{tutor,vet,clinica}` forms preparados, signUp como TODO (df1514c/87de08c, DL-023)
 - ✅ Chrome do app: sino de notificações + menu hambúrguer mobile + busca vet/clínica (cc887c9/9955bfe, DL-025)
+- ✅ TASK-039 — `/cadastro` vira entrada direta do tutor; vet/clínica = funil B2B separado (b1be7ae, DL-026)
+- ✅ Migration 0001 — `handle_new_user` lê role do metadata + hardening; pasta `supabase/migrations/` criada (8abdc7a, DL-027) — aplicada em prod
+- ✅ signUp LIGADO nos 3 cadastros (role no metadata p/ trigger) (908ba5e, DL-028)
 
 > 🥚 **CASCA COMPLETA** — app visualmente completo em todos os painéis e fluxos (público, tutor, vet, clínica, admin). Sem dado fake; pontos de integração marcados com `// TODO`.
 
 ### Próximas (priorizadas)
+- 🧪 **Elber valida no navegador**: criar conta tutor/vet/clínica por rota → confirmar email → cair no painel certo (login social + recuperação de senha de quebra). Depende só de deploy (já no ar). Ver DL-028.
 - 🟡 TASK-038 — migrar `/app` vet/clínica pra **sidebar** (refator de rota + route group pro onboarding) — **fazer com navegador pra testar** (DL-025)
-- 🔴 TASK-029 → 031 → 032 → 030 — **bloco presencial** que dá vida: migration (status + vet/clinic_profiles) → onboarding real → middleware por status → Resend
-- 🔴 Wire dos cadastros (`signUp`) + signup real — junto da migration (DL-023)
+- 🔴 TASK-029 → 031 → 032 → 030 — **bloco presencial** que dá vida: migration grande (status + vet/clinic_profiles) → onboarding real → middleware por status → Resend
 - ⬜ TASK-FIX-003 — set-role idempotente (não urgente)
 
 ---
@@ -748,6 +751,87 @@ navegador** (não fazer no escuro/mobile). Registrada como TASK-038.
 **Implicações:** próxima sessão com browser pega a TASK-038 (sidebar + route group do
 onboarding + busca na topbar). Tutor permanece no header.
 **Status:** Chrome aplicado; sidebar pendente (TASK-038).
+
+### DL-026 — Separação tutor (humano/B2C) × vet+clínica (B2B): login único, separação no cadastro/funil
+**Data:** 24 Maio 2026
+**Sprint:** 2 — TASK-039 (commit b1be7ae).
+**Contexto:** Elber detalhou a visão fundadora (estilo Doctoralia): dois públicos com
+dois funis que se cruzam o mínimo possível. O **tutor** é o lado HUMANO/B2C — está com
+o pet doente, com pressa → fluxo simples e aberto, SEM escolhas/travas, gratuito (não
+paga; "paga" com dados/uso); é o rosto público (busca, comunidade) e NÃO pode sentir o
+lado empresarial. **Vet/clínica** são o lado B2B — pagam, verificação técnica mais
+longa, linguagem comercial, entram por FORA do fluxo do tutor (landings de
+profissionais já prototipadas, linkadas no rodapé/tráfego B2B).
+**Decisão:** A separação NÃO é no login — é no cadastro/funil. **1 login compartilhado**
+(`/login`) pra todos; pós-login cada conta já tem `role` → vai direto pro painel certo,
+sem perguntar nada. `/cadastro` deixou de ser a vitrine de 3 cards (misturava
+tutor+vet+clínica) e virou **entrada direta do tutor** (`redirect("/cadastro/tutor")`);
+vet/clínica seguem em `/cadastro/vet` e `/cadastro/clinica`, alcançados só pelas
+landings B2B (a escolha "vet ou clínica" vive no lado B2B, nunca no fluxo do tutor). A
+tela genérica de escolha de role (`/onboarding`, 3 cards) fica aposentada pra esse fim.
+Código marcado com comentários `// HUMANO/consumidor` vs `// B2B/empresarial`.
+**Implicações:**
+- Decisão permanente — não quebrar sem confirmar com o Elber. Linguagem/tom das landings
+  B2B = fora de escopo por enquanto (foco é casca + rotas).
+- Homepage `/` futura = cara consumidor (busca + destaques); parte empresarial no rodapé.
+- Sustenta-se no `role` vindo do metadata (DL-027) com default `tutor`.
+**Status:** Roteamento/funil aplicado (b1be7ae). Validação no navegador pendente (Elber).
+
+### DL-027 — Migration 0001 + pasta `supabase/migrations/`: trigger `handle_new_user` lê role do metadata + hardening
+**Data:** 24 Maio 2026
+**Sprint:** 2 — commit 8abdc7a; SQL aplicado em prod (Supabase SQL Editor, "Success").
+**Contexto:** O trigger antigo inseria só o `id` em `profiles`, então `role` caía sempre
+no DEFAULT (a escolha de role do cadastro era ignorada). Além disso a função era
+`SECURITY DEFINER` SEM `SET search_path` (gap de hardening, DL-015). A pasta
+`supabase/migrations/` ainda não existia (CONTEXT §3 a pedia desde a Sprint 2).
+**Decisão:** Criada a pasta `supabase/migrations/` (com README do fluxo manual — sem
+Supabase CLI, aplica-se copiando o SQL no SQL Editor e anotando a data). Migration
+`0001_handle_new_user_role_from_metadata.sql` (`CREATE OR REPLACE`, aditiva, idempotente,
+não toca contas existentes) faz o trigger:
+- ler `role` de `raw_user_meta_data` (aceita só `tutor`/`vet`/`clinic`); **default `tutor`**
+  quando ausente (login/Google) — isso é INTENCIONAL (consumidor padrão, DL-026), não bug;
+- `admin` NUNCA aceito via metadata (admin só concedido no banco);
+- popular `full_name` (do cadastro ou do nome do Google);
+- `SET search_path = public` (corrige o gap da DL-015).
+**Implicações:**
+- 1ª migration versionada do projeto. Falta versionar a redefinição de
+  `is_master_admin`/`is_admin_master` (DL-014, TASK-FIX-009) e a migration grande de
+  schema (TASK-029: `status` + `vet_profiles`/`clinic_profiles`).
+- "vet/clínica nascem com o role certo" só vale com os cadastros mandando role no signUp
+  (DL-028).
+**Status:** Aplicada em prod 24/05/2026; versionada no repo.
+
+### DL-028 — signUp LIGADO nos 3 cadastros (atualiza DL-023)
+**Data:** 24 Maio 2026
+**Sprint:** 2 — commit 908ba5e.
+**Contexto:** Pela DL-023, os forms de `/cadastro/{tutor,vet,clinica}` tinham o `signUp`
+escrito como bloco `// TODO` comentado (casca, sem auth ao vivo). Com a migration 0001
+aplicada (DL-027), o caminho ficou seguro pra ligar.
+**Decisão:** Os 3 forms agora chamam `supabase.auth.signUp` de verdade (mesmo padrão do
+`/login`), passando `role` no metadata (`tutor`/`vet`/`clinic`) + `full_name`/`cidade`
+(e `cnpj` na clínica) e `emailRedirectTo` pro `/auth/callback`. Botão com estado
+`loading`; mensagens reais de erro/sucesso ("confirme o email"). Email confirmation ON
+(DL-009) continua valendo. Fluxo de ponta a ponta:
+`/cadastro/vet → signUp(role:vet) → email de confirmação → /auth/callback → /app/vet/onboarding`
+(idem tutor e clínica pros respectivos onboardings).
+**Implicações:**
+- O Elber ainda vai **testar no navegador** (criar conta vet/clínica por rota e ver caindo
+  no painel certo) — sujeito ao rate limit do email built-in (DL-010).
+- DL-023 fica superada nesta parte (signUp deixou de ser TODO).
+**Status:** No ar (908ba5e); validação no navegador pendente (Elber).
+
+### DL-029 — Referências locais de design (HTML/zip) gitignored, mas preservadas
+**Data:** 24 Maio 2026
+**Sprint:** 2 — commit 20a9c3d.
+**Contexto:** Surgiram na raiz arquivos de referência de design (`design-system.html`,
+`vetria-visualizador-v2.html`, `vetria-proto-completo.zip`). NÃO devem ir pra produção,
+mas NÃO devem ser apagados — são peças-base pra criar o design das telas (mesmo espírito
+da DL-001/DL-021 do `vetria-proto/`).
+**Decisão:** Adicionados `/*.html` e `/*.zip` ao `.gitignore` (raiz) — ficam só no disco
+local, fora do repo/build. (Next.js não tem HTML rastreável na raiz, então o padrão é seguro.)
+**Implicações:** novas referências de design soltas na raiz (`.html`/`.zip`) são
+auto-ignoradas. Se algum HTML de raiz precisar ser versionado um dia, reavaliar o padrão.
+**Status:** Aplicado.
 
 ---
 

@@ -197,7 +197,7 @@ Mensagem: feat(cadastro): criar /cadastro com escolha de role
 ---
 
 ### TASK-004 — Criar `/cadastro/tutor` (form de signup tutor) 🟢
-**Status:** ✅ feita em 24/05/2026 (commit df1514c) — ver DL-023 (form visual; signUp como TODO)
+**Status:** ✅ feita em 24/05/2026 (commit df1514c; signUp ligado em 908ba5e) — DL-023→DL-028. Também é alvo de `/cadastro` (DL-026)
 **Pré-req:** TASK-003
 **Tempo:** 45-60 min
 
@@ -240,7 +240,7 @@ Mensagem: feat(cadastro): formulário de cadastro do tutor
 ---
 
 ### TASK-005 — Criar `/cadastro/vet` (form de signup vet) 🟢
-**Status:** ✅ feita em 24/05/2026 (commit 87de08c) — ver DL-023 (signUp como TODO)
+**Status:** ✅ feita em 24/05/2026 (commit 87de08c; signUp ligado em 908ba5e) — DL-023→DL-028 (funil B2B, DL-026)
 **Pré-req:** TASK-003
 **Tempo:** 45-60 min
 
@@ -262,7 +262,7 @@ Mensagem: feat(cadastro): formulário de cadastro do veterinário
 ---
 
 ### TASK-006 — Criar `/cadastro/clinica` 🟢
-**Status:** ✅ feita em 24/05/2026 (commit 87de08c) — ver DL-023 (com CNPJ; signUp como TODO)
+**Status:** ✅ feita em 24/05/2026 (commit 87de08c; signUp ligado em 908ba5e) — DL-023→DL-028 (com CNPJ; funil B2B, DL-026)
 **Pré-req:** TASK-003
 **Tempo:** 45-60 min
 
@@ -694,7 +694,7 @@ estar presente pra rotacionar variáveis na Vercel.
 
 ### TASK-FIX-009 — Consolidar duplicação `is_master_admin` e `is_admin_master` 🔴
 **Status:** 🔴 NÃO autônomo (não urgente)
-**Pré-req:** Pasta `supabase/migrations/` criada (TASK-029)
+**Pré-req:** ✅ Pasta `supabase/migrations/` já criada (DL-027) — pré-req satisfeito
 **Por quê:** Funções idênticas no banco, ambas SECURITY DEFINER + SET
 search_path = public após fix de DL-014. Decidir qual manter, dropar a
 outra atualizando policies que a referenciem. Mexe em RLS policies +
@@ -760,22 +760,42 @@ Se descoberta task nova (bug, refactor, decisão):
 
 ---
 
-## 🚦 STATUS ATUAL (24 Maio 2026) — 🥚 CASCA COMPLETA
+### TASK-039 — Separar rotas tutor/B2B + ligar signUp + migration 0001 🟡
+**Status:** ✅ feita em 24/05/2026 — ver DL-026/027/028
+**Commits:** b1be7ae (rotas), 8abdc7a (migration 0001 versionada), 908ba5e (signUp ligado)
+
+Bloco de 3 passos (estilo Doctoralia — separação tutor/B2B):
+1. `/cadastro` deixou de ser vitrine de 3 cards → `redirect("/cadastro/tutor")` (entrada
+   direta do tutor); vet/clínica seguem em `/cadastro/{vet,clinica}`, alcançados só pelas
+   landings B2B. Comentários `// HUMANO` vs `// B2B` no código (DL-026).
+2. Pasta `supabase/migrations/` criada + migration `0001_handle_new_user_role_from_metadata.sql`
+   (trigger lê role do metadata, default tutor intencional, hardening search_path) —
+   aplicada em prod 24/05 (DL-027).
+3. signUp ligado nos 3 cadastros (role no metadata p/ trigger) — DL-028.
+
+**Pendente:** Elber validar no navegador (criar conta por rota → confirmar email → painel certo).
+
+---
+
+## 🚦 STATUS ATUAL (24 Maio 2026) — separação tutor/B2B + 1ª migration versionada
 
 ```
-✅ Públicas — login · /onboarding (role) · /cadastro + /cadastro/{tutor,vet,clinica} · /recuperar-senha · homepage redirect · 404
+✅ Públicas — login · /cadastro (→tutor) + /cadastro/{tutor,vet,clinica} (signUp LIGADO, DL-028) · /recuperar-senha · homepage redirect · 404
 ✅ Tutor — dashboard · perfil · histórico · avaliações (DL-019/022)
 ✅ Vet — dashboard · perfil · aguardando · onboarding multi-step (DL-020/022)
 ✅ Clínica — dashboard · perfil · aguardando · equipe · onboarding multi-step (DL-020/022)
 ✅ Admin (dark) — dashboard · usuários (RBAC real) · validações · moderação · conteúdo (DL-024)
 ✅ Infra — components/ui (DL-017) · header por role + nav + sino + busca + hambúrguer mobile (DL-018/025) · higiene layout/404 (035/036)
+✅ Arquitetura — separação tutor(B2C)/vet+clínica(B2B): login único, separação no funil (DL-026)
+✅ DB — pasta supabase/migrations/ + migration 0001 (trigger lê role do metadata) aplicada (DL-027)
 ✅ TASK-037 — nav mobile (hambúrguer) entregue no header (DL-025)
+✅ TASK-039 — rotas tutor/B2B + signUp ligado + migration 0001 (DL-026/027/028)
 🚫 TASK-027 — .vercelignore N/A (DL-021)
 
-PENDENTE (precisa navegador / sessão presencial):
+PENDENTE:
+🧪 Elber valida cadastros no navegador (criar conta por rota → confirmar email → painel certo) — já no ar (DL-028)
 🟡 TASK-038 — sidebar vet/clínica (route group pro onboarding) — testar no navegador (DL-025)
-🔴 TASK-029 → 031 → 032 → 030 — presencial: migration → onboarding real → middleware por status → Resend
-🔴 Wire dos cadastros (signUp) + signup real — junto da migration (DL-023)
+🔴 TASK-029 → 031 → 032 → 030 — presencial: migration GRANDE (status + vet/clinic_profiles) → onboarding real → middleware por status → Resend
 ⬜ TASK-FIX-003 — set-role idempotente (não urgente)
-🔴 TASK-FIX-009 — consolidar is_master_admin/is_admin_master (vermelha futura)
+🔴 TASK-FIX-009 — consolidar is_master_admin/is_admin_master (vermelha futura; versionar DL-014/015)
 ```

@@ -80,3 +80,4 @@ Salvaguardas (mesmo em VERDE):
 Data | Tasks cobertas | DLs criados | Tasks novas BACKLOG | Commit
 ---|---|---|---|---
 YYYY-MM-DD | TASK-XXX a TASK-YYY | DL-NN a DL-MM | TASK-FIX-XXX | hash
+2026-05-24 | TASK-039 (separação tutor/B2B + signUp + migration 0001) | DL-026 a DL-029 | TASK-039 | (este commit)
