@@ -153,7 +153,7 @@ export default function LoginPage() {
                 </label>
                 {!isSignup && (
                   <a
-                    href="#"
+                    href="/recuperar-senha"
                     className="text-blue-600 text-sm hover:underline"
                   >
                     Esqueceu sua senha?
