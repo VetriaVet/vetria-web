@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Input } from "../../../../components/ui/Input";
-import { Label } from "../../../../components/ui/Label";
-import { Select } from "../../../../components/ui/Select";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Select } from "@/components/ui/Select";
 
 // Editor de perfil do vet — casca fiel ao produto (DL-020). O formulário tem
 // estado client e alimenta um preview ao vivo, mas NÃO persiste ainda: não

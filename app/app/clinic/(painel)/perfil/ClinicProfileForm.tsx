@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Input } from "../../../../components/ui/Input";
-import { Label } from "../../../../components/ui/Label";
-import { Select } from "../../../../components/ui/Select";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Select } from "@/components/ui/Select";
 
 // Editor de perfil da clínica — casca fiel ao produto (DL-020), mesmo padrão
 // do editor do vet. Estado client + preview ao vivo, sem persistência ainda

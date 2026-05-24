@@ -3,24 +3,19 @@ import Image from "next/image";
 import { createClient } from "../../lib/supabase/server";
 import AppHeaderNav from "./AppHeaderNav";
 
-// Navegação contextual por role. Inclui APENAS rotas que já existem hoje
-// (não linka 404). Telas internas (perfil/historico/avaliacoes/equipe/
-// aguardando) entram aqui conforme forem criadas em tasks futuras.
+// Layout raiz de `/app` — escolhe o "chrome" por role (DL-032):
+//   • tutor  → HEADER topo clean (lado humano, rápido — DL-026)
+//   • vet/clínica → passthrough: a sidebar vem do route group `(painel)`
+//     (e os onboardings, fora do grupo, têm chrome próprio). Aqui não
+//     renderizamos header nem o container centralizado pra não brigar com
+//     a sidebar shell.
+// Nav do header (tutor): inclui APENAS rotas que já existem (nunca linka 404).
 const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
   tutor: [
     { href: "/app/tutor", label: "Início" },
     { href: "/app/tutor/perfil", label: "Perfil" },
     { href: "/app/tutor/historico", label: "Histórico" },
     { href: "/app/tutor/avaliacoes", label: "Avaliações" },
-  ],
-  vet: [
-    { href: "/app/vet", label: "Painel" },
-    { href: "/app/vet/perfil", label: "Meu perfil" },
-  ],
-  clinic: [
-    { href: "/app/clinic", label: "Painel" },
-    { href: "/app/clinic/equipe", label: "Equipe" },
-    { href: "/app/clinic/perfil", label: "Perfil" },
   ],
   admin: [{ href: "/admin", label: "Admin" }],
   master: [{ href: "/admin", label: "Admin" }],
@@ -35,20 +30,24 @@ export default async function AppLayout({
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
 
-  // Os guards das pages /app/* já redirecionam quem não tem sessão.
-  // Aqui tratamos role ausente de forma defensiva: header mínimo, sem quebrar.
-  let navLinks: { href: string; label: string }[] = [];
+  let role: string | undefined;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
-    if (profile?.role) {
-      navLinks = NAV_BY_ROLE[profile.role] ?? [];
-    }
+    role = profile?.role ?? undefined;
   }
 
+  // vet/clínica: o chrome é a sidebar do route group (painel) ou o próprio
+  // onboarding. Layout raiz só repassa os filhos.
+  if (role === "vet" || role === "clinic") {
+    return <>{children}</>;
+  }
+
+  // tutor (e fallback defensivo): header topo + container centralizado.
+  const navLinks = role ? NAV_BY_ROLE[role] ?? [] : [];
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-100">

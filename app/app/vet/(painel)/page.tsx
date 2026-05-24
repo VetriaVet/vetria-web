@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "../../../lib/supabase/server";
-import { Card } from "../../../components/ui/Card";
+import { createClient } from "@/lib/supabase/server";
+import { Card } from "@/components/ui/Card";
 
-// Dashboard clínica — casca fiel ao produto, mesma linguagem do painel vet.
-// Estrutura institucional (equipe, métricas, ativação) pensada pras próximas
-// fases, com estados honestos "em breve" até o backend real (migration 029:
-// clinic_profiles + equipe; busca Sprint 3; planos Sprint 6). Sem mock.
-// Pontos de integração marcados com // TODO. Card de plano/cobrança fica de
-// fora de propósito — pré-anunciar preço é Sprint 6.
+// Dashboard vet — casca fiel ao produto. Estrutura corporativa pensada pras
+// próximas fases: as métricas, a atividade e o pipeline de validação já têm
+// o lugar montado, mas mostram estados honestos ("em breve") até o backend
+// real (migration 029 + busca da Sprint 3) ligar cada bloco. Nada de número
+// inventado. Os pontos de integração estão marcados com // TODO.
 
-export default async function ClinicPage() {
+export default async function VetPage() {
   const supabase = await createClient();
 
   const { data: userData } = await supabase.auth.getUser();
@@ -23,16 +22,18 @@ export default async function ClinicPage() {
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.role !== "clinic") redirect("/app");
+  if (!profile || profile.role !== "vet") redirect("/app");
 
-  // Nome via user_metadata (profiles não tem nome da clínica — DL-019).
+  // Nome via user_metadata (profiles não tem full_name — DL-019).
   const meta = (user.user_metadata ?? {}) as {
     full_name?: string;
     name?: string;
   };
   const rawName =
-    meta.full_name ?? meta.name ?? user.email?.split("@")[0] ?? "sua clínica";
-  const displayName = rawName.trim();
+    meta.full_name ?? meta.name ?? user.email?.split("@")[0] ?? "doutor(a)";
+  const firstName = rawName.trim().split(" ")[0];
+  const displayName =
+    firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
 
   const hoje = new Date().toLocaleDateString("pt-BR", {
     weekday: "long",
@@ -51,17 +52,17 @@ export default async function ClinicPage() {
             {hoje}
           </div>
           <h1 className="font-bold text-[26px] sm:text-[30px] leading-tight mb-2">
-            Bem-vindo, {displayName}.
+            Olá, {displayName}.
           </h1>
           <p className="text-[15px] text-white/80 leading-relaxed max-w-lg">
             {completo
-              ? "O cadastro da clínica está completo. Em breve seu perfil entra na busca pública da Vetria."
-              : "Complete o cadastro da clínica para que tutores possam encontrar sua equipe na Vetria."}
+              ? "Seu cadastro profissional está completo. Em breve seu perfil entra na busca pública da Vetria."
+              : "Complete seu cadastro profissional para que tutores possam te encontrar na Vetria."}
           </p>
         </div>
         {completo ? (
           <Link
-            href="/app/clinic/perfil"
+            href="/app/vet/perfil"
             className="shrink-0 inline-flex items-center justify-center gap-2 rounded-pill bg-fundo-claro text-principal px-6 py-3 font-semibold text-sm hover:bg-white transition no-underline"
           >
             Editar perfil
@@ -69,7 +70,7 @@ export default async function ClinicPage() {
           </Link>
         ) : (
           <Link
-            href="/app/clinic/onboarding"
+            href="/app/vet/onboarding"
             className="shrink-0 inline-flex items-center justify-center gap-2 rounded-pill bg-fundo-claro text-principal px-6 py-3 font-semibold text-sm hover:bg-white transition no-underline"
           >
             Completar cadastro
@@ -86,7 +87,7 @@ export default async function ClinicPage() {
         <input
           type="text"
           disabled
-          placeholder="Buscar contatos e equipe..."
+          placeholder="Buscar contatos e avaliações..."
           className="flex-1 bg-transparent text-[14px] text-titulo placeholder:text-corpo-texto/60 outline-none disabled:cursor-not-allowed"
         />
         <span className="text-[11px] uppercase tracking-wider text-corpo-texto/50 shrink-0">
@@ -98,53 +99,24 @@ export default async function ClinicPage() {
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* TODO: ligar a métricas reais quando o perfil público existir */}
         <StatCard icon={<EyeIcon />} label="Visualizações" />
-        <StatCard icon={<MessageIcon />} label="Contatos" />
-        <StatCard icon={<UsersIcon />} label="Equipe ativa" />
+        <StatCard icon={<MessageIcon />} label="Contatos recebidos" />
         <StatCard icon={<StarIcon />} label="Avaliações" />
+        <StatCard icon={<BookmarkIcon />} label="Salvos por tutores" />
       </section>
 
       {/* Grid principal */}
       <section className="grid lg:grid-cols-3 gap-6">
-        {/* Coluna esquerda (2/3): equipe + atividade */}
+        {/* Coluna esquerda (2/3): atividade + agenda */}
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <Card>
-            <h2 className="font-bold text-lg text-titulo mb-1">
-              Equipe profissional
-            </h2>
-            <p className="text-[13px] text-corpo-texto mb-5">
-              Os veterinários vinculados à clínica.
-            </p>
-
-            {/* TODO: lista real da equipe (clinic_profiles + vínculos) — migration 029 */}
-            <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
-              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-fundo-claro text-corpo-texto flex items-center justify-center">
-                <UsersIcon />
-              </div>
-              <p className="font-semibold text-titulo mb-1">Monte sua equipe</p>
-              <p className="text-[13px] text-corpo-texto leading-relaxed max-w-sm mx-auto">
-                Em breve você poderá cadastrar e validar os veterinários da
-                clínica, cada um com seu CRMV e especialidade.
-              </p>
-            </div>
-
-            <Link
-              href="/app/clinic/equipe"
-              className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 text-corpo-texto py-3 text-sm font-medium hover:border-principal hover:text-principal transition no-underline"
-            >
-              <PlusIcon />
-              Gerenciar equipe
-            </Link>
-          </Card>
-
           <Card>
             <h2 className="font-bold text-lg text-titulo mb-1">
               Atividade recente
             </h2>
             <p className="text-[13px] text-corpo-texto mb-5">
-              Movimentações no perfil da clínica
+              Movimentações no seu perfil
             </p>
 
-            {/* TODO: feed real (contatos, avaliações, equipe) — Sprint 3+ */}
+            {/* TODO: feed real (contatos, avaliações, visualizações) — Sprint 3+ */}
             <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
               <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-fundo-claro text-corpo-texto flex items-center justify-center">
                 <InboxIcon />
@@ -153,21 +125,49 @@ export default async function ClinicPage() {
                 Nenhuma atividade ainda
               </p>
               <p className="text-[13px] text-corpo-texto leading-relaxed max-w-sm mx-auto">
-                Assim que tutores interagirem com o perfil da clínica, as
-                movimentações aparecem aqui.
+                Assim que tutores visualizarem ou entrarem em contato com seu
+                perfil, as movimentações aparecem aqui.
+              </p>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="font-bold text-lg text-titulo">
+                  Próximos atendimentos
+                </h2>
+                <p className="text-[13px] text-corpo-texto">Agenda da semana</p>
+              </div>
+              <span className="text-[11px] uppercase tracking-wider rounded-pill bg-fundo-destaque text-principal px-3 py-1 font-medium">
+                Em breve
+              </span>
+            </div>
+
+            <div className="text-center py-8 border border-dashed border-gray-200 rounded-xl">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-fundo-claro text-corpo-texto flex items-center justify-center">
+                <CalendarIcon />
+              </div>
+              <p className="font-semibold text-titulo mb-1">
+                A agenda chega em breve
+              </p>
+              <p className="text-[13px] text-corpo-texto leading-relaxed max-w-sm mx-auto">
+                Você poderá organizar horários e receber agendamentos diretos
+                pela Vetria. Por enquanto, tutores entram em contato pelo
+                WhatsApp.
               </p>
             </div>
           </Card>
         </div>
 
-        {/* Coluna direita (1/3): pipeline de ativação */}
+        {/* Coluna direita (1/3): pipeline de ativação do perfil */}
         <div className="flex flex-col gap-6">
           <Card>
             <h2 className="font-bold text-lg text-titulo mb-1">
               Ativação do perfil
             </h2>
             <p className="text-[13px] text-corpo-texto mb-5">
-              As etapas até a clínica ficar visível na busca pública.
+              As etapas até seu perfil ficar visível na busca pública.
             </p>
 
             {/* Pipeline = fluxo real de status do CONTEXT §4.3
@@ -175,17 +175,17 @@ export default async function ClinicPage() {
                 onboarding_completed; liga ao campo `status` na migration 029. */}
             <ol className="flex flex-col gap-4 mb-6">
               <StepItem
-                title="Cadastro da clínica"
-                desc="Dados institucionais e CNPJ"
+                title="Cadastro profissional"
+                desc="Dados, CRMV e especialidades"
                 state={completo ? "done" : "current"}
               />
               <StepItem
-                title="Validação dos dados"
+                title="Validação do CRMV"
                 desc="Análise da equipe Vetria"
                 state="soon"
               />
               <StepItem
-                title="Clínica ativa na busca"
+                title="Perfil ativo na busca"
                 desc="Visível para tutores"
                 state="soon"
               />
@@ -193,7 +193,7 @@ export default async function ClinicPage() {
 
             {completo ? (
               <Link
-                href="/app/clinic/perfil"
+                href="/app/vet/perfil"
                 className="w-full inline-flex items-center justify-center gap-2 rounded-pill bg-principal text-white py-3 font-semibold text-sm hover:bg-[#142E33] transition no-underline"
               >
                 Editar perfil
@@ -201,7 +201,7 @@ export default async function ClinicPage() {
               </Link>
             ) : (
               <Link
-                href="/app/clinic/onboarding"
+                href="/app/vet/onboarding"
                 className="w-full inline-flex items-center justify-center gap-2 rounded-pill bg-principal text-white py-3 font-semibold text-sm hover:bg-[#142E33] transition no-underline"
               >
                 Completar cadastro
@@ -314,12 +314,21 @@ function StarIcon() {
   );
 }
 
-function UsersIcon() {
+function BookmarkIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 2v4M16 2v4" />
+      <rect width="18" height="18" x="3" y="4" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M12 14v3M10.5 15.5h3" />
     </svg>
   );
 }
@@ -329,14 +338,6 @@ function InboxIcon() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M22 12h-6l-2 3h-4l-2-3H2" />
       <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 12h14M12 5v14" />
     </svg>
   );
 }
