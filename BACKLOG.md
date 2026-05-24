@@ -334,7 +334,7 @@ Mensagem: refactor(tutor): refatorar dashboard com visual Vetria
 ---
 
 ### TASK-009 — `/app/tutor/perfil` 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 24/05/2026 (commit ea8c6ae) — ver DL-022
 **Pré-req:** TASK-008
 **Tempo:** 45-60 min
 
@@ -346,7 +346,7 @@ Mensagem: refactor(tutor): refatorar perfil do tutor
 ---
 
 ### TASK-010 — `/app/tutor/historico` 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 24/05/2026 (commit fc5982f) — ver DL-022 (empty-state)
 **Pré-req:** TASK-008
 **Tempo:** 45 min
 
@@ -358,7 +358,7 @@ Mensagem: feat(tutor): criar página de histórico de agendamentos
 ---
 
 ### TASK-011 — `/app/tutor/avaliacoes` 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 24/05/2026 (commit fc5982f) — ver DL-022 (empty-state)
 **Pré-req:** TASK-008
 **Tempo:** 45 min
 
@@ -390,7 +390,7 @@ Mensagem: refactor(vet): refatorar dashboard do veterinário
 ---
 
 ### TASK-013 — `/app/vet/perfil` 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 24/05/2026 (commit 827e9f9) — ver DL-022 (editor + preview)
 **Pré-req:** TASK-012
 **Tempo:** 60 min
 
@@ -402,7 +402,7 @@ Mensagem: refactor(vet): refatorar editor de perfil profissional
 ---
 
 ### TASK-014 — `/app/vet/aguardando` 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 24/05/2026 (commit 14c8f5d) — ver DL-022
 **Pré-req:** TASK-012
 **Tempo:** 30 min
 
@@ -422,7 +422,7 @@ Mensagem: feat(vet): criar página visual de aguardando validação
 ---
 
 ### TASK-015 — `/app/vet/onboarding` (visual) 🟢
-**Status:** ⬜ pendente
+**Status:** ✅ feita em 24/05/2026 (commit cd119a0) — ver DL-022 (multi-step)
 **Pré-req:** TASK-012
 **Tempo:** 60-90 min
 
@@ -455,9 +455,13 @@ Mensagem: refactor(vet): refatorar onboarding multi-step visual
 ### TASK-016 — `/app/clinic` (dashboard) 🟢
 **Status:** ✅ feita em 24/05/2026 (commit a52e234) — ver DL-020 (casca fiel ao produto; card de plano omitido = Sprint 6)
 ### TASK-017 — `/app/clinic/equipe` 🟢
+**Status:** ✅ feita em 24/05/2026 (commit 1d93327) — ver DL-022 (empty-state)
 ### TASK-018 — `/app/clinic/perfil` 🟢
+**Status:** ✅ feita em 24/05/2026 (commit 867ada2) — ver DL-022 (editor + preview)
 ### TASK-019 — `/app/clinic/aguardando` 🟢
+**Status:** ✅ feita em 24/05/2026 (commit c85e687) — ver DL-022
 ### TASK-020 — `/app/clinic/onboarding` (visual) 🟢
+**Status:** ✅ feita em 24/05/2026 (commit f4877b2) — ver DL-022 (multi-step)
 
 ```
 [Cada uma segue padrão da Fase 3, com referência aos HTMLs correspondentes em
@@ -754,32 +758,25 @@ Se descoberta task nova (bug, refactor, decisão):
 ## 🚦 STATUS ATUAL (24 Maio 2026)
 
 ```
-✅ TASK-000 — Fundação Sprint 2 (Tailwind + paleta + admin fix)
-✅ TASK-001 — /login refatorado (78a43a1)
-✅ TASK-002 — /onboarding com 3 cards (b89e49b)
-✅ TASK-003 — /cadastro escolha de role (d59e041)
-✅ TASK-FIX-002 — auth callback handler (4f7f87e)
-✅ TASK-FIX-MICRO-001 — logs no callback (1861a46)
-✅ TASK-AH-001 — /app/tutor/onboarding visual ad-hoc (4259924)
-✅ TASK-FIX-006 — cookies getAll/setAll (84d777d)
-✅ TASK-FIX-007 — .select() + logs no update (35c56e4)
-✅ TASK-FIX-008 — remover try/catch NEXT_REDIRECT (ff26a75)
-✅ Bug DL-014 fixado via SQL direto (is_master_admin SECURITY DEFINER)
-✅ TASK-028 — biblioteca components/ui/ (f24d874, DL-017)
-✅ TASK-034 — header compartilhado com nav por role (a93dfb9, DL-018)
-✅ TASK-008 — dashboard /app/tutor (4ba2219, DL-019)
-✅ TASK-012 — dashboard /app/vet (b30c08d, DL-020)
-✅ TASK-016 — dashboard /app/clinic (a52e234, DL-020)
-✅ TASK-026 — homepage / redireciona por sessão (c45d98a)
-🚫 TASK-027 — .vercelignore N/A (redundante; DL-021)
+✅ TASK-000 a 003 — fundação + login + onboarding role + /cadastro
+✅ TASK-008/012/016 — dashboards tutor/vet/clínica (DL-019/020)
+✅ TASK-009/013/018 — perfis tutor/vet/clínica (editor + preview, DL-022)
+✅ TASK-010/011 — histórico e avaliações do tutor (empty-states)
+✅ TASK-014/019 — aguardando vet/clínica (DL-022)
+✅ TASK-017 — equipe da clínica (empty-state)
+✅ TASK-015/020 — onboardings multi-step vet/clínica (DL-022)
+✅ TASK-026 — homepage redireciona por sessão (c45d98a)
+✅ TASK-028 — biblioteca components/ui/ (DL-017)
+✅ TASK-034 — header por role + nav expandida por telas existentes (DL-018)
+✅ TASK-035/036 — higiene do layout raiz + 404/favicon Vetria
+✅ Fixes auth/onboarding (FIX-002/006/007/008 + bug DL-014)
+🚫 TASK-027 — .vercelignore N/A (DL-021)
 
-⬜ TASK-004 — /cadastro/tutor — PRÓXIMA
-⬜ TASK-005 a TASK-007 — cadastro vet/clínica/recuperar-senha
-⬜ TASK-009 a TASK-011 — painel tutor (perfil, histórico, avaliações)
-⬜ TASK-013 a TASK-015 — vet (perfil, aguardando, onboarding visual)
-⬜ TASK-017 a TASK-020 — clínica (equipe, perfil, aguardando, onboarding visual)
-⬜ TASK-021 a TASK-025 — painel admin
+⬜ TASK-007 — /recuperar-senha (mock visual) — PRÓXIMA verde
+⬜ TASK-021 a TASK-025 — painel admin (auditar lógica; aplicar DL-020/022)
+⬜ TASK-037 — nav mobile (hambúrguer) do header /app/* — prioridade baixa
 ⬜ TASK-FIX-003 — set-role idempotente (não urgente)
+🔴 TASK-004/005/006 — cadastros (signUp = auth, não-autônomo)
 🔴 TASK-029 a TASK-033 — vermelhas, presenciais
 🔴 TASK-FIX-009 — consolidar is_master_admin/is_admin_master (vermelha futura)
 ```

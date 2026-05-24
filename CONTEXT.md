@@ -4,7 +4,7 @@
 >
 > Esse arquivo existe pra que toda sessão tenha o mesmo contexto e siga as mesmas regras.
 >
-> **Última atualização:** 24 de Maio de 2026 — dashboards vet/clínica + homepage redirect (DL-020 a DL-021, TASK-012/016/026; TASK-027 N/A)
+> **Última atualização:** 24 de Maio de 2026 — casca dos 3 painéis completa (DL-022): perfis com preview, onboardings multi-step, telas de aguardando e internas do tutor + higiene de layout/404
 
 ---
 
@@ -75,12 +75,20 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 - ✅ TASK-016 — dashboard `/app/clinic` refatorado (coeso com o vet) (commit a52e234, DL-020)
 - ✅ TASK-026 — homepage `/` redireciona por sessão (login/app) (commit c45d98a)
 - 🚫 TASK-027 — `.vercelignore` dispensada (N/A — `vetria-proto/` já gitignored; DL-021)
+- ✅ TASK-035 — higiene do layout raiz: metadata Vetria, lang pt-BR, remoção do Geist (commit 7f4dee7)
+- ✅ TASK-036 — 404 Vetria + favicon do logo + limpeza de assets boilerplate (commit 3395111)
+- ✅ TASK-013 / TASK-018 / TASK-009 — editores de perfil (vet, clínica, tutor) com preview ao vivo (827e9f9/867ada2/ea8c6ae, DL-022)
+- ✅ TASK-014 / TASK-019 — telas de "aguardando validação" (vet, clínica) (14c8f5d/c85e687, DL-022)
+- ✅ TASK-017 — equipe da clínica (empty-state honesto) (1d93327, DL-022)
+- ✅ TASK-010 / TASK-011 — histórico e avaliações do tutor (empty-states) (fc5982f, DL-022)
+- ✅ TASK-015 / TASK-020 — onboardings multi-step vet/clínica (cd119a0/f4877b2, DL-022)
+- ✅ Nav do header expandida por role com as telas internas existentes (6e5b749, DL-018)
 
 ### Próximas (priorizadas)
-- ⬜ TASK-004 — `/cadastro/tutor` (form de signup tutor)
-- ⬜ TASK-005 a TASK-007 — `/cadastro/{vet,clinica}` + `/recuperar-senha`
-- ⬜ TASK-009 / TASK-010 / TASK-011 — telas internas do tutor (perfil, histórico, avaliações)
-- ⬜ TASK-021 a TASK-025 — painel admin (refatorar com a mesma casca fiel ao produto — DL-020)
+- ⬜ TASK-007 — `/recuperar-senha` (mock visual — verde)
+- ⬜ TASK-021 a TASK-025 — painel admin (auditar lógica existente; aplicar casca DL-020/022)
+- 🔴 TASK-004 / TASK-005 / TASK-006 — `/cadastro/{tutor,vet,clinica}` (usam `signUp` = auth; não-autônomo, tratar com cuidado)
+- 🔴 TASK-029 a TASK-032 — bloco presencial (migration, onboarding real, middleware, Resend)
 
 ---
 
@@ -661,6 +669,30 @@ pra deploy local).
 **Implicações:** Se um dia `vetria-proto/` sair do `.gitignore` ou passar a ser
 rastreado, reavaliar.
 **Status:** Registrado (N/A).
+
+### DL-022 — Catálogo de padrões de tela da casca (editor+preview, multi-step, aguardando, empty-state)
+**Data:** 24 Maio 2026
+**Sprint:** 2 — bloco de casca TASK-013/014/017/018/019/009/010/011/015/020 (commits 827e9f9..f4877b2).
+**Contexto:** Ao refatorar perfis, onboardings, telas de espera e listas internas
+dos 3 painéis, consolidaram-se padrões de tela reaproveitáveis, todos seguindo a
+casca fiel ao produto (DL-020). Registrados como molde pro painel admin e telas futuras.
+**Padrões estabelecidos:**
+- **Editor + preview ao vivo** (perfil vet/clínica/tutor): Server Component com guards
+  + Client form (DL-012); campos em estado client alimentam um preview sticky;
+  `Salvar` desabilitado ("em breve") enquanto não há tabela de destino (vet/clinic_profiles
+  — migration 031). Reusa `components/ui` Input/Label/Select.
+- **Onboarding multi-step** (vet/clínica): sidebar verde de progresso (4 passos),
+  navegação client (next/back), dados só visuais; `Concluir` chama a Server Action que
+  apenas marca `onboarding_completed` (.select()+logs DL-011, submit DL-016) e
+  redireciona pra a respectiva tela de `aguardando`.
+- **Aguardando / timeline** (vet/clínica): header pulsante + timeline de 3 etapas
+  espelhando o fluxo de status do §4.3; acessível pra visualizar (gating real = TASK-032).
+- **Empty-state honesto** (histórico, avaliações, equipe, atividade): estrutura + copy
+  do que virá, sem dado fictício, com `// TODO` no ponto de integração.
+**Implicações:** TASK-021-025 (admin) e telas futuras devem reusar esses moldes. CTAs
+nunca apontam pra rota inexistente — quando o destino não existe, viram botão
+desabilitado com `// TODO`.
+**Status:** Aplicado nos painéis tutor/vet/clínica.
 
 ---
 
