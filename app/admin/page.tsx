@@ -71,7 +71,11 @@ function AdminStat({ label }: { label: string }) {
       <div className="text-[11px] uppercase tracking-[0.08em] text-white/50 mb-2">
         {label}
       </div>
-      <div className="font-bold text-[28px] text-white/30 leading-none">—</div>
+      {/* TODO: métricas reais (contagens do banco) — fase de backend */}
+      <span
+        aria-hidden
+        className="block h-7 w-12 animate-pulse rounded bg-white/10"
+      />
       <div className="text-[12px] text-white/40 mt-2">Em breve</div>
     </div>
   );

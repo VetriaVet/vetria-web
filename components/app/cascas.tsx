@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import Link from "next/link";
 import {
   MessageCircle,
   CalendarDays,
@@ -8,6 +9,12 @@ import {
   Lock,
   Bell,
   Mail,
+  Clock,
+  Check,
+  Loader2,
+  ArrowRight,
+  Info,
+  Image as ImageIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -269,5 +276,131 @@ export function AjudaCasca() {
         </p>
       </div>
     </div>
+  );
+}
+
+/* ---------------- Aguardando validação (vet/clínica) ---------------- */
+type TLState = "done" | "active" | "pending";
+
+export function AguardandoCasca({
+  headline,
+  sub,
+  steps,
+  perfil,
+}: {
+  headline: string;
+  sub: string;
+  steps: { state: TLState; title: string; desc: string }[];
+  perfil: { href: string; title: string; desc: string };
+}) {
+  return (
+    <div className="mx-auto max-w-2xl">
+      <div className="overflow-hidden rounded-2xl border border-neutro-border">
+        <div className="bg-principal px-8 py-12 text-center text-white">
+          <div className="mx-auto mb-6 flex h-[72px] w-[72px] animate-pulse items-center justify-center rounded-full bg-white/15">
+            <Clock size={32} strokeWidth={1.75} />
+          </div>
+          <h1 className="mb-3 text-[26px] font-bold leading-tight sm:text-[30px]">
+            {headline}
+          </h1>
+          <p className="mx-auto max-w-md text-[15px] leading-relaxed text-white/80">
+            {sub}
+          </p>
+        </div>
+
+        <div className="p-8">
+          <h2 className="mb-5 text-lg font-bold text-titulo">
+            O que está acontecendo agora
+          </h2>
+
+          <ol className="mb-8 flex flex-col">
+            {steps.map((s, i) => (
+              <TimelineItem key={s.title} {...s} last={i === steps.length - 1} />
+            ))}
+          </ol>
+
+          <h2 className="mb-3 text-lg font-bold text-titulo">
+            Enquanto isso, você pode
+          </h2>
+          <Link
+            href={perfil.href}
+            className="group flex items-center gap-4 rounded-2xl border border-neutro-border p-5 no-underline transition hover:border-principal hover:shadow-sm"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-fundo-destaque text-principal">
+              <ImageIcon size={18} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold text-titulo">
+                {perfil.title}
+              </span>
+              <span className="block text-[13px] leading-relaxed text-corpo-texto">
+                {perfil.desc}
+              </span>
+            </span>
+            <ArrowRight
+              size={18}
+              className="text-corpo-texto/50 transition group-hover:text-principal"
+            />
+          </Link>
+
+          <div className="mt-6 flex gap-3 rounded-xl bg-fundo-destaque p-4">
+            <Info size={18} className="mt-0.5 shrink-0 text-principal" />
+            <p className="text-[13px] leading-relaxed text-corpo-texto">
+              <strong className="text-titulo">Passou de 48h?</strong> Se a
+              validação demorar mais que o previsto, a gente te avisa por email —
+              não precisa fazer nada.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TimelineItem({
+  state,
+  title,
+  desc,
+  last,
+}: {
+  state: TLState;
+  title: string;
+  desc: string;
+  last?: boolean;
+}) {
+  const marker =
+    state === "done" ? (
+      <span className="z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-principal text-white">
+        <Check size={18} strokeWidth={3} />
+      </span>
+    ) : state === "active" ? (
+      <span className="z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-principal bg-fundo-destaque text-principal">
+        <Loader2 size={18} className="animate-spin" />
+      </span>
+    ) : (
+      <span className="z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-neutro-border bg-white" />
+    );
+
+  return (
+    <li className="relative flex gap-4 pb-6 last:pb-0">
+      {!last && (
+        <span
+          className={`absolute left-[19px] top-10 bottom-0 w-0.5 ${
+            state === "done" ? "bg-principal" : "bg-neutro-border"
+          }`}
+        />
+      )}
+      {marker}
+      <div className="flex-1 pt-1.5">
+        <div
+          className={`mb-0.5 text-[15px] font-medium ${
+            state === "pending" ? "text-corpo-texto/60" : "text-titulo"
+          }`}
+        >
+          {title}
+        </div>
+        <div className="text-[13px] leading-relaxed text-corpo-texto">{desc}</div>
+      </div>
+    </li>
   );
 }
