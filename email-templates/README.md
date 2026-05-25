@@ -3,9 +3,10 @@
 HTMLs dos emails transacionais (tabelas + CSS inline, compatível com clientes de email).
 Marca: Inter/Arial, verde-petróleo #1E4349, creme #F5F0E1, verde-água #EAFAF5.
 
-## Logo
-- Hoje aponta para `https://vetriabrasil.com.br/vetria/logo-square.png` (símbolo quadrado, 48px), pois email **não** renderiza SVG.
-- Para usar a logo **horizontal**: exportar um PNG (ex.: `public/vetria/logo-email.png`, ~280×46) e trocar o `src` + `width` (≈140) nos 6 arquivos.
+## Logos (email não renderiza SVG, por isso PNG)
+- **Topo:** `logo-square.png` (símbolo quadrado, 48px) com `border-radius:50%` (círculo).
+- **Rodapé:** `logo-email.png` (logo horizontal oficial em verde, 360×59, gerada da SVG `logo-vetria-fundo-claro.svg` via sharp), exibida a 132px.
+- Ambas em `public/vetria/` e servidas por URL absoluta (`https://vetriabrasil.com.br/vetria/...`).
 
 ## Arquivos e onde cada um é usado
 
