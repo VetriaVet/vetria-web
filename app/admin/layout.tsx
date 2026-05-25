@@ -21,13 +21,10 @@ export default function AdminLayout({
     <div className="grid lg:grid-cols-[240px_1fr] min-h-screen bg-[#0F1F22] text-gray-200">
       <aside className="bg-[#0A1517] border-r border-white/[0.06] p-4 flex flex-col">
         <div className="flex items-center gap-2.5 px-2 pb-4 mb-3 border-b border-white/[0.06]">
-          <Image src="/vetria/logo-square.png" alt="Vetria" width={28} height={28} className="rounded" />
-          <div>
-            <span className="font-bold text-white">Vetria</span>
-            <span className="block w-fit bg-red-500 text-white text-[9px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded-pill mt-0.5">
-              Admin
-            </span>
-          </div>
+          <Image src="/vetria/logo-vetria-fundo-escuro.svg" alt="Vetria" width={178} height={29} className="h-[22px] w-auto" />
+          <span className="w-fit bg-red-500 text-white text-[9px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded-pill">
+            Admin
+          </span>
         </div>
 
         <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40 px-2 pt-3 pb-1.5">

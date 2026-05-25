@@ -57,13 +57,13 @@ export default async function AppLayout({
             className="inline-flex items-center gap-2.5 no-underline"
           >
             <Image
-              src="/vetria/logo-square.png"
+              src="/vetria/logo-vetria-fundo-claro.svg"
               alt="Vetria"
-              width={32}
-              height={32}
-              className="rounded-md"
+              width={178}
+              height={29}
+              className="h-7 w-auto"
+              priority
             />
-            <span className="text-titulo font-bold text-xl">Vetria</span>
           </Link>
 
           <AppHeaderNav nav={navLinks} />

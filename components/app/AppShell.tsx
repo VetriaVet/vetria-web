@@ -74,13 +74,12 @@ export default function AppShell({
           className="inline-flex items-center gap-2.5 no-underline"
         >
           <Image
-            src="/vetria/logo-square.png"
+            src="/vetria/logo-vetria-fundo-escuro.svg"
             alt="Vetria"
-            width={28}
-            height={28}
-            className="rounded-md"
+            width={178}
+            height={29}
+            className="h-6 w-auto"
           />
-          <span className="font-bold text-lg text-white">Vetria</span>
         </Link>
         <button
           type="button"
@@ -197,13 +196,12 @@ export default function AppShell({
               className="md:hidden inline-flex items-center gap-2 no-underline"
             >
               <Image
-                src="/vetria/logo-square.png"
+                src="/vetria/logo-vetria-fundo-claro.svg"
                 alt="Vetria"
-                width={26}
-                height={26}
-                className="rounded-md"
+                width={178}
+                height={29}
+                className="h-6 w-auto"
               />
-              <span className="font-bold text-titulo">Vetria</span>
             </Link>
           </div>
 

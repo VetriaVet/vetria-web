@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Skeleton } from "@/components/ui/EmptyState";
@@ -52,12 +53,14 @@ function PublicHeader() {
     <header className="sticky top-0 z-30 border-b border-neutro-border bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-5 py-3.5">
         <Link href="/" className="flex items-center gap-2 no-underline">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-principal text-sm font-bold text-white">
-            V
-          </span>
-          <span className="text-[20px] font-extrabold uppercase tracking-wide text-principal">
-            Vetria
-          </span>
+          <Image
+            src="/vetria/logo-vetria-fundo-claro.svg"
+            alt="Vetria"
+            width={178}
+            height={29}
+            className="h-7 w-auto"
+            priority
+          />
         </Link>
 
         <nav className="hidden items-center gap-7 text-[14px] font-medium text-corpo-texto md:flex">
@@ -491,12 +494,13 @@ function PublicFooter() {
         <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="mb-4 flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-sm font-bold text-principal">
-                V
-              </span>
-              <span className="text-[18px] font-extrabold uppercase tracking-wide">
-                Vetria
-              </span>
+              <Image
+                src="/vetria/logo-vetria-fundo-escuro.svg"
+                alt="Vetria"
+                width={178}
+                height={29}
+                className="h-7 w-auto"
+              />
             </div>
             <p className="text-[13px] leading-relaxed text-white/70">
               <strong className="mb-1.5 block text-white">Fale conosco</strong>

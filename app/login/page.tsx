@@ -84,15 +84,13 @@ export default function LoginPage() {
             className="inline-flex items-center gap-2.5 mb-12 no-underline"
           >
             <Image
-              src="/vetria/logo-square.png"
+              src="/vetria/logo-vetria-fundo-claro.svg"
               alt="Vetria"
-              width={36}
-              height={36}
-              className="rounded-md"
+              width={178}
+              height={29}
+              className="h-7 w-auto"
+              priority
             />
-            <span className="font-extrabold text-[26px] uppercase tracking-[0.02em] leading-none text-principal">
-              Vetria
-            </span>
           </a>
 
           <h1 className="font-bold text-[28px] leading-tight tracking-tight text-titulo mb-2">

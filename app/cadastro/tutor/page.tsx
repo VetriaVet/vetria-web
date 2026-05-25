@@ -142,8 +142,7 @@ function PublicHeader() {
   return (
     <header className="flex items-center justify-between max-w-5xl mx-auto w-full px-6 py-5">
       <Link href="/" className="inline-flex items-center gap-2.5 no-underline">
-        <Image src="/vetria/logo-square.png" alt="Vetria" width={32} height={32} className="rounded-md" />
-        <span className="text-titulo font-bold text-xl">Vetria</span>
+        <Image src="/vetria/logo-vetria-fundo-claro.svg" alt="Vetria" width={178} height={29} className="h-7 w-auto" />
       </Link>
       <div className="flex items-center gap-2">
         <span className="text-corpo-texto text-sm hidden sm:inline">Já tem conta?</span>

@@ -9,11 +9,11 @@ export default function NotFound() {
   return (
     <main className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
       <Image
-        src="/vetria/logo-square.png"
+        src="/vetria/logo-vetria-fundo-claro.svg"
         alt="Vetria"
-        width={48}
-        height={48}
-        className="rounded-lg mb-8"
+        width={178}
+        height={29}
+        className="h-9 w-auto mb-8"
         priority
       />
       <p className="text-principal font-bold text-6xl tracking-tight mb-3">

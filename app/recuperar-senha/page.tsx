@@ -29,15 +29,12 @@ export default function RecuperarSenhaPage() {
           className="inline-flex items-center gap-2.5 justify-center w-full mb-10 no-underline"
         >
           <Image
-            src="/vetria/logo-square.png"
+            src="/vetria/logo-vetria-fundo-claro.svg"
             alt="Vetria"
-            width={36}
-            height={36}
-            className="rounded-md"
+            width={178}
+            height={29}
+            className="h-7 w-auto"
           />
-          <span className="font-extrabold text-[26px] uppercase tracking-[0.02em] leading-none text-principal">
-            Vetria
-          </span>
         </Link>
 
         <div className="rounded-2xl border border-gray-200 p-8 sm:p-10">

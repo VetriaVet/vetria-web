@@ -93,8 +93,7 @@ export default function VetOnboardingForm({
       {/* Sidebar de progresso */}
       <aside className="bg-principal text-white p-8 flex flex-col">
         <div className="flex items-center gap-2.5 mb-10">
-          <Image src="/vetria/logo-square.png" alt="Vetria" width={32} height={32} className="rounded-md" />
-          <span className="font-bold text-xl">Vetria</span>
+          <Image src="/vetria/logo-vetria-fundo-escuro.svg" alt="Vetria" width={178} height={29} className="h-7 w-auto" />
         </div>
 
         <h1 className="font-bold text-[24px] leading-tight mb-3">

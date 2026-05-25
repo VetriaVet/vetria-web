@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Check, Clock, ChevronRight, Info, Crown, type LucideIcon } from "lucide-react";
 
 // Roadmap vivo da Vetria — rota isolada (não linkada na navegação; acessível
@@ -167,14 +168,14 @@ export default function RoadmapPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-neutro-border-soft bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-8 px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-principal text-sm font-extrabold text-white">
-              V
-            </span>
-            <span className="text-[20px] font-extrabold uppercase tracking-wide text-principal">
-              Vetria
-            </span>
-          </div>
+          <Image
+            src="/vetria/logo-vetria-fundo-claro.svg"
+            alt="Vetria"
+            width={178}
+            height={29}
+            className="h-7 w-auto"
+            priority
+          />
           <div className="hidden items-center gap-2 text-[12px] text-text-muted sm:flex">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
             Atualizado em {ATUALIZADO}
