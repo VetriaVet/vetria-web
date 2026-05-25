@@ -801,13 +801,15 @@ Bloco de 3 passos (estilo Doctoralia — separação tutor/B2B):
 ✅ Email — Resend como SMTP do Supabase, modo teste validado (email chega) (DL-030)
 ✅ TASK-037 — nav mobile (hambúrguer) entregue no header (DL-025)
 ✅ TASK-039 — rotas tutor/B2B + signUp ligado + migration 0001 (DL-026/027/028)
+✅ TASK-038 — sidebar shell vet/clínica via route group (painel) + lucide (DL-031)
+✅ Bloco visual v2 (fase casca fechada) — Inter única (DL-032), design system nos tokens @theme (DL-033), padrão GHOST/empty seco (DL-034), Home pública em / (DL-035), itens "em breve" da sidebar ativados como casca (DL-036). App pronto pra apresentar (DEMO.md).
 🚫 TASK-027 — .vercelignore N/A (DL-021)
 
 PENDENTE:
 📧 TASK-030 (resto) — verificar domínio vetria.com.br no Resend (DNS Hostinger) → email pra qualquer endereço + remetente corporativo (DL-030). Depende do Elber pôr o domínio no ar.
 🟢 TASK-007b — recuperação de senha real + templates de email (§9) — depende do domínio no Resend
-🟡 TASK-038 — sidebar vet/clínica (route group pro onboarding) — testar no navegador (DL-025)
-🔴 TASK-029 → 031 → 032 — presencial: migration GRANDE (status + vet/clinic_profiles) → onboarding real (persistir dados) → middleware por status
+🔴 TASK-029 → 031 → 032 — presencial: migration GRANDE (status + vet/clinic_profiles) → onboarding real (persistir dados) → middleware por status. **PRÓXIMO GRANDE BLOCO (backend pesado)** — daí cascateiam busca/perfil público, agenda, contatos, avaliações reais, métricas, validação CRMV, convite de equipe, captura de pets, planos/Stripe.
+🟢 Polimento adiado — SVG inline → lucide nos formulários (perfil/onboarding); render idêntico, sem urgência
 ⬜ TASK-FIX-003 — set-role idempotente (não urgente)
 🔴 TASK-FIX-009 — consolidar is_master_admin/is_admin_master (vermelha futura; versionar DL-014/015)
 ```

@@ -4,7 +4,7 @@
 >
 > Esse arquivo existe pra que toda sessão tenha o mesmo contexto e siga as mesmas regras.
 >
-> **Última atualização:** 24 de Maio de 2026 — separação tutor/B2B + 1ª migration + Resend SMTP (DL-026 a DL-030): `/cadastro` vira entrada do tutor (login único, separação no funil), trigger lê role do metadata (migration 0001), signUp ligado nos 3 cadastros (✅ roteamento de role + onboarding validados no navegador), Resend integrado como SMTP (✅ modo teste validado — email chega). Pendentes: verificar domínio vetria.com.br no Resend, sidebar vet/clínica (TASK-038) + bloco 🔴 presencial (schema grande).
+> **Última atualização:** 24 de Maio de 2026 — **bloco visual v2 / fase casca fechada** (DL-031 a DL-036): sidebar shell vet/clínica via route group `(painel)` (TASK-038 ✅), tipografia revertida pra **Inter única** (serif descartada), design system v2 portado pros tokens `@theme`, padrão **GHOST** ("ghost onde ensina, empty seco onde acalma" — refina DL-020, mock de pets removido), **Home pública** em `/`, e itens "em breve" da sidebar ativados como casca navegável. App visualmente completo e pronto pra apresentar (ver `DEMO.md`). Pendentes: verificar domínio vetria.com.br no Resend + **fase de backend pesado** (presencial: schema grande, busca, agenda, validação CRMV, planos).
 
 ---
 
@@ -91,15 +91,17 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 - ✅ TASK-039 — `/cadastro` vira entrada direta do tutor; vet/clínica = funil B2B separado (b1be7ae, DL-026)
 - ✅ Migration 0001 — `handle_new_user` lê role do metadata + hardening; pasta `supabase/migrations/` criada (8abdc7a, DL-027) — aplicada em prod
 - ✅ signUp LIGADO nos 3 cadastros (role no metadata p/ trigger) (908ba5e, DL-028)
+- ✅ TASK-038 — sidebar shell vet/clínica via route group `(painel)` + lucide (1acb678, DL-031)
+- ✅ Bloco visual v2: Inter única (DL-032), design system nos tokens `@theme` (DL-033), padrão GHOST/empty seco (DL-034), Home pública (DL-035), itens da sidebar ativados como casca (DL-036)
 
-> 🥚 **CASCA COMPLETA** — app visualmente completo em todos os painéis e fluxos (público, tutor, vet, clínica, admin). Sem dado fake; pontos de integração marcados com `// TODO`.
+> 🥚 **CASCA COMPLETA (fase visual fechada)** — app visualmente completo em todos os painéis e fluxos (público + Home, tutor, vet, clínica, admin), no design v2 (Inter + tokens). Estados honestos (ghost onde ensina, seco onde acalma); **sem dado/preço fake**; pontos de integração marcados com `// TODO`. Pronto pra apresentar — roteiro em `DEMO.md`.
 
 ### Próximas (priorizadas)
-- ✅ Roteamento de role + onboarding validados no navegador (DL-028); Resend SMTP em modo teste validado (DL-030).
-- 📧 **Verificar domínio `vetria.com.br` no Resend** (DKIM/SPF/DMARC no Hostinger) → emails pra qualquer endereço + remetente corporativo. Depende do Elber configurar domínio/email corporativo (DL-030).
-- 🟡 TASK-038 — migrar `/app` vet/clínica pra **sidebar** (refator de rota + route group pro onboarding) — **fazer com navegador pra testar** (DL-025)
-- 🔴 TASK-029 → 031 → 032 — **bloco presencial** que dá vida: migration grande (status + vet/clinic_profiles) → onboarding real (persistir dados) → middleware por status
+- ✅ Roteamento de role + onboarding validados (DL-028); Resend SMTP em modo teste (DL-030); fase visual v2 fechada (DL-031 a DL-036).
+- 📧 **Verificar domínio `vetria.com.br` no Resend** (DKIM/SPF/DMARC no Hostinger) → emails pra qualquer endereço + remetente corporativo. Depende do Elber (DL-030).
+- 🔴 **FASE BACKEND PESADO** (próximo grande bloco) — TASK-029 → 031 → 032: migration grande (status + vet/clinic_profiles) → onboarding real (persistir dados) → middleware por status. Daí cascateiam: busca + perfil público, agenda, contatos/mensagens, avaliações reais, métricas reais, validação de CRMV, convite de equipe, captura de pets, planos/Stripe (Sprint 6).
 - 🟢 TASK-007b — ligar recuperação de senha real (`resetPasswordForEmail`) + templates de email (§9) — depende do domínio no Resend
+- 🟢 Polimento cosmético adiado: SVG inline → lucide nos formulários (perfil/onboarding) — render idêntico, sem urgência
 - ⬜ TASK-FIX-003 — set-role idempotente (não urgente)
 
 ---
@@ -860,6 +862,104 @@ funciona sem depender de email (provou: ✅).
   hoje é mock, TASK-007) e os templates de email (welcome/aprovado/rejeitado — §9).
 - A API key vive no Supabase. Se rotacionada no Resend, atualizar no painel.
 **Status:** Modo teste validado (24/05/2026). Verificação de domínio = pendente (Elber).
+
+### DL-031 — Sidebar shell premium pra vet/clínica via route group `(painel)` (fecha TASK-038)
+**Data:** 24 Maio 2026
+**Sprint:** 2 — bloco visual v2, commit 1acb678.
+**Contexto:** Os painéis vet/clínica usavam só o header topo (DL-018). A referência v2 desenha
+um shell com sidebar à esquerda. O risco (DL-025) era sidebar dupla: um único `layout.tsx`
+envolvia tudo, inclusive o onboarding (que tem sidebar de progresso própria).
+**Decisão:** Criado `components/app/AppShell.tsx` (sidebar com seções Principal/Conta + rodapé
+avatar/nome/sair + topbar com hambúrguer→drawer mobile, busca, sino; ícones lucide-react). As
+telas de painel foram movidas pra um **route group `(painel)`** em `app/app/{vet,clinic}/` com
+um `layout.tsx` próprio que aplica o shell; o **onboarding fica fora do grupo** (sem sidebar
+dupla). URLs inalteradas (`(painel)` é invisível na rota). Imports relativos → alias `@/`.
+Adicionada dep `lucide-react`. Layout raiz `/app` virou role-aware: tutor segue no header topo,
+vet/clínica = passthrough (chrome vem do route group).
+**Implicações:** novas telas de painel criadas dentro de `(painel)` herdam a sidebar
+automaticamente. Tutor permanece no header (lado humano).
+**Status:** ✅ Validado no navegador (sidebar + drawer + onboarding sem dupla).
+
+### DL-032 — Tipografia: Inter ÚNICA (tentativa de serif Poppins+Cormorant revertida)
+**Data:** 24 Maio 2026
+**Sprint:** 2 — bloco visual v2, commits c6d2a9f (tentativa) → b31bae4 (revert).
+**Contexto:** Uma versão divergente de referência (`design-system (1).html`) sugeria corpo
+**Poppins** + títulos **Cormorant Garamond** (serif). Foi aplicado via `next/font` (DL-031 chegou
+a registrar isso). Ao revisar com o `vetria-visualizador-v2.html` (a referência REAL, "corrigida
+com manual oficial"), o Elber confirmou: o manual manda **Inter única** no corpo e nos títulos, e
+a serif "não ficou boa".
+**Decisão:** Revertida a serif. `app/layout.tsx` carrega **Inter** via `next/font` (var
+`--font-inter` → `--font-sans`); `globals.css` não tem mais `--font-display`. Vale pra todo o app.
+**Implicações:** o "Inter única" do CONTEXT §6/DL-006 volta a valer (a tentativa de troca foi
+descartada). Fonte de verdade do design = `vetria-visualizador-v2.html` (ignorar o `design-system
+(1).html` quando conflitar).
+**Status:** ✅ Aplicado e no ar.
+
+### DL-033 — Design system v2 portado pros tokens `@theme` do Tailwind v4
+**Data:** 24 Maio 2026
+**Sprint:** 2 — bloco visual v2, commits b31bae4, 9940849.
+**Contexto:** O `globals.css` tinha só as 5 cores oficiais + radius pill. A referência define um
+sistema bem maior (variações deep/soft, neutros, estados, escala de raios, sombras, easing).
+**Decisão:** Portado o `:root` da referência pros tokens `@theme` → viram utilitários Tailwind
+(`bg-principal`, `text-titulo`, `shadow-md`, `rounded-lg`, `border-neutro-border` etc.). Paleta:
+principal `#1E4349`, fundo-claro `#F5F0E1`, título `#1A1A1A`, corpo-texto `#4A6064`,
+fundo-destaque `#EAFAF5` + principal-deep/soft, neutros, estados (success/error/warning/whatsapp/
+focus), raios sm..pill, sombras sm/md/lg/focus.
+**Implicações:** componentes seguem em React/Tailwind usando os tokens (não CSS global). **Fix
+não-óbvio (9940849):** a regra global `h1..h6 {color: titulo}` pintava de preto títulos sobre
+fundo escuro (o "Olá, {nome}" do card verde sumia); corrigido com `.text-white :is(h1..h6){color:
+inherit}`.
+**Status:** ✅ Aplicado e no ar.
+
+### DL-034 — Estado GHOST: "ghost onde ensina, empty seco onde acalma" (refina DL-020)
+**Data:** 24 Maio 2026
+**Sprint:** 2 — bloco visual v2, commits 7b6e600, c736d52, eb8a73e, 3979e9f.
+**Contexto:** A casca mostrava muitos "em breve" secos — o Elber não conseguia "ver o que tem
+dentro das telas". A referência é toda populada com dado de exemplo, mas o DL-020 proíbe dado
+fake ("47 visualizações"). Conflito entre ver o design vivo × não mentir dado.
+**Decisão:** Criado `components/ui/EmptyState.tsx` (+ `Skeleton`, `GhostRow`). Padrão GHOST:
+mostra o **esqueleto do conteúdo** (linhas/cards fantasma `animate-pulse`) + **texto honesto** do
+que vai aparecer. Equilíbrio definido com o Elber: **ghost** onde é lista/tabela/feed e a forma
+ensina (atividade, contatos, avaliações, equipe, filas do admin, novos perfis); **empty seco**
+onde o vazio é calmo/positivo (próximas consultas, pets, agenda) — ghost ali pareceria
+"carregando pra sempre". Removido o **mock** de pets "Mel/Pingo" do dashboard tutor (era violação
+do DL-020). Ícones inline migrados pra lucide no caminho.
+**Implicações:** ao alinhar qualquer tela da casca, escolher ghost vs seco pela regra (não default
+ghost). Quando o backend ligar, o ghost dá lugar a dado real + vazio honesto pra quem não tem dados.
+**Status:** ✅ Aplicado em dashboards (vet/clínica/tutor), tutor histórico/avaliações, clínica
+equipe, admin (validações/moderação/conteúdo via `AdminEmptyScreen`).
+
+### DL-035 — Home pública do consumidor em `/`
+**Data:** 24 Maio 2026
+**Sprint:** 2 — bloco visual v2, commit 99a971d.
+**Contexto:** `/` era só `redirect` (DL/TASK-026). A referência tem a landing pública do
+consumidor (única tela estrutural que faltava).
+**Decisão:** `app/page.tsx` agora renderiza a Home pública (header + hero com busca +
+categorias + como funciona + "Novos perfis" + confiança + CTA B2B + blog + footer), fiel ao
+`vetria-visualizador-v2.html`. Honesto: busca e newsletter **desabilitadas** ("em breve"), "Novos
+perfis" em **ghost** (sem profissional inventado), blog marcado "em breve". CTA B2B aponta pros
+funis reais (`/cadastro/vet`, `/cadastro/clinica`). **Routing:** deslogado vê a Home; logado
+redireciona pro `/app`. Ícones de marca (Instagram etc.) viraram texto — a versão do `lucide-react`
+removeu brand icons por trademark.
+**Implicações:** a busca real + perfil público (fase de backend) substituem o estado desabilitado/
+ghost. Se quiser logado também ver a Home, trocar o redirect por header adaptativo.
+**Status:** ✅ No ar.
+
+### DL-036 — Itens "em breve" da sidebar ativados como casca navegável
+**Data:** 24 Maio 2026
+**Sprint:** 2 — bloco visual v2, commit e90aaca.
+**Contexto:** Os itens da sidebar sem rota (Contatos, Agenda, Avaliações, Meu plano,
+Configurações, Ajuda) eram rótulos desabilitados (`soon:true`, anti-404 do DL-025). O Elber pediu
+pra deixá-los clicáveis.
+**Decisão:** Criadas as 12 páginas (6 itens × vet+clínica) dentro do `(painel)`, com conteúdo
+compartilhado em `components/app/cascas.tsx` + helper `lib/auth/painel.ts` (`requirePainel(role)`
+centraliza o guard). Sidebar: `soon:true` → `href` nos dois layouts. Tratamento por item: Contatos/
+Avaliações = ghost; Agenda = empty seco; Configurações = nome/email reais (read-only) + ações "em
+breve"; Ajuda = FAQ + contato; **Meu plano = "Gratuito · beta" SEM preço** (respeita a decisão de
+não pré-anunciar valor — planos = Sprint 6, ver DL-020/§ dashboard clínica).
+**Implicações:** nenhum item morto na sidebar. As páginas backend-gated dão lugar a dado real na
+fase pesada; Meu plano ganha tabela de preço só com Stripe (Sprint 6).
+**Status:** ✅ No ar (47 rotas no build).
 
 ---
 
