@@ -89,3 +89,13 @@ h1, h2, h3, h4, h5, h6 {
 .text-white :is(h1, h2, h3, h4, h5, h6) {
   color: inherit;
 }
+
+/* O Tailwind v4 deixou de aplicar cursor:pointer em botões (mudança do
+   Preflight). Restauramos a "mãozinha" em tudo que é clicável, exceto
+   desabilitados (que mantêm o cursor padrão / not-allowed). */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+label[for],
+summary {
+  cursor: pointer;
+}
