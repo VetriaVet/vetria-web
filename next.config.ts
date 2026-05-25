@@ -10,6 +10,25 @@ const nextConfig: NextConfig = {
     contentDispositionType: "inline",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+  // Docs de entrega (HTML estático em /public) servidos numa URL limpa e
+  // noindex. Reutilizável por fase: basta um par rewrite + header por doc.
+  async rewrites() {
+    return [
+      { source: "/entrega-fase-2", destination: "/entrega-fase-2.html" },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: "/entrega-fase-2",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+      {
+        source: "/entrega-fase-2.html",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

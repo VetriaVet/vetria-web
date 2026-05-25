@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  NOTA PARA O CLAUDE CODE (não renderiza na página — instrução de publicação)
+  ============================================================================
+  Ao publicar este documento como rota oficial (ex.: /entrega-fase-2, noindex):
+
+  1. LOGO: substituir o placeholder de marca pela LOGO OFICIAL da Vetria (PNG
+     em public/vetria/, ex.: logo-square.png). Hoje o topo e o rodapé usam um
+     bloco de texto "V" + wordmark (.brand-mark / .brand-word) como fallback.
+     Onde houver marca, inserir a logo oficial para deixar oficial e bem feito.
+
+  2. ÍCONES: os ícones das seções são glifos de texto provisórios (◑ ⬢ ⮕ ✉ ⌂
+     ▣ ⚿ ◍ ◔ ✓ etc.). Trocar por lucide-react no mesmo padrão das telas do app
+     (mesma biblioteca já usada no projeto) para consistência visual oficial.
+     Onde houver ícone, usar o ícone oficial correspondente, bem alinhado.
+
+  Manter a paleta, a tipografia Inter e o espaçamento já aplicados.
+  ============================================================================
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Vetria — Entrega da Fase 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --principal: #1E4349;
+    --principal-deep: #142E33;
+    --principal-soft: #2C5C64;
+    --fundo-claro: #F5F0E1;
+    --fundo-claro-soft: #FAF6EC;
+    --titulo: #1A1A1A;
+    --corpo-texto: #4A6064;
+    --fundo-destaque: #EAFAF5;
+    --branco: #FFFFFF;
+    --neutro-bg-alt: #F8F9FA;
+    --neutro-border: #E5E7EB;
+    --neutro-border-soft: #EFF1F3;
+    --text-muted: #8FA0A2;
+    --success: #2D7A4F;
+    --success-soft: #E6F2EC;
+    --warning: #D4923A;
+    --warning-soft: #FBF0DD;
+
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --radius-pill: 999px;
+
+    --shadow-sm: 0 1px 2px rgba(20,46,51,0.04), 0 1px 3px rgba(20,46,51,0.06);
+    --shadow-md: 0 4px 14px rgba(20,46,51,0.06), 0 2px 4px rgba(20,46,51,0.04);
+    --shadow-lg: 0 16px 40px rgba(20,46,51,0.08), 0 4px 12px rgba(20,46,51,0.04);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-weight: 400;
+    background: var(--fundo-claro-soft);
+    color: var(--corpo-texto);
+    line-height: 1.6;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::selection { background: var(--principal); color: #fff; }
+  img { max-width: 100%; display: block; }
+  a { color: var(--principal); }
+
+  h1, h2, h3, h4 { color: var(--titulo); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+  /* ===== CAPA ===== */
+  .cover {
+    background: var(--principal);
+    background-image: radial-gradient(circle at 85% 15%, rgba(234,250,245,0.10), transparent 45%),
+                      radial-gradient(circle at 10% 90%, rgba(245,240,225,0.08), transparent 40%);
+    color: #fff;
+    padding: 72px 0 64px;
+  }
+  .cover .wrap { max-width: 880px; }
+  .brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-bottom: 40px;
+  }
+  .brand-mark {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--fundo-destaque);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--principal); font-weight: 800; font-size: 20px;
+    letter-spacing: 0;
+  }
+  .brand-word {
+    font-weight: 800; font-size: 22px; letter-spacing: 0.04em;
+    text-transform: uppercase; color: #fff;
+  }
+  .cover-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(234,250,245,0.12);
+    border: 1px solid rgba(234,250,245,0.25);
+    color: var(--fundo-destaque);
+    font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 7px 14px; border-radius: var(--radius-pill);
+    margin-bottom: 24px;
+  }
+  .cover h1 {
+    color: #fff; font-size: clamp(34px, 5.5vw, 54px);
+    font-weight: 700; line-height: 1.05; letter-spacing: -0.025em;
+    margin-bottom: 18px;
+  }
+  .cover-sub {
+    font-size: clamp(17px, 2.4vw, 21px); line-height: 1.5;
+    color: rgba(255,255,255,0.86); font-weight: 400; max-width: 640px;
+    margin-bottom: 32px;
+  }
+  .cover-meta {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  }
+  .meta-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.18);
+    color: #fff; font-size: 14px; font-weight: 500;
+    padding: 9px 16px; border-radius: var(--radius-pill);
+  }
+  .meta-chip.status {
+    background: var(--fundo-destaque); border-color: var(--fundo-destaque);
+    color: var(--principal-deep); font-weight: 700;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; }
+
+  /* ===== STATUS BAR ===== */
+  .statusbar {
+    background: var(--branco);
+    border-bottom: 1px solid var(--neutro-border);
+    box-shadow: var(--shadow-sm);
+  }
+  .statusbar .wrap {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 16px; padding-top: 22px; padding-bottom: 22px;
+  }
+  .status-left { display: flex; align-items: center; gap: 12px; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--success-soft); color: var(--success);
+    font-weight: 700; font-size: 14px;
+    padding: 8px 16px; border-radius: var(--radius-pill);
+  }
+  .progress-meta { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+  .progress-track {
+    flex: 1 1 220px; min-width: 180px; height: 10px;
+    background: var(--neutro-border-soft); border-radius: var(--radius-pill);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, var(--principal-soft), var(--principal));
+    border-radius: var(--radius-pill);
+  }
+
+  /* ===== SECTIONS ===== */
+  section { padding: 56px 0; }
+  section + section { border-top: 1px solid var(--neutro-border-soft); }
+  .overline {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--principal); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sec-title { font-size: clamp(24px, 3.2vw, 30px); margin-bottom: 14px; }
+  .sec-intro { font-size: 16px; line-height: 1.65; color: var(--corpo-texto); max-width: 680px; }
+
+  .lead-card {
+    background: var(--branco); border: 1px solid var(--neutro-border);
+    border-radius: var(--radius-lg); padding: 32px 34px;
+    box-shadow: var(--shadow-md); margin-top: 8px;
+  }
+  .lead-card p { font-size: 16px; line-height: 1.7; color: var(--corpo-texto); }
+  .lead-card strong { color: var(--titulo); font-weight: 600; }
+
+  /* ===== DELIVERED GRID ===== */
+  .grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 16px; margin-top: 28px;
+  }
+  .feat {
+    background: var(--branco); border: 1px solid var(--neutro-border);
+    border-radius: var(--radius-md); padding: 22px 22px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  }
+  .feat:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .feat-ico {
+    width: 40px; height: 40px; border-radius: 11px;
+    background: var(--fundo-destaque); color: var(--principal);
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-bottom: 14px; font-size: 20px;
+  }
+  .feat h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .feat p { font-size: 14px; line-height: 1.55; color: var(--corpo-texto); }
+
+  /* ===== ACCESS / LINKS ===== */
+  .link-card {
+    background: var(--branco); border: 1px solid var(--neutro-border);
+    border-radius: var(--radius-lg); padding: 28px 30px;
+    box-shadow: var(--shadow-md); margin-top: 24px;
+  }
+  .link-card h3 {
+    font-size: 14px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--principal);
+    margin-bottom: 18px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--neutro-border-soft);
+  }
+  .link-list { display: flex; flex-direction: column; gap: 2px; }
+  .link-row {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 8px 16px; padding: 12px 0;
+    border-bottom: 1px solid var(--neutro-border-soft);
+  }
+  .link-row:last-child { border-bottom: none; }
+  .link-row .label { font-size: 15px; font-weight: 500; color: var(--titulo); }
+  .link-row a {
+    font-size: 14px; font-weight: 500; color: var(--principal);
+    text-decoration: none; word-break: break-all;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .link-row a:hover { color: var(--principal-deep); text-decoration: underline; text-underline-offset: 3px; }
+  .arrow { font-size: 13px; opacity: 0.7; }
+
+  /* ===== STEPS BY ROLE ===== */
+  .steps { display: flex; flex-direction: column; gap: 16px; margin-top: 28px; }
+  .step {
+    background: var(--branco); border: 1px solid var(--neutro-border);
+    border-left: 4px solid var(--principal);
+    border-radius: var(--radius-md); padding: 20px 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  .step-head {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+  }
+  .step-badge {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--principal); background: var(--fundo-destaque);
+    padding: 5px 12px; border-radius: var(--radius-pill);
+  }
+  .step p { font-size: 14.5px; line-height: 1.6; color: var(--corpo-texto); }
+  .step .flow { color: var(--titulo); font-weight: 600; }
+
+  .creds-note {
+    margin-top: 22px; background: var(--fundo-claro);
+    border: 1px dashed var(--principal-soft);
+    border-radius: var(--radius-md); padding: 20px 24px;
+  }
+  .creds-note h4 { font-size: 14px; color: var(--principal-deep); margin-bottom: 12px; font-weight: 700; }
+  .creds-table { width: 100%; border-collapse: collapse; }
+  .creds-table td {
+    padding: 9px 8px; font-size: 14px; color: var(--corpo-texto);
+    border-bottom: 1px solid rgba(30,67,73,0.10);
+  }
+  .creds-table tr:last-child td { border-bottom: none; }
+  .creds-table td:first-child { font-weight: 600; color: var(--titulo); width: 130px; }
+  .creds-blank { color: var(--text-muted); font-style: italic; }
+
+  /* ===== TRANSPARENCY ===== */
+  .split { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 28px; }
+  .panel { border-radius: var(--radius-lg); padding: 26px 28px; box-shadow: var(--shadow-sm); }
+  .panel.real { background: var(--success-soft); border: 1px solid rgba(45,122,79,0.20); }
+  .panel.shell { background: var(--fundo-claro); border: 1px solid var(--neutro-border); }
+  .panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .panel-ico {
+    width: 32px; height: 32px; border-radius: 9px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 17px;
+  }
+  .panel.real .panel-ico { background: var(--success); color: #fff; }
+  .panel.shell .panel-ico { background: var(--principal-soft); color: #fff; }
+  .panel h3 { font-size: 16px; font-weight: 700; }
+  .panel.real h3 { color: var(--success); }
+  .panel.shell h3 { color: var(--principal-deep); }
+  .panel ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .panel li { font-size: 14px; line-height: 1.5; color: var(--corpo-texto); padding-left: 22px; position: relative; }
+  .panel li::before { position: absolute; left: 0; top: 0; font-size: 14px; }
+  .panel.real li::before { content: "✓"; color: var(--success); font-weight: 700; }
+  .panel.shell li::before { content: "◍"; color: var(--principal-soft); }
+  .panel .note { font-size: 13px; color: var(--text-muted); margin-top: 14px; font-style: italic; padding-left: 0; }
+
+  /* ===== NEXT PHASE ===== */
+  .next-card {
+    background: var(--principal); color: #fff;
+    border-radius: var(--radius-xl); padding: 40px 38px;
+    margin-top: 24px; box-shadow: var(--shadow-lg);
+    background-image: radial-gradient(circle at 90% 10%, rgba(234,250,245,0.08), transparent 40%);
+  }
+  .next-card .overline { color: var(--fundo-destaque); }
+  .next-card h3 { color: #fff; font-size: 22px; margin-bottom: 14px; }
+  .next-card p { color: rgba(255,255,255,0.86); font-size: 15.5px; line-height: 1.65; margin-bottom: 22px; }
+  .flow-chain { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .flow-step {
+    background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.18);
+    color: #fff; font-size: 13px; font-weight: 500;
+    padding: 8px 14px; border-radius: var(--radius-pill);
+  }
+  .flow-arrow { color: var(--fundo-destaque); font-size: 14px; }
+
+  /* ===== OBSERVATIONS ===== */
+  .obs-list { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+  .obs {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: var(--branco); border: 1px solid var(--neutro-border);
+    border-radius: var(--radius-md); padding: 18px 22px; box-shadow: var(--shadow-sm);
+  }
+  .obs-ico {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px;
+    background: var(--warning-soft); color: var(--warning);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 16px;
+    margin-top: 1px;
+  }
+  .obs p { font-size: 14.5px; line-height: 1.55; color: var(--corpo-texto); }
+  .obs strong { color: var(--titulo); font-weight: 600; }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    background: var(--fundo-claro); border-top: 1px solid var(--neutro-border);
+    padding: 44px 0 40px; text-align: center; margin-top: 8px;
+  }
+  .footer .brand-word { color: var(--principal); }
+  .footer-tagline { font-size: 14px; color: var(--corpo-texto); margin: 14px 0 10px; }
+  .footer-links { font-size: 14px; color: var(--corpo-texto); }
+  .footer-links a { color: var(--principal); text-decoration: none; }
+  .footer-links a:hover { text-decoration: underline; }
+  .footer-copy { font-size: 12px; color: var(--text-muted); margin-top: 14px; }
+
+  @media (max-width: 680px) {
+    .grid, .split { grid-template-columns: 1fr; }
+    section { padding: 44px 0; }
+    .cover { padding: 56px 0 48px; }
+    .lead-card, .next-card { padding: 26px 22px; }
+    .statusbar .wrap { flex-direction: column; align-items: stretch; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== CAPA ===================== -->
+<header class="cover">
+  <div class="wrap">
+    <div class="brand">
+      <img src="/vetria/logo-vetria-fundo-claro.svg" alt="Vetria" style="height:34px;width:auto;display:block;">
+    </div>
+    <span class="cover-tag"><span class="dot"></span> Relatório de entrega</span>
+    <h1>Entrega da Fase 2</h1>
+    <p class="cover-sub">Identidade visual completa e camada de entrada 100% funcional, no ar no domínio oficial.</p>
+    <div class="cover-meta">
+      <span class="meta-chip status"><span class="dot"></span> Fase 2 concluída</span>
+      <span class="meta-chip">Maio de 2026</span>
+      <span class="meta-chip">vetriabrasil.com.br</span>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== STATUS BAR ===================== -->
+<div class="statusbar">
+  <div class="wrap">
+    <div class="status-left">
+      <span class="status-pill">✓ Fase 2 concluída</span>
+      <span class="progress-meta">Identidade + porta de entrada</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+  </div>
+</div>
+
+<!-- ===================== RESUMO ===================== -->
+<section>
+  <div class="wrap">
+    <div class="overline">◆ Resumo executivo</div>
+    <h2 class="sec-title">O que essa fase representa</h2>
+    <div class="lead-card">
+      <p>A Vetria é uma plataforma que conecta <strong>tutores de pets</strong> a <strong>veterinários e clínicas de confiança</strong>, um marketplace no estilo Doctoralia. A Fase 2 entregou a cara final do produto, com todas as telas no design oficial, e a porta de entrada completa e funcional: cadastro, login, confirmação de email e recuperação de senha. Tudo já rodando no domínio oficial <a href="https://vetriabrasil.com.br" target="_blank">vetriabrasil.com.br</a>, com emails enviados pela própria marca.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== O QUE FOI ENTREGUE ===================== -->
+<section>
+  <div class="wrap">
+    <div class="overline">✦ Entregas</div>
+    <h2 class="sec-title">O que foi entregue nesta fase</h2>
+    <p class="sec-intro">Nove blocos de trabalho, do visual à infraestrutura de acesso, todos no ar e validados em produção.</p>
+    <div class="grid">
+
+      <div class="feat">
+        <div class="feat-ico">◑</div>
+        <h3>Identidade visual completa</h3>
+        <p>Design System v2 com tipografia Inter, paleta oficial e componentes aplicados em todas as telas, públicas e painéis.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-ico">⬢</div>
+        <h3>Site no ar, domínio oficial</h3>
+        <p>Plataforma publicada e acessível em <a href="https://vetriabrasil.com.br" target="_blank">vetriabrasil.com.br</a>.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-ico">⮕</div>
+        <h3>Camada de entrada funcional</h3>
+        <p>Cadastro de tutor, veterinário e clínica; login por email/senha e por Google; confirmação de email; recuperação de senha, ponta a ponta.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-ico">✉</div>
+        <h3>Emails transacionais da marca</h3>
+        <p>Mensagens com a identidade da Vetria, enviadas de contato@vetriabrasil.com.br.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-ico">⌂</div>
+        <h3>Home pública do consumidor</h3>
+        <p>Busca, categorias, "como funciona", selos de confiança e chamada para profissionais.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-ico">▣</div>
+        <h3>Painéis separados por papel</h3>
+        <p>Tutor (lado humano/B2C) e Veterinário/Clínica (B2B, com menu lateral premium), além do painel Administrativo.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-ico">⚿</div>
+        <h3>Controle de acesso (RBAC)</h3>
+        <p>Cada papel é roteado automaticamente para o painel certo, com validação no servidor.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-ico">◍</div>
+        <h3>Telas com estados honestos</h3>
+        <p>Onde haverá listas e tabelas, mostramos o esqueleto do conteúdo mais o texto do que vai aparecer. Onde o vazio é positivo, um estado calmo. Nada de dado ou número inventado.</p>
+      </div>
+
+      <div class="feat">
+        <div class="feat-ico">◔</div>
+        <h3>Roadmap vivo do produto</h3>
+        <p>Atualizado a cada avanço, em <a href="https://vetriabrasil.com.br/roadmap" target="_blank">vetriabrasil.com.br/roadmap</a>.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================== COMO ACESSAR E TESTAR ===================== -->
+<section>
+  <div class="wrap">
+    <div class="overline">▶ Acesso</div>
+    <h2 class="sec-title">Como acessar e testar</h2>
+    <p class="sec-intro">Base de tudo: <a href="https://vetriabrasil.com.br" target="_blank">https://vetriabrasil.com.br</a></p>
+
+    <div class="link-card">
+      <h3>Páginas públicas</h3>
+      <div class="link-list">
+        <div class="link-row">
+          <span class="label">Home</span>
+          <a href="https://vetriabrasil.com.br/" target="_blank">vetriabrasil.com.br/ <span class="arrow">↗</span></a>
+        </div>
+        <div class="link-row">
+          <span class="label">Roadmap</span>
+          <a href="https://vetriabrasil.com.br/roadmap" target="_blank">vetriabrasil.com.br/roadmap <span class="arrow">↗</span></a>
+        </div>
+        <div class="link-row">
+          <span class="label">Entrar</span>
+          <a href="https://vetriabrasil.com.br/login" target="_blank">vetriabrasil.com.br/login <span class="arrow">↗</span></a>
+        </div>
+        <div class="link-row">
+          <span class="label">Criar conta · Tutor</span>
+          <a href="https://vetriabrasil.com.br/cadastro" target="_blank">vetriabrasil.com.br/cadastro <span class="arrow">↗</span></a>
+        </div>
+        <div class="link-row">
+          <span class="label">Criar conta · Veterinário</span>
+          <a href="https://vetriabrasil.com.br/cadastro/vet" target="_blank">vetriabrasil.com.br/cadastro/vet <span class="arrow">↗</span></a>
+        </div>
+        <div class="link-row">
+          <span class="label">Criar conta · Clínica</span>
+          <a href="https://vetriabrasil.com.br/cadastro/clinica" target="_blank">vetriabrasil.com.br/cadastro/clinica <span class="arrow">↗</span></a>
+        </div>
+        <div class="link-row">
+          <span class="label">Recuperar senha</span>
+          <a href="https://vetriabrasil.com.br/recuperar-senha" target="_blank">vetriabrasil.com.br/recuperar-senha <span class="arrow">↗</span></a>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:15px; font-weight:600; color:var(--titulo); margin:34px 0 4px;">Passo a passo por papel</h3>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-head"><span class="step-badge">Tutor</span></div>
+        <p>Acesse <span class="flow">/cadastro</span> → crie a conta → confirme pelo email → você cai no painel do tutor (Início, Histórico, Avaliações, Perfil).</p>
+      </div>
+      <div class="step">
+        <div class="step-head"><span class="step-badge">Veterinário</span></div>
+        <p>Acesse <span class="flow">/cadastro/vet</span> → confirme o email → faça o onboarding → painel do vet (Dashboard, Meu perfil, Contatos, Agenda, Avaliações, Meu plano, Configurações, Ajuda; e a tela "Aguardando validação").</p>
+      </div>
+      <div class="step">
+        <div class="step-head"><span class="step-badge">Clínica</span></div>
+        <p>Acesse <span class="flow">/cadastro/clinica</span> → confirme o email → onboarding → painel da clínica (igual ao vet, com a aba Equipe).</p>
+      </div>
+      <div class="step">
+        <div class="step-head"><span class="step-badge">Admin</span></div>
+        <p>Acesso restrito, concedido pela equipe Vetria. Painel em <span class="flow">/admin</span> (Usuários, Validações, Moderação, Conteúdo).</p>
+      </div>
+      <div class="step">
+        <div class="step-head"><span class="step-badge">Recuperação de senha</span></div>
+        <p>Em <span class="flow">/login</span>, clique em "Esqueci minha senha", informe o email e siga o link recebido.</p>
+      </div>
+    </div>
+
+    <div class="creds-note">
+      <h4>Contas de teste prontas (opcional)</h4>
+      <table class="creds-table">
+        <tr><td>Tutor</td><td class="creds-blank">email / senha — a preencher</td></tr>
+        <tr><td>Veterinário</td><td class="creds-blank">email / senha — a preencher</td></tr>
+        <tr><td>Clínica</td><td class="creds-blank">email / senha — a preencher</td></tr>
+        <tr><td>Admin</td><td class="creds-blank">email / senha — a preencher</td></tr>
+      </table>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:14px;">Se contas prontas não forem fornecidas, os testadores usam os links de cadastro acima.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TRANSPARÊNCIA ===================== -->
+<section>
+  <div class="wrap">
+    <div class="overline">◎ Transparência</div>
+    <h2 class="sec-title">O que é real hoje e o que é casca</h2>
+    <p class="sec-intro">Para os testadores não terem dúvida sobre o que está vivo de verdade e o que é visual aguardando o backend.</p>
+
+    <div class="split">
+      <div class="panel real">
+        <div class="panel-head">
+          <span class="panel-ico">✓</span>
+          <h3>Já funciona de verdade</h3>
+        </div>
+        <ul>
+          <li>Criação de conta</li>
+          <li>Login por email e por Google</li>
+          <li>Confirmação por email</li>
+          <li>Recuperação de senha</li>
+          <li>Separação automática por papel</li>
+          <li>Navegação por todas as telas</li>
+        </ul>
+      </div>
+
+      <div class="panel shell">
+        <div class="panel-head">
+          <span class="panel-ico">◍</span>
+          <h3>Casca (visual pronto)</h3>
+        </div>
+        <ul>
+          <li>Busca e perfis públicos</li>
+          <li>Agenda e contatos recebidos</li>
+          <li>Avaliações e métricas</li>
+          <li>Validação de CRMV</li>
+          <li>Planos</li>
+        </ul>
+        <p class="note">Aparecem como esqueleto mais texto honesto, propositalmente sem dados fictícios. Os dados entram na próxima fase.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PRÓXIMA FASE ===================== -->
+<section>
+  <div class="wrap">
+    <div class="next-card">
+      <div class="overline">→ O que vem agora</div>
+      <h3>Próxima fase: backend pesado</h3>
+      <p>Cada etapa destrava a próxima, e o roadmap mostra a ordem completa.</p>
+      <div class="flow-chain">
+        <span class="flow-step">Estrutura de dados dos perfis + validação</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">Onboarding salvando de verdade</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">Validação de CRMV</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">Busca e perfis públicos</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">Agendamento</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">Avaliações e métricas</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">Monetização</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== OBSERVAÇÕES ===================== -->
+<section>
+  <div class="wrap">
+    <div class="overline">◇ Para os testadores</div>
+    <h2 class="sec-title">Observações úteis</h2>
+    <div class="obs-list">
+      <div class="obs">
+        <span class="obs-ico">✉</span>
+        <p><strong>Emails na pasta de spam.</strong> Pode acontecer nos primeiros dias, porque o domínio é novo. Marque como "não é spam", isso melhora a entrega com o tempo.</p>
+      </div>
+      <div class="obs">
+        <span class="obs-ico">↻</span>
+        <p><strong>Erro "Failed to fetch" no login.</strong> O banco pode ter pausado por inatividade (plano gratuito). Tente novamente em alguns instantes.</p>
+      </div>
+      <div class="obs">
+        <span class="obs-ico">G</span>
+        <p><strong>Login com Google.</strong> Funciona normalmente. A tela de permissão do Google ainda exibe informações técnicas, um ajuste apenas estético que está pendente.</p>
+      </div>
+      <div class="obs">
+        <span class="obs-ico">◉</span>
+        <p><strong>Recomendação.</strong> Teste sempre pelo domínio oficial: <a href="https://vetriabrasil.com.br" target="_blank">vetriabrasil.com.br</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== RODAPÉ ===================== -->
+<footer class="footer">
+  <div class="wrap">
+    <img src="/vetria/logo-vetria-fundo-claro.svg" alt="Vetria" style="height:30px;width:auto;display:inline-block;">
+    <p class="footer-tagline">Veterinários e clínicas de confiança.</p>
+    <p class="footer-links">
+      <a href="mailto:contato@vetriabrasil.com.br">contato@vetriabrasil.com.br</a>
+      &nbsp;·&nbsp;
+      <a href="https://vetriabrasil.com.br" target="_blank">vetriabrasil.com.br</a>
+    </p>
+    <p class="footer-copy">© 2026 Vetria. Todos os direitos reservados.</p>
+  </div>
+</footer>
+
+</body>
+</html>
