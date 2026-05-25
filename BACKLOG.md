@@ -679,7 +679,7 @@ Quando rodar: sessão presencial dedicada de 1-2 horas.
 **Status:** 🟡 PARCIAL (24/05/2026) — Resend ligado como Custom SMTP do Supabase, **modo
 teste validado** (sender `onboarding@resend.dev`, email chega pro endereço da conta
 Resend). Ver DL-030.
-**Falta (produção):** verificar domínio `vetria.com.br` no Resend (DKIM/SPF/DMARC no
+**Falta (produção):** verificar domínio `vetriabrasil.com.br` no Resend (DKIM/SPF/DMARC no
 Hostinger) pra enviar pra qualquer endereço + remetente corporativo. Elber fará ao
 configurar domínio + email corporativo.
 **Por quê (a parte restante segue 🔴/presencial):** mexe em DNS do domínio e remetente
@@ -809,7 +809,7 @@ Bloco de 3 passos (estilo Doctoralia — separação tutor/B2B):
 🚫 TASK-027 — .vercelignore N/A (DL-021)
 
 PENDENTE:
-📧 TASK-030 (resto) — verificar domínio vetria.com.br no Resend (DNS Hostinger) → email pra qualquer endereço + remetente corporativo (DL-030). Depende do Elber pôr o domínio no ar.
+📧 TASK-030 (resto) — verificar domínio vetriabrasil.com.br no Resend (DNS Hostinger) → email pra qualquer endereço + remetente corporativo (DL-030). Depende do Elber pôr o domínio no ar.
 🟢 TASK-007b — recuperação de senha real + templates de email (§9) — depende do domínio no Resend
 🔴 TASK-029 → 031 → 032 — presencial: migration GRANDE (status + vet/clinic_profiles) → onboarding real (persistir dados) → middleware por status. **PRÓXIMO GRANDE BLOCO (backend pesado)** — daí cascateiam busca/perfil público, agenda, contatos, avaliações reais, métricas, validação CRMV, convite de equipe, captura de pets, planos/Stripe.
 🟢 Polimento adiado — SVG inline → lucide nos formulários (perfil/onboarding); render idêntico, sem urgência

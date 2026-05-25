@@ -267,10 +267,10 @@ export function AjudaCasca() {
         <p className="mt-1 text-[14px] leading-relaxed text-corpo-texto">
           Fale com a gente em{" "}
           <a
-            href="mailto:contato@vetriapet.com.br"
+            href="mailto:contato@vetriabrasil.com.br"
             className="font-medium text-principal underline underline-offset-2"
           >
-            contato@vetriapet.com.br
+            contato@vetriabrasil.com.br
           </a>{" "}
           e respondemos em até 24h úteis.
         </p>

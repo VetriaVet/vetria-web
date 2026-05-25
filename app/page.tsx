@@ -504,7 +504,7 @@ function PublicFooter() {
             </div>
             <p className="text-[13px] leading-relaxed text-white/70">
               <strong className="mb-1.5 block text-white">Fale conosco</strong>
-              contato@vetriapet.com.br
+              contato@vetriabrasil.com.br
             </p>
           </div>
 

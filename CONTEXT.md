@@ -8,7 +8,7 @@
 >
 > **✍️ Regra de copy:** nunca usar travessão (—, em dash) em texto que o usuário vê. Usar vírgula, ponto ou dois-pontos. Ver DL-038.
 >
-> **Última atualização:** 24 de Maio de 2026 — **bloco visual v2 / fase casca fechada** (DL-031 a DL-036): sidebar shell vet/clínica via route group `(painel)` (TASK-038 ✅), tipografia revertida pra **Inter única** (serif descartada), design system v2 portado pros tokens `@theme`, padrão **GHOST** ("ghost onde ensina, empty seco onde acalma" — refina DL-020, mock de pets removido), **Home pública** em `/`, e itens "em breve" da sidebar ativados como casca navegável. App visualmente completo e pronto pra apresentar (ver `DEMO.md`). **25/05:** rota `/roadmap` viva pros donos (DL-037) + travessões removidos do texto visível (DL-038). Pendentes: verificar domínio vetria.com.br no Resend + **fase de backend pesado** (presencial: schema grande, busca, agenda, validação CRMV, planos).
+> **Última atualização:** 24 de Maio de 2026 — **bloco visual v2 / fase casca fechada** (DL-031 a DL-036): sidebar shell vet/clínica via route group `(painel)` (TASK-038 ✅), tipografia revertida pra **Inter única** (serif descartada), design system v2 portado pros tokens `@theme`, padrão **GHOST** ("ghost onde ensina, empty seco onde acalma" — refina DL-020, mock de pets removido), **Home pública** em `/`, e itens "em breve" da sidebar ativados como casca navegável. App visualmente completo e pronto pra apresentar (ver `DEMO.md`). **25/05:** rota `/roadmap` viva pros donos (DL-037) + travessões removidos do texto visível (DL-038). Pendentes: verificar domínio vetriabrasil.com.br no Resend + **fase de backend pesado** (presencial: schema grande, busca, agenda, validação CRMV, planos).
 
 ---
 
@@ -58,7 +58,7 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 - ❌ Campo `status` em `profiles` (enum incomplete|pending_validation|active|suspended)
 - ❌ Páginas `/app/vet/aguardando` e `/app/clinic/aguardando` (✅ visuais criadas — DL-022)
 - ✅ Pasta `supabase/migrations/` criada + migration 0001 aplicada (DL-027)
-- 🟡 Email transacional: Resend integrado como SMTP do Supabase em **modo teste** (DL-030); falta verificar domínio `vetria.com.br` pra produção
+- 🟡 Email transacional: Resend integrado como SMTP do Supabase em **modo teste** (DL-030); falta verificar domínio `vetriabrasil.com.br` pra produção
 
 ### Sprint 2 — concluído (até 24/05/2026)
 - ✅ TASK-000 — Fundação Tailwind v4 + paleta Vetria + Inter + admin fix
@@ -102,7 +102,7 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 
 ### Próximas (priorizadas)
 - ✅ Roteamento de role + onboarding validados (DL-028); Resend SMTP em modo teste (DL-030); fase visual v2 fechada (DL-031 a DL-036).
-- 📧 **Verificar domínio `vetria.com.br` no Resend** (DKIM/SPF/DMARC no Hostinger) → emails pra qualquer endereço + remetente corporativo. Depende do Elber (DL-030).
+- 📧 **Verificar domínio `vetriabrasil.com.br` no Resend** (DKIM/SPF/DMARC no Hostinger) → emails pra qualquer endereço + remetente corporativo. Depende do Elber (DL-030).
 - 🔴 **FASE BACKEND PESADO** (próximo grande bloco) — TASK-029 → 031 → 032: migration grande (status + vet/clinic_profiles) → onboarding real (persistir dados) → middleware por status. Daí cascateiam: busca + perfil público, agenda, contatos/mensagens, avaliações reais, métricas reais, validação de CRMV, convite de equipe, captura de pets, planos/Stripe (Sprint 6).
 - 🟢 TASK-007b — ligar recuperação de senha real (`resetPasswordForEmail`) + templates de email (§9) — depende do domínio no Resend
 - 🟢 Polimento cosmético adiado: SVG inline → lucide nos formulários (perfil/onboarding) — render idêntico, sem urgência
@@ -246,7 +246,7 @@ Pra um vet ou clínica aparecer na busca pública:
 - [ ] Lógica no middleware: vet/clinic com `status != active` redireciona pra aguardando
 
 **Integração Resend:**
-- [ ] Conta Resend criada + domínio vetria.com.br verificado (DKIM, SPF, DMARC)
+- [ ] Conta Resend criada + domínio vetriabrasil.com.br verificado (DKIM, SPF, DMARC)
 - [ ] `RESEND_API_KEY` cadastrada nos 3 ambientes da Vercel
 - [ ] Pasta `lib/email/` com função `sendEmail()`
 - [ ] Templates: welcome, password-reset, vet-aprovado, vet-rejeitado, clinic-aprovado, clinic-rejeitado
@@ -362,7 +362,7 @@ Toda task que sobe pra produção, **conferir visualmente no navegador** depois 
 - Dashboard Vercel: https://vercel.com/_______
 - Dashboard Resend: https://resend.com/_______ (após criar)
 - GitHub: https://github.com/VetriaVet/vetria-web
-- Domínio: vetria.com.br
+- Domínio: vetriabrasil.com.br
 
 _(preencher links acima)_
 
@@ -859,8 +859,8 @@ chegou**. O **"Confirm email" foi religado** (DL-009 restaurado) — durante a P
 investigação ele foi desligado temporariamente só pra provar que o roteamento de role
 funciona sem depender de email (provou: ✅).
 **Implicações:**
-- Pra enviar pra **qualquer endereço** e com remetente **@vetria.com.br**, falta
-  **verificar o domínio `vetria.com.br` no Resend** (DKIM/SPF/DMARC no DNS do Hostinger).
+- Pra enviar pra **qualquer endereço** e com remetente **@vetriabrasil.com.br**, falta
+  **verificar o domínio `vetriabrasil.com.br` no Resend** (DKIM/SPF/DMARC no DNS do Hostinger).
   O Elber fará quando configurar o domínio + email corporativo da Vetria.
 - Com o domínio no ar, dá pra ligar de verdade a recuperação de senha (`/recuperar-senha`
   hoje é mock, TASK-007) e os templates de email (welcome/aprovado/rejeitado — §9).
