@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  // Fluxos como recuperação de senha mandam ?next=/caminho: após estabelecer a
+  // sessão, redirecionamos pra lá (ex.: tela de definir nova senha).
+  const next = searchParams.get("next");
 
   console.log("[auth/callback] handler invoked", {
     hasCode: !!code,
@@ -42,6 +45,13 @@ export async function GET(request: NextRequest) {
     .select("role")
     .eq("id", user.id)
     .maybeSingle();
+
+  // next interno (ex.: /recuperar-senha/nova) tem prioridade. Valida que é
+  // caminho relativo seguro (evita open redirect).
+  if (next && next.startsWith("/") && !next.startsWith("//")) {
+    console.log("[auth/callback] success → next", { userId: user.id, next });
+    return NextResponse.redirect(`${origin}${next}`);
+  }
 
   console.log("[auth/callback] success", {
     userId: user.id,

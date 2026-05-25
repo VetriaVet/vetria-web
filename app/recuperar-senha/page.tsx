@@ -3,21 +3,33 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Input } from "../../components/ui/Input";
-import { Label } from "../../components/ui/Label";
-import { Button } from "../../components/ui/Button";
+import { createClient } from "@/lib/supabase/browser";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Button } from "@/components/ui/Button";
 
-// Recuperar senha — mock visual (TASK-007). NÃO chama auth real ainda: o
-// resetPasswordForEmail do Supabase entra junto com o Resend (Sprint 2 backend).
-// Por ora só alterna pro estado de sucesso, sem revelar se o email existe.
+// Recuperar senha (TASK-007b): chama resetPasswordForEmail e manda o link pra
+// /auth/callback?next=/recuperar-senha/nova (a callback cria a sessão e leva à
+// tela de nova senha). Mostra sucesso genérico SEM revelar se o email existe
+// (boa prática anti-enumeração). A entrega depende do Resend com domínio.
 
 export default function RecuperarSenhaPage() {
+  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [enviado, setEnviado] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: supabase.auth.resetPasswordForEmail(email) quando o Resend existir
+    setLoading(true);
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+    // Erro é só logado, não exibido — mostramos sucesso genérico de qualquer jeito.
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${siteUrl}/auth/callback?next=/recuperar-senha/nova`,
+    });
+    if (error) console.error("[recuperar-senha] resetPasswordForEmail", error);
+    setLoading(false);
     setEnviado(true);
   }
 
@@ -62,7 +74,7 @@ export default function RecuperarSenhaPage() {
                     placeholder="seuemail@exemplo.com"
                   />
                 </div>
-                <Button type="submit" className="mt-2">
+                <Button type="submit" className="mt-2" loading={loading}>
                   Enviar link de recuperação
                 </Button>
               </form>
