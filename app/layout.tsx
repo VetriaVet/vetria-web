@@ -15,7 +15,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Vetria — veterinários e clínicas de confiança",
+    default: "Vetria: veterinários e clínicas de confiança",
     template: "%s · Vetria",
   },
   description:

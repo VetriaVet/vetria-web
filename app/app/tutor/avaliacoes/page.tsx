@@ -60,7 +60,7 @@ export default async function TutorAvaliacoesPage() {
           </div>
         }
         title="Você ainda não avaliou ninguém"
-        description="Depois de uma consulta marcada pela Vetria, você poderá avaliar o profissional — nota em estrelas e um comentário. Suas avaliações ficam reunidas aqui."
+        description="Depois de uma consulta marcada pela Vetria, você poderá avaliar o profissional, com nota em estrelas e um comentário. Suas avaliações ficam reunidas aqui."
       />
     </div>
   );

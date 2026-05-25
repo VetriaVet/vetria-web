@@ -43,7 +43,7 @@ export function ContatosCasca() {
         icon={MessageCircle}
         ghost={3}
         title="Nenhum contato ainda"
-        description="Quando um tutor falar com você pelo perfil, aparece aqui — com nome, mensagem e data. Você responde direto pelo WhatsApp ou telefone."
+        description="Quando um tutor falar com você pelo perfil, aparece aqui, com nome, mensagem e data. Você responde direto pelo WhatsApp ou telefone."
       />
     </div>
   );
@@ -75,7 +75,7 @@ export function AvaliacoesCasca() {
         icon={Star}
         ghost={2}
         title="Nenhuma avaliação ainda"
-        description="Depois de atender tutores pela Vetria, as avaliações deles aparecem aqui — nota e comentário. Avaliações ajudam novos tutores a confiar em você."
+        description="Depois de atender tutores pela Vetria, as avaliações deles aparecem aqui, com nota e comentário. Avaliações ajudam novos tutores a confiar em você."
       />
     </div>
   );
@@ -102,7 +102,7 @@ export function PlanoCasca() {
       <EmptyState
         icon={Crown}
         title="Planos pagos em breve"
-        description="Estamos definindo os planos da Vetria. Quando lançarmos, as opções e os valores aparecem aqui pra você escolher — nada de cobrança surpresa antes disso."
+        description="Estamos definindo os planos da Vetria. Quando lançarmos, as opções e os valores aparecem aqui pra você escolher. Nada de cobrança surpresa antes disso."
       />
     </div>
   );
@@ -121,7 +121,7 @@ export function ConfiguracoesCasca({
       <PageHeader title="Configurações" sub="Gerencie sua conta e preferências." />
 
       <SettingsCard title="Conta">
-        <ReadField label="Nome de exibição" value={name || "—"} />
+        <ReadField label="Nome de exibição" value={name || "Não informado"} />
         <ReadField label="Email" value={email} note="Não editável por aqui" />
       </SettingsCard>
 
@@ -226,7 +226,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Quanto custa usar a Vetria?",
-    a: "Durante o beta, o uso é gratuito. Planos pagos serão anunciados com antecedência — você não será cobrado sem aviso.",
+    a: "Durante o beta, o uso é gratuito. Planos pagos serão anunciados com antecedência. Você não será cobrado sem aviso.",
   },
   {
     q: "Como os tutores entram em contato comigo?",
@@ -272,7 +272,7 @@ export function AjudaCasca() {
           >
             contato@vetriapet.com.br
           </a>{" "}
-          — respondemos em até 24h úteis.
+          e respondemos em até 24h úteis.
         </p>
       </div>
     </div>
@@ -347,7 +347,7 @@ export function AguardandoCasca({
             <Info size={18} className="mt-0.5 shrink-0 text-principal" />
             <p className="text-[13px] leading-relaxed text-corpo-texto">
               <strong className="text-titulo">Passou de 48h?</strong> Se a
-              validação demorar mais que o previsto, a gente te avisa por email —
+              validação demorar mais que o previsto, a gente te avisa por email,
               não precisa fazer nada.
             </p>
           </div>

@@ -222,7 +222,7 @@ export default function ClinicOnboardingForm({
 
           {step === 4 && (
             <StepWrap
-              title="Quase lá — validação."
+              title="Quase lá: validação."
               desc="Ao concluir, enviamos o cadastro pra validação da equipe Vetria. Vocês recebem um email quando a clínica for aprovada."
             >
               <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center text-corpo-texto/60 mb-4">

@@ -104,7 +104,7 @@ export default async function TutorHome() {
           <EmptyState
             icon={CalendarClock}
             title="Tudo tranquilo por enquanto"
-            description="Quando você marcar uma consulta, ela aparece aqui — com data, profissional e lembrete. Por ora, é só buscar um profissional e agendar."
+            description="Quando você marcar uma consulta, ela aparece aqui, com data, profissional e lembrete. Por ora, é só buscar um profissional e agendar."
           />
         </Card>
 

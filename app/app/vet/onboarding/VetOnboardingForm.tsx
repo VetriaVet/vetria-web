@@ -152,7 +152,7 @@ export default function VetOnboardingForm({
           {step === 1 && (
             <StepWrap
               title="Vamos começar pelo essencial."
-              desc="Esses dados validam você como profissional. O CRMV é usado só pra confirmação — só o estado e o número validado aparecem no perfil."
+              desc="Esses dados validam você como profissional. O CRMV é usado só pra confirmação. Só o estado e o número validado aparecem no perfil."
             >
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
@@ -252,7 +252,7 @@ export default function VetOnboardingForm({
 
           {step === 4 && (
             <StepWrap
-              title="Quase lá — validação do CRMV."
+              title="Quase lá: validação do CRMV."
               desc="Ao concluir, enviamos seu cadastro pra validação da equipe Vetria. Você recebe um email quando o perfil for aprovado."
             >
               <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center text-corpo-texto/60 mb-4">

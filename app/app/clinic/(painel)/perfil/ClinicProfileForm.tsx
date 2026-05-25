@@ -243,7 +243,7 @@ export default function ClinicProfileForm({
         {/* Save bar */}
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-fundo-claro px-5 py-4">
           <span className="text-[13px] text-corpo-texto">
-            Pré-visualização — salvar estará disponível em breve.
+            Pré-visualização. Salvar estará disponível em breve.
           </span>
           <button
             type="button"

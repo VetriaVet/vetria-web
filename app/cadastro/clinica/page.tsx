@@ -54,7 +54,7 @@ export default function CadastroClinicaPage() {
     setMsg({
       tipo: "ok",
       texto:
-        "Conta criada! Enviamos um email de confirmação — confirme pra ativar e fazer login.",
+        "Conta criada! Enviamos um email de confirmação. Confirme pra ativar e fazer login.",
     });
   }
 

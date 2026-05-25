@@ -123,7 +123,7 @@ export default async function VetPage() {
               icon={Inbox}
               ghost={3}
               title="Nenhuma atividade ainda"
-              description="Quando tutores visualizarem ou entrarem em contato com seu perfil, as movimentações aparecem aqui — cada uma com nome, tipo e data."
+              description="Quando tutores visualizarem ou entrarem em contato com seu perfil, as movimentações aparecem aqui, cada uma com nome, tipo e data."
             />
           </Card>
 

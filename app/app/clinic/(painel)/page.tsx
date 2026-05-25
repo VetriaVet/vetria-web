@@ -121,7 +121,7 @@ export default async function ClinicPage() {
               icon={Users}
               ghost={2}
               title="Monte sua equipe"
-              description="Você poderá convidar e validar os veterinários da clínica, cada um com seu CRMV e especialidade — eles aparecem aqui com foto, nome e status."
+              description="Você poderá convidar e validar os veterinários da clínica, cada um com seu CRMV e especialidade. Eles aparecem aqui com foto, nome e status."
             />
 
             <Link
@@ -146,7 +146,7 @@ export default async function ClinicPage() {
               icon={Inbox}
               ghost={3}
               title="Nenhuma atividade ainda"
-              description="Assim que tutores interagirem com o perfil da clínica, as movimentações aparecem aqui — cada uma com tipo, origem e data."
+              description="Assim que tutores interagirem com o perfil da clínica, as movimentações aparecem aqui, cada uma com tipo, origem e data."
             />
           </Card>
         </div>

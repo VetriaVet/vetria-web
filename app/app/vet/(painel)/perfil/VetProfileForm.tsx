@@ -165,7 +165,7 @@ export default function VetProfileForm({ initialName }: { initialName: string })
             maxLength={BIO_MAX}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            placeholder="Conte sobre sua atuação, foco e jeito de atender. Evite tom comercial — fale com naturalidade."
+            placeholder="Conte sobre sua atuação, foco e jeito de atender. Evite tom comercial, fale com naturalidade."
             className="w-full rounded-2xl bg-fundo-claro/40 border border-transparent px-5 py-3.5 text-[15px] text-titulo placeholder:text-corpo-texto/60 focus:bg-white focus:border-principal focus:ring-2 focus:ring-principal/20 focus:outline-none transition resize-none"
           />
           <div className="flex justify-between items-center mt-1.5">
@@ -313,7 +313,7 @@ export default function VetProfileForm({ initialName }: { initialName: string })
         {/* Save bar */}
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-fundo-claro px-5 py-4">
           <span className="text-[13px] text-corpo-texto">
-            Pré-visualização — salvar estará disponível em breve.
+            Pré-visualização. Salvar estará disponível em breve.
           </span>
           <button
             type="button"

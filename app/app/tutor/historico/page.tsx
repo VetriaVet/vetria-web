@@ -57,7 +57,7 @@ export default async function TutorHistoricoPage() {
           </div>
         }
         title="Nenhum agendamento ainda"
-        description="Quando você marcar uma consulta pela Vetria, ela aparece aqui — com data, profissional, especialidade e status (confirmado, realizado ou cancelado)."
+        description="Quando você marcar uma consulta pela Vetria, ela aparece aqui, com data, profissional, especialidade e status (confirmado, realizado ou cancelado)."
       />
     </div>
   );
