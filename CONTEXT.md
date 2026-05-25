@@ -4,7 +4,11 @@
 >
 > Esse arquivo existe pra que toda sessão tenha o mesmo contexto e siga as mesmas regras.
 >
-> **Última atualização:** 24 de Maio de 2026 — **bloco visual v2 / fase casca fechada** (DL-031 a DL-036): sidebar shell vet/clínica via route group `(painel)` (TASK-038 ✅), tipografia revertida pra **Inter única** (serif descartada), design system v2 portado pros tokens `@theme`, padrão **GHOST** ("ghost onde ensina, empty seco onde acalma" — refina DL-020, mock de pets removido), **Home pública** em `/`, e itens "em breve" da sidebar ativados como casca navegável. App visualmente completo e pronto pra apresentar (ver `DEMO.md`). Pendentes: verificar domínio vetria.com.br no Resend + **fase de backend pesado** (presencial: schema grande, busca, agenda, validação CRMV, planos).
+> **🗺️ Regra viva (roadmap):** sempre que um avanço for grande o suficiente pra mover o status do roadmap (fechar tarefa/bloco, virar de sprint, marco visível), atualizar `app/roadmap/page.tsx` (array `SPRINTS` + const `ATUALIZADO`) **no mesmo commit**. O roadmap é a vitrine de progresso pros donos. Ver DL-037.
+>
+> **✍️ Regra de copy:** nunca usar travessão (—, em dash) em texto que o usuário vê. Usar vírgula, ponto ou dois-pontos. Ver DL-038.
+>
+> **Última atualização:** 24 de Maio de 2026 — **bloco visual v2 / fase casca fechada** (DL-031 a DL-036): sidebar shell vet/clínica via route group `(painel)` (TASK-038 ✅), tipografia revertida pra **Inter única** (serif descartada), design system v2 portado pros tokens `@theme`, padrão **GHOST** ("ghost onde ensina, empty seco onde acalma" — refina DL-020, mock de pets removido), **Home pública** em `/`, e itens "em breve" da sidebar ativados como casca navegável. App visualmente completo e pronto pra apresentar (ver `DEMO.md`). **25/05:** rota `/roadmap` viva pros donos (DL-037) + travessões removidos do texto visível (DL-038). Pendentes: verificar domínio vetria.com.br no Resend + **fase de backend pesado** (presencial: schema grande, busca, agenda, validação CRMV, planos).
 
 ---
 
@@ -960,6 +964,40 @@ não pré-anunciar valor — planos = Sprint 6, ver DL-020/§ dashboard clínica
 **Implicações:** nenhum item morto na sidebar. As páginas backend-gated dão lugar a dado real na
 fase pesada; Meu plano ganha tabela de preço só com Stripe (Sprint 6).
 **Status:** ✅ No ar (47 rotas no build).
+
+### DL-037 — Rota `/roadmap` viva (status real, isolada, noindex)
+**Data:** 25 Maio 2026
+**Sprint:** 2 — bloco visual v2, commit 7e529a6.
+**Contexto:** O Elber quer um roadmap pros donos da Vetria que tire a ansiedade de
+ver o negócio crescer, mostrando o que já foi feito de verdade. Havia um desenho
+(`roadmap.html`, ref local gitignored), mas com status incongruente com a realidade.
+**Decisão:** Criada a rota **`/roadmap`** (`app/roadmap/page.tsx`): isolada (não
+linkada em nenhuma navegação; acessível só por link direto), `robots: {index:false,
+follow:false}`, mas commitada e no mesmo domínio. Conteúdo vem de um array tipado
+`SPRINTS` (status `done|doing|todo` por sprint e por item) + const `ATUALIZADO`; a
+barra de progresso e contadores derivam do array. **Status reconciliado à realidade,
+não ao desenho:** Sprint 1 done; Sprint 2 doing com a casca visual de todo o produto
++ Home + telas de onboarding marcadas done (marco visível), e persistência/estados/
+bloqueio de busca como doing/todo (dependem do backend); Sprints 3-7 planejadas.
+Tokens v2 + lucide, sem travessão.
+**Implicações (REGRA VIVA):** a cada avanço grande o suficiente pra mover o status
+(fechar tarefa/bloco, virar de sprint, marco visível), atualizar o array `SPRINTS` +
+`ATUALIZADO` no mesmo commit. Se a realidade divergir do que o design representa,
+ajustar o design.
+**Status:** ✅ No ar (48 rotas no build).
+
+### DL-038 — Política de copy: sem travessão (em dash) no texto visível
+**Data:** 25 Maio 2026
+**Sprint:** 2 — bloco visual v2, commit 54250f3.
+**Contexto:** O travessão (—) virou "tell" de texto gerado por IA; o Elber apontou
+que tira credibilidade (donos pensam que foi feito só por IA).
+**Decisão:** Varredura removendo `—` de todo texto que renderiza pro usuário
+(descrições, placeholders, títulos, metadata, mensagens, FAQ, `DEMO.md`), trocando
+por vírgula, ponto ou dois-pontos conforme o contexto. Comentários de código e docs
+internos (CONTEXT/BACKLOG) não foram varridos (não são vistos por usuário/donos).
+**Implicações:** ao escrever QUALQUER copy/UI nova, não usar `—`. O `·` (ponto médio)
+é aceitável como separador.
+**Status:** ✅ Aplicado (16 arquivos + DEMO.md).
 
 ---
 

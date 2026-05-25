@@ -83,3 +83,4 @@ YYYY-MM-DD | TASK-XXX a TASK-YYY | DL-NN a DL-MM | TASK-FIX-XXX | hash
 2026-05-24 | TASK-039 (separação tutor/B2B + signUp + migration 0001) | DL-026 a DL-029 | TASK-039 | 6360626
 2026-05-24 | TASK-030 (Resend SMTP modo teste) + validação roteamento/onboarding | DL-030 | TASK-007b | (este commit)
 2026-05-24 | Bloco visual v2 / fase casca (sidebar, Inter, design system @theme, GHOST, Home, sidebar ativada) | DL-031 a DL-036 | — | (este commit)
+2026-05-25 | Rota /roadmap viva + remoção de travessões + regra viva do roadmap | DL-037, DL-038 | — | (manual, a pedido do Elber)

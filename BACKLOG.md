@@ -6,6 +6,8 @@
 > **Como usar:**
 > Elber pede "próxima task" no chat 2 → chat 2 consulta esse arquivo → entrega prompt → Elber cola no Claude Code → após conclusão Elber avisa → chat 2 marca como ✅
 
+> **🗺️ REGRA VIVA (roadmap):** ao concluir um avanço grande o suficiente pra mover o status (fechar tarefa/bloco, virar de sprint, marco visível), atualizar `app/roadmap/page.tsx` (array `SPRINTS` + const `ATUALIZADO`) no mesmo commit. O `/roadmap` é a vitrine de progresso pros donos (DL-037).
+
 > **Legenda de autonomia:**
 > 🟢 VERDE = push direto autorizado (Claude Code commita+pusha sem aprovação)
 > 🟡 AMARELO = diff obrigatório antes de commit (Elber aprova)
@@ -803,6 +805,7 @@ Bloco de 3 passos (estilo Doctoralia — separação tutor/B2B):
 ✅ TASK-039 — rotas tutor/B2B + signUp ligado + migration 0001 (DL-026/027/028)
 ✅ TASK-038 — sidebar shell vet/clínica via route group (painel) + lucide (DL-031)
 ✅ Bloco visual v2 (fase casca fechada) — Inter única (DL-032), design system nos tokens @theme (DL-033), padrão GHOST/empty seco (DL-034), Home pública em / (DL-035), itens "em breve" da sidebar ativados como casca (DL-036). App pronto pra apresentar (DEMO.md).
+✅ Rota /roadmap viva (isolada, noindex, status real, array SPRINTS) (DL-037) + travessões removidos do texto visível (DL-038)
 🚫 TASK-027 — .vercelignore N/A (DL-021)
 
 PENDENTE:
