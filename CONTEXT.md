@@ -8,7 +8,7 @@
 >
 > **✍️ Regra de copy:** nunca usar travessão (—, em dash) em texto que o usuário vê. Usar vírgula, ponto ou dois-pontos. Ver DL-038.
 >
-> **Última atualização:** 24 de Maio de 2026 — **bloco visual v2 / fase casca fechada** (DL-031 a DL-036): sidebar shell vet/clínica via route group `(painel)` (TASK-038 ✅), tipografia revertida pra **Inter única** (serif descartada), design system v2 portado pros tokens `@theme`, padrão **GHOST** ("ghost onde ensina, empty seco onde acalma" — refina DL-020, mock de pets removido), **Home pública** em `/`, e itens "em breve" da sidebar ativados como casca navegável. App visualmente completo e pronto pra apresentar (ver `DEMO.md`). **25/05:** rota `/roadmap` viva pros donos (DL-037) + travessões removidos do texto visível (DL-038). Pendentes: verificar domínio vetriabrasil.com.br no Resend + **fase de backend pesado** (presencial: schema grande, busca, agenda, validação CRMV, planos).
+> **Última atualização:** 24 de Maio de 2026 — **bloco visual v2 / fase casca fechada** (DL-031 a DL-036): sidebar shell vet/clínica via route group `(painel)` (TASK-038 ✅), tipografia revertida pra **Inter única** (serif descartada), design system v2 portado pros tokens `@theme`, padrão **GHOST** ("ghost onde ensina, empty seco onde acalma" — refina DL-020, mock de pets removido), **Home pública** em `/`, e itens "em breve" da sidebar ativados como casca navegável. App visualmente completo e pronto pra apresentar (ver `DEMO.md`). **25/05:** rota `/roadmap` viva pros donos (DL-037), travessões removidos (DL-038) e **camada de entrada 100% no domínio oficial** `vetriabrasil.com.br` — login/cadastro/confirmação/recuperação de senha funcionando com email real (DL-039). Próximo: **fase de backend pesado** (presencial: schema grande, busca, agenda, validação CRMV, planos).
 
 ---
 
@@ -101,10 +101,10 @@ Plataforma digital que conecta **tutores de pets** a **veterinários, clínicas 
 > 🥚 **CASCA COMPLETA (fase visual fechada)** — app visualmente completo em todos os painéis e fluxos (público + Home, tutor, vet, clínica, admin), no design v2 (Inter + tokens). Estados honestos (ghost onde ensina, seco onde acalma); **sem dado/preço fake**; pontos de integração marcados com `// TODO`. Pronto pra apresentar — roteiro em `DEMO.md`.
 
 ### Próximas (priorizadas)
-- ✅ Roteamento de role + onboarding validados (DL-028); Resend SMTP em modo teste (DL-030); fase visual v2 fechada (DL-031 a DL-036).
-- 📧 **Verificar domínio `vetriabrasil.com.br` no Resend** (DKIM/SPF/DMARC no Hostinger) → emails pra qualquer endereço + remetente corporativo. Depende do Elber (DL-030).
+- ✅ Roteamento de role + onboarding validados (DL-028); fase visual v2 fechada (DL-031 a DL-036).
+- ✅ **Camada de entrada completa (DL-039):** domínio `vetriabrasil.com.br` no ar (Vercel), Resend com domínio verificado, email real (`contato@vetriabrasil.com.br`), recuperação de senha funcionando ponta a ponta. Login/cadastro/confirmação/recuperação = 100%.
+- ✅ TASK-007b — recuperação de senha real ligada (resetPasswordForEmail + tela de nova senha) (DL-039). *(Falta só customizar os templates de email do §9 — opcional.)*
 - 🔴 **FASE BACKEND PESADO** (próximo grande bloco) — TASK-029 → 031 → 032: migration grande (status + vet/clinic_profiles) → onboarding real (persistir dados) → middleware por status. Daí cascateiam: busca + perfil público, agenda, contatos/mensagens, avaliações reais, métricas reais, validação de CRMV, convite de equipe, captura de pets, planos/Stripe (Sprint 6).
-- 🟢 TASK-007b — ligar recuperação de senha real (`resetPasswordForEmail`) + templates de email (§9) — depende do domínio no Resend
 - 🟢 Polimento cosmético adiado: SVG inline → lucide nos formulários (perfil/onboarding) — render idêntico, sem urgência
 - ⬜ TASK-FIX-003 — set-role idempotente (não urgente)
 
@@ -998,6 +998,26 @@ internos (CONTEXT/BACKLOG) não foram varridos (não são vistos por usuário/do
 **Implicações:** ao escrever QUALQUER copy/UI nova, não usar `—`. O `·` (ponto médio)
 é aceitável como separador.
 **Status:** ✅ Aplicado (16 arquivos + DEMO.md).
+
+### DL-039 — Camada de entrada completa: domínio oficial + email real + recuperação de senha
+**Data:** 25 Maio 2026
+**Sprint:** 2 (fecha a meta "login perfeito" definida pelo Elber pra esta etapa).
+**Contexto:** A meta de fechamento era entregar a camada de entrada (login, cadastro,
+confirmação, recuperação de senha) 100% funcional no domínio oficial — mesmo que os dados
+de teste sejam zerados depois.
+**Decisão/execução:** Domínio `vetriabrasil.com.br` (Hostinger) apontado pra Vercel — site
+no ar no domínio. Resend com domínio verificado (DKIM/SPF/DMARC) → SMTP do Supabase enviando
+de `contato@vetriabrasil.com.br`. Recuperação de senha ligada de verdade (commit 5f3277f):
+`/recuperar-senha` chama `resetPasswordForEmail`; `/auth/callback` honra `?next`; nova tela
+`/recuperar-senha/nova` (`updateUser`). **Bug resolvido:** o link de reset caía em `/?code=`
+na home porque o site responde em `www` e a Redirect URL do Supabase só tinha o host sem
+`www` → o Supabase ignorava o redirect e caía na Site URL. Fix = adicionar os DOIS hosts
+(`https://vetriabrasil.com.br/**` e `https://www.vetriabrasil.com.br/**`) nas Redirect URLs.
+**Implicações:** cadastro→confirmação→login e recuperação→nova senha validados ponta a ponta
+em produção (25/05/2026). Emails novos caem em spam no começo (aquecimento de domínio); DMARC
+ÚNICO (`v=DMARC1`) + marcar "não é spam" resolvem com o tempo. Pendência menor: setar
+`NEXT_PUBLIC_SITE_URL` na Vercel + padronizar canonical www/apex.
+**Status:** ✅ Validado em produção.
 
 ---
 

@@ -809,8 +809,8 @@ Bloco de 3 passos (estilo Doctoralia — separação tutor/B2B):
 🚫 TASK-027 — .vercelignore N/A (DL-021)
 
 PENDENTE:
-📧 TASK-030 (resto) — verificar domínio vetriabrasil.com.br no Resend (DNS Hostinger) → email pra qualquer endereço + remetente corporativo (DL-030). Depende do Elber pôr o domínio no ar.
-🟢 TASK-007b — recuperação de senha real + templates de email (§9) — depende do domínio no Resend
+✅ TASK-030 (resto) — domínio vetriabrasil.com.br no ar + verificado no Resend; email real de contato@vetriabrasil.com.br (DL-039)
+✅ TASK-007b — recuperação de senha real ligada + tela de nova senha (DL-039). Resta só customizar templates de email do §9 (opcional).
 🔴 TASK-029 → 031 → 032 — presencial: migration GRANDE (status + vet/clinic_profiles) → onboarding real (persistir dados) → middleware por status. **PRÓXIMO GRANDE BLOCO (backend pesado)** — daí cascateiam busca/perfil público, agenda, contatos, avaliações reais, métricas, validação CRMV, convite de equipe, captura de pets, planos/Stripe.
 🟢 Polimento adiado — SVG inline → lucide nos formulários (perfil/onboarding); render idêntico, sem urgência
 ⬜ TASK-FIX-003 — set-role idempotente (não urgente)

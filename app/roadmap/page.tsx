@@ -40,9 +40,13 @@ const SPRINTS: Sprint[] = [
       { label: "Controle de acesso por papel (RBAC)", status: "done" },
       { label: "Painéis isolados (tutor, vet, clínica)", status: "done" },
       { label: "Painel administrativo funcional", status: "done" },
+      {
+        label: "Recuperação de senha + emails reais no domínio oficial",
+        status: "done",
+      },
     ],
     result:
-      "Infraestrutura sólida e segura no ar, pronta para receber o produto de verdade.",
+      "Base de entrada sólida e no ar (vetriabrasil.com.br): contas, login, recuperação de senha e papéis funcionando de verdade.",
   },
   {
     num: "Sprint 2",
