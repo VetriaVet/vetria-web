@@ -8,7 +8,7 @@
 >
 > **✍️ Regra de copy:** nunca usar travessão (—, em dash) em texto que o usuário vê. Usar vírgula, ponto ou dois-pontos. Ver DL-038.
 >
-> **Última atualização:** 24 de Maio de 2026 — **bloco visual v2 / fase casca fechada** (DL-031 a DL-036): sidebar shell vet/clínica via route group `(painel)` (TASK-038 ✅), tipografia revertida pra **Inter única** (serif descartada), design system v2 portado pros tokens `@theme`, padrão **GHOST** ("ghost onde ensina, empty seco onde acalma" — refina DL-020, mock de pets removido), **Home pública** em `/`, e itens "em breve" da sidebar ativados como casca navegável. App visualmente completo e pronto pra apresentar (ver `DEMO.md`). **25/05:** rota `/roadmap` viva pros donos (DL-037), travessões removidos (DL-038) e **camada de entrada 100% no domínio oficial** `vetriabrasil.com.br` — login/cadastro/confirmação/recuperação de senha funcionando com email real (DL-039). Próximo: **fase de backend pesado** (presencial: schema grande, busca, agenda, validação CRMV, planos).
+> **Última atualização:** 24 de Maio de 2026 — **bloco visual v2 / fase casca fechada** (DL-031 a DL-036): sidebar shell vet/clínica via route group `(painel)` (TASK-038 ✅), tipografia revertida pra **Inter única** (serif descartada), design system v2 portado pros tokens `@theme`, padrão **GHOST** ("ghost onde ensina, empty seco onde acalma" — refina DL-020, mock de pets removido), **Home pública** em `/`, e itens "em breve" da sidebar ativados como casca navegável. App visualmente completo e pronto pra apresentar (ver `DEMO.md`). **25/05:** rota `/roadmap` viva pros donos (DL-037), travessões removidos (DL-038) e **camada de entrada 100% no domínio oficial** `vetriabrasil.com.br` — login/cadastro/confirmação/recuperação de senha funcionando com email real (DL-039). **Fase 2 ENTREGUE** (DL-040): logo oficial em tudo, 6 emails transacionais, rota `/entrega-fase-2`. Próximo: **Fase 3 / backend pesado** (presencial: schema grande, busca, agenda, validação CRMV, planos).
 
 ---
 
@@ -1018,6 +1018,22 @@ em produção (25/05/2026). Emails novos caem em spam no começo (aquecimento de
 ÚNICO (`v=DMARC1`) + marcar "não é spam" resolvem com o tempo. Pendência menor: setar
 `NEXT_PUBLIC_SITE_URL` na Vercel + padronizar canonical www/apex.
 **Status:** ✅ Validado em produção.
+
+### DL-040 — Fechamento da Fase 2: marca, emails, infra e rota de entrega
+**Data:** 25 Maio 2026
+**Sprint:** 2 (fechamento). Commits: logos b/734.., next.config, cursor, emails, /entrega-fase-2.
+**Contexto:** Reta final da Fase 2 — aplicar a marca oficial, emails transacionais e o doc de entrega.
+**Decisões/execução:**
+- **Logo oficial**: SVGs `logo-vetria-fundo-claro.svg` (verde, p/ fundo claro) e `logo-vetria-fundo-escuro.svg` (creme, p/ fundo escuro) aplicadas em todas as telas. **`next.config.ts` tem `images.dangerouslyAllowSVG: true` + CSP sandbox — NÃO REMOVER** (sem isso o next/image quebra a logo SVG). **Lição:** arquivos em `public/` precisam ser `git add`ados — os SVGs ficaram untracked e davam 404 só em produção.
+- **cursor:pointer global** no `globals.css` (Tailwind v4 parou de aplicar em `<button>`).
+- **Emails transacionais**: 6 templates HTML em `email-templates/` (tabelas+inline, logo PNG pois email não renderiza SVG: topo = `logo-square.png` circular, rodapé = `logo-email.png` horizontal gerada da SVG via sharp). Os 3 do Supabase (confirm/reset/change email) aplicados no dashboard com `{{ .ConfirmationURL }}`; os 3 do app (boas-vindas/aprovado/ajuste) versionados e marcados "NÃO ATIVO" (fase backend).
+- **Rota `/entrega-fase-2`**: HTML estático em `public/entrega-fase-2.html` + rewrite e header `X-Robots-Tag: noindex` no `next.config`. **Padrão reutilizável** pras próximas fases (fase 3/4 = copiar HTML p/ public + 1 rewrite + 1 header). O HTML-fonte na raiz é gitignored; o que vai pro ar é a cópia em `public/`.
+**Pendências menores (abertas, não bloqueiam):**
+- Setar `NEXT_PUBLIC_SITE_URL=https://vetriabrasil.com.br` na Vercel (Production) + padronizar canonical www × apex.
+- Tela de consentimento OAuth do Google (nome "Vetria"+logo) — não precisa billing (ver memória).
+- Aquecimento de email (cai em spam no início): DMARC único + marcar "não é spam".
+- Customizar templates de email do §9 (estético, opcional).
+**Status:** ✅ Fase 2 entregue. Camada de entrada 100% no domínio oficial; produto visual completo; relatório em `/entrega-fase-2`. Próximo: Fase 3 (backend pesado) — migration grande.
 
 ---
 
