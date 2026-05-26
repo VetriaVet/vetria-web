@@ -342,6 +342,9 @@
     .cover { padding: 56px 0 48px; }
     .lead-card, .next-card { padding: 26px 22px; }
     .statusbar .wrap { flex-direction: column; align-items: stretch; }
+    /* Em coluna, flex:1 1 220px vira ALTURA e estoura a barra (vira um oval
+       gigante com o border-radius). Reset pra barra fina full-width. */
+    .progress-track { flex: 0 0 auto; width: 100%; height: 10px; }
   }
 </style>
 </head>
