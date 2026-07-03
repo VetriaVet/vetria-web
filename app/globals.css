@@ -75,17 +75,24 @@ body {
   color: #fff;
 }
 
-/* Títulos: peso e tracking da referência (h1..h6 herdam por padrão) */
-h1, h2, h3, h4, h5, h6 {
-  color: var(--color-titulo);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+/* Títulos: peso e tracking da referência (h1..h6 herdam por padrão).
+   DENTRO de @layer base pra que os utilitários de cor do Tailwind
+   (text-white, text-principal…) vençam — no Tailwind v4, regra SEM layer
+   ganha de qualquer @layer, então deixar isto solto pintava todo <h1>/<h2>
+   de preto e escondia títulos em superfícies escuras (ex.: painel admin). */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--color-titulo);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
 }
 
-/* Em superfícies escuras (ancestral com .text-white, ex.: o card verde do
-   "Olá, {nome}"), os títulos herdam a cor clara em vez do --color-titulo —
-   senão a regra global acima pinta o título de preto e some no fundo. */
+/* Em superfícies escuras onde a cor clara vem de um ANCESTRAL com .text-white
+   (ex.: o card verde do "Olá, {nome}" e o rodapé), os títulos sem utilitário
+   de cor próprio herdam o claro em vez do --color-titulo. Fica sem layer de
+   propósito, pra ganhar da regra base acima nesse caso de herança. */
 .text-white :is(h1, h2, h3, h4, h5, h6) {
   color: inherit;
 }

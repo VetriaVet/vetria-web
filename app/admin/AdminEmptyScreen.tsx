@@ -47,7 +47,7 @@ export default function AdminEmptyScreen({
 
           <div className="text-center">
             <h2 className="font-bold text-xl text-white mb-2">{heading}</h2>
-            <p className="text-[14px] text-white/50 leading-relaxed max-w-md mx-auto">
+            <p className="text-[14px] text-white/70 leading-relaxed max-w-md mx-auto">
               {desc}
             </p>
           </div>
