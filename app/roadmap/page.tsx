@@ -38,7 +38,7 @@ const SPRINTS: Sprint[] = [
       { label: "Estrutura técnica e deploy contínuo", status: "done" },
       { label: "Login e cadastro (e-mail + Google)", status: "done" },
       { label: "Controle de acesso por papel (RBAC)", status: "done" },
-      { label: "Painéis isolados (tutor, vet, clínica)", status: "done" },
+      { label: "Painéis isolados (responsável, veterinário, estabelecimento)", status: "done" },
       { label: "Painel administrativo funcional", status: "done" },
       {
         label: "Recuperação de senha + emails reais no domínio oficial",
@@ -52,16 +52,16 @@ const SPRINTS: Sprint[] = [
     num: "Sprint 2",
     title: "Identidade visual e onboarding",
     status: "doing",
-    goal: "Dar ao produto a cara final (da landing aos painéis) e transformar usuários genéricos em veterinários, clínicas e tutores com identidade própria.",
+    goal: "Dar ao produto a cara final (da landing aos painéis) e transformar usuários genéricos em veterinários, estabelecimentos e responsáveis com identidade própria.",
     items: [
       {
         label:
-          "Design system v2 e casca visual de todo o produto (landing, tutor, vet, clínica, admin)",
+          "Design system v2 e casca visual de todo o produto (landing, responsável, veterinário, estabelecimento, admin)",
         status: "done",
       },
       { label: "Home pública do consumidor", status: "done" },
       {
-        label: "Telas de onboarding do vet, da clínica e do tutor",
+        label: "Telas de onboarding do veterinário, do estabelecimento e do responsável",
         status: "done",
       },
       {
@@ -74,7 +74,7 @@ const SPRINTS: Sprint[] = [
         status: "todo",
       },
       {
-        label: "Bloqueio: vet e clínica só aparecem na busca após validação",
+        label: "Bloqueio: veterinário e estabelecimento só aparecem na busca após validação",
         status: "todo",
       },
     ],
@@ -85,24 +85,24 @@ const SPRINTS: Sprint[] = [
     num: "Sprint 3",
     title: "Perfis públicos e base de busca",
     status: "todo",
-    goal: "Permitir que tutores encontrem veterinários e clínicas: a conexão entre quem oferece e quem procura.",
+    goal: "Permitir que responsáveis encontrem veterinários e estabelecimentos: a conexão entre quem oferece e quem procura.",
     items: [
       { label: "Página pública do veterinário", status: "todo" },
-      { label: "Página pública da clínica", status: "todo" },
+      { label: "Página pública do estabelecimento", status: "todo" },
       { label: "Busca por cidade e especialidade", status: "todo" },
       { label: "Listagem só de perfis ativos e validados", status: "todo" },
     ],
-    result: "Nasce a conexão entre oferta (vet/clínica) e demanda (tutor).",
+    result: "Nasce a conexão entre oferta (veterinário/estabelecimento) e demanda (responsável).",
   },
   {
     num: "Sprint 4",
     title: "Sistema de agendamento",
     status: "todo",
-    goal: "O coração do produto: marcação de consultas entre tutor e profissional.",
+    goal: "O coração do produto: marcação de consultas entre responsável e profissional.",
     items: [
       { label: "Agenda do veterinário (dias e horários)", status: "todo" },
-      { label: "Tutor escolhe horário e marca consulta", status: "todo" },
-      { label: "Vet vê sua agenda; tutor vê suas consultas", status: "todo" },
+      { label: "Responsável escolhe horário e marca consulta", status: "todo" },
+      { label: "Veterinário vê sua agenda; responsável vê suas consultas", status: "todo" },
       { label: "Gestão de status das consultas", status: "todo" },
     ],
     result: "O produto começa a gerar valor real e recorrente.",
@@ -113,9 +113,9 @@ const SPRINTS: Sprint[] = [
     status: "todo",
     goal: "Fazer o usuário voltar: recursos que criam hábito e fidelidade.",
     items: [
-      { label: "Tutor: favoritos, histórico e avaliações", status: "todo" },
-      { label: "Vet: dashboard com métricas simples", status: "todo" },
-      { label: "Clínica: gestão de equipe (básico)", status: "todo" },
+      { label: "Responsável: favoritos, histórico e avaliações", status: "todo" },
+      { label: "Veterinário: dashboard com métricas simples", status: "todo" },
+      { label: "Estabelecimento: gestão de equipe (básico)", status: "todo" },
     ],
     result:
       "Usuários engajados e recorrentes, não só visitantes de passagem.",
@@ -127,11 +127,11 @@ const SPRINTS: Sprint[] = [
     goal: "Começar a faturar, quando já existe base de usuários e valor entregue.",
     items: [
       {
-        label: "Vet premium (destaque na busca, mais visibilidade)",
+        label: "Veterinário premium (destaque na busca, mais visibilidade)",
         status: "todo",
       },
       {
-        label: "Clínica premium (múltiplos vets, agenda avançada)",
+        label: "Estabelecimento premium (múltiplos veterinários, agenda avançada)",
         status: "todo",
       },
       { label: "Comissão por consulta (futuro)", status: "todo" },
@@ -146,7 +146,7 @@ const SPRINTS: Sprint[] = [
     status: "todo",
     goal: "Criar vantagem competitiva e abrir novas frentes de crescimento.",
     items: [
-      { label: "Chat entre tutor e veterinário", status: "todo" },
+      { label: "Chat entre responsável e veterinário", status: "todo" },
       { label: "Telemedicina", status: "todo" },
       { label: "IA de triagem", status: "todo" },
       { label: "Notificações inteligentes", status: "todo" },

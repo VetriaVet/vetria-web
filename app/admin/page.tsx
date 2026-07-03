@@ -8,7 +8,7 @@ export const metadata = {
 
 const SECOES = [
   { href: "/admin/usuarios", label: "Usuários", desc: "Gerencie role e nível de acesso." },
-  { href: "/admin/validacoes", label: "Validações", desc: "Aprove CRMV de vets e clínicas." },
+  { href: "/admin/validacoes", label: "Validações", desc: "Aprove CRMV de veterinários e estabelecimentos." },
   { href: "/admin/moderacao", label: "Moderação", desc: "Avaliações e conteúdo reportado." },
   { href: "/admin/conteudo", label: "Conteúdo", desc: "Especialidades e textos da plataforma." },
 ];
@@ -42,7 +42,7 @@ export default async function AdminPage() {
         {/* Stats — TODO: métricas reais (contagens do banco) */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <AdminStat label="Usuários totais" />
-          <AdminStat label="Vets ativos" />
+          <AdminStat label="Veterinários ativos" />
           <AdminStat label="Validações pendentes" />
           <AdminStat label="Moderação aberta" />
         </div>

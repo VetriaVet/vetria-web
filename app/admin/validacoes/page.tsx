@@ -22,7 +22,7 @@ export default async function AdminValidacoesPage() {
     <AdminEmptyScreen
       title="Validações"
       heading="Nenhuma validação pendente"
-      desc="Quando vets e clínicas enviarem seus documentos, as solicitações de validação de CRMV/CNPJ aparecem aqui pra aprovação."
+      desc="Quando veterinários e estabelecimentos enviarem seus documentos, as solicitações de validação de CRMV/CNPJ aparecem aqui pra aprovação."
     />
   );
 }

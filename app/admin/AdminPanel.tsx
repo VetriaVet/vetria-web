@@ -13,6 +13,18 @@ type Row = {
 
 // TASK-021: refator SÓ visual (dark). Lógica de fetch + set-access PRESERVADA
 // da Sprint 1 — chama /api/admin/profiles e /api/admin/set-access.
+
+// Rótulos amigáveis pros valores internos de role (o valor no banco continua
+// tutor/vet/clinic — só a exibição é traduzida pra nomenclatura oficial).
+const ROLE_LABEL: Record<string, string> = {
+  tutor: "responsável",
+  vet: "veterinário",
+  clinic: "estabelecimento",
+  admin: "admin",
+};
+function roleLabel(role: string) {
+  return ROLE_LABEL[role] ?? role;
+}
 export default function AdminPanel() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
@@ -144,16 +156,16 @@ export default function AdminPanel() {
                 <td className="px-[18px] py-3 align-top font-mono text-[11px] text-white/60">
                   {r.id}
                 </td>
-                <td className="px-[18px] py-3 align-top">{r.role}</td>
+                <td className="px-[18px] py-3 align-top">{roleLabel(r.role)}</td>
                 <td className="px-[18px] py-3 align-top">{r.admin_level ?? "-"}</td>
                 <td className="px-[18px] py-3 align-top">{r.admin_team ?? "-"}</td>
                 <td className="px-[18px] py-3 align-top">
                   <div className="flex gap-2 flex-wrap">
                     <ActionBtn onClick={() => promoteToAdmin(r.id)}>virar admin</ActionBtn>
                     <ActionBtn onClick={() => setMaster(r.id)}>virar master</ActionBtn>
-                    <ActionBtn onClick={() => setTutor(r.id)}>virar tutor</ActionBtn>
-                    <ActionBtn onClick={() => setVet(r.id)}>virar vet</ActionBtn>
-                    <ActionBtn onClick={() => setClinic(r.id)}>virar clinic</ActionBtn>
+                    <ActionBtn onClick={() => setTutor(r.id)}>virar responsável</ActionBtn>
+                    <ActionBtn onClick={() => setVet(r.id)}>virar veterinário</ActionBtn>
+                    <ActionBtn onClick={() => setClinic(r.id)}>virar estabelecimento</ActionBtn>
                   </div>
                 </td>
               </tr>

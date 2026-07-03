@@ -37,13 +37,13 @@ export function ContatosCasca() {
     <div className="flex max-w-3xl flex-col gap-6">
       <PageHeader
         title="Contatos recebidos"
-        sub="Tutores que entraram em contato a partir do seu perfil."
+        sub="Responsáveis que entraram em contato a partir do seu perfil."
       />
       <EmptyState
         icon={MessageCircle}
         ghost={3}
         title="Nenhum contato ainda"
-        description="Quando um tutor falar com você pelo perfil, aparece aqui, com nome, mensagem e data. Você responde direto pelo WhatsApp ou telefone."
+        description="Quando um responsável falar com você pelo perfil, aparece aqui, com nome, mensagem e data. Você responde direto pelo WhatsApp ou telefone."
       />
     </div>
   );
@@ -57,7 +57,7 @@ export function AgendaCasca() {
       <EmptyState
         icon={CalendarDays}
         title="A agenda chega em breve"
-        description="Você poderá definir horários de atendimento e receber agendamentos diretos pela Vetria. Por enquanto, o contato com tutores é pelo WhatsApp."
+        description="Você poderá definir horários de atendimento e receber agendamentos diretos pela Vetria. Por enquanto, o contato com responsáveis é pelo WhatsApp."
       />
     </div>
   );
@@ -69,13 +69,13 @@ export function AvaliacoesCasca() {
     <div className="flex max-w-3xl flex-col gap-6">
       <PageHeader
         title="Avaliações"
-        sub="O que os tutores dizem sobre o seu atendimento."
+        sub="O que os responsáveis dizem sobre o seu atendimento."
       />
       <EmptyState
         icon={Star}
         ghost={2}
         title="Nenhuma avaliação ainda"
-        description="Depois de atender tutores pela Vetria, as avaliações deles aparecem aqui, com nota e comentário. Avaliações ajudam novos tutores a confiar em você."
+        description="Depois de atender responsáveis pela Vetria, as avaliações deles aparecem aqui, com nota e comentário. Avaliações ajudam novos responsáveis a confiar em você."
       />
     </div>
   );
@@ -138,7 +138,7 @@ export function ConfiguracoesCasca({
         <ActionRow
           icon={Bell}
           label="Novos contatos por email"
-          desc="Aviso quando um tutor entrar em contato."
+          desc="Aviso quando um responsável entrar em contato."
           soon
         />
         <ActionRow
@@ -222,14 +222,14 @@ function ActionRow({
 const FAQS: { q: string; a: string }[] = [
   {
     q: "Como meu perfil entra na busca pública?",
-    a: "Depois de completar o cadastro e ter o CRMV validado pela equipe Vetria, seu perfil fica ativo e visível para tutores na busca.",
+    a: "Depois de completar o cadastro e ter o CRMV validado pela equipe Vetria, seu perfil fica ativo e visível para responsáveis na busca.",
   },
   {
     q: "Quanto custa usar a Vetria?",
     a: "Durante o beta, o uso é gratuito. Planos pagos serão anunciados com antecedência. Você não será cobrado sem aviso.",
   },
   {
-    q: "Como os tutores entram em contato comigo?",
+    q: "Como os responsáveis entram em contato comigo?",
     a: "Por enquanto, pelo WhatsApp ou telefone do seu perfil. Agendamento direto pela plataforma chega em breve.",
   },
   {

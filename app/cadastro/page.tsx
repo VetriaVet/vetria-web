@@ -7,11 +7,11 @@ import { redirect } from "next/navigation";
 // reto pro form do tutor.
 //
 // Vet e clínica são o lado B2B/empresarial e entram por FORA do fluxo do tutor,
-// pelas landings de profissionais (prototipadas) → `/cadastro/vet` e
-// `/cadastro/clinica`. A escolha "vet ou clínica" vive no lado B2B, nunca aqui.
+// pelas landings de profissionais (prototipadas) → `/cadastro/veterinario` e
+// `/cadastro/estabelecimento`. A escolha "vet ou clínica" vive no lado B2B, nunca aqui.
 //
 // (Antes esta rota era uma vitrine de 3 cards misturando tutor+vet+clínica —
 // removida pra não expor o lado empresarial ao tutor.)
 export default function CadastroPage() {
-  redirect("/cadastro/tutor");
+  redirect("/cadastro/responsavel");
 }

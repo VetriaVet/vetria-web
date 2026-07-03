@@ -73,8 +73,11 @@ function PublicHeader() {
           <a href="#vet-cta" className="no-underline hover:text-principal">
             Sou veterinário
           </a>
+          <a href="#vet-cta" className="no-underline hover:text-principal">
+            Sou estabelecimento
+          </a>
           <a href="#blog" className="no-underline hover:text-principal">
-            Blog
+            Informativos
           </a>
         </nav>
 
@@ -116,13 +119,13 @@ function Hero() {
 
           <h1 className="text-[34px] font-bold leading-[1.08] tracking-tight text-titulo sm:text-[44px]">
             Encontre o veterinário certo para{" "}
-            <span className="text-principal">o seu pet.</span>{" "}
+            <span className="text-principal">o seu animal.</span>{" "}
             <span aria-hidden>🐶</span>
           </h1>
           <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-corpo-texto">
             Busque{" "}
             <strong className="font-semibold text-titulo">
-              profissionais e clínicas veterinárias verificados
+              profissionais e estabelecimentos veterinários verificados
             </strong>
             , compare especialidades, veja disponibilidade e entre em contato
             com confiança.
@@ -246,7 +249,7 @@ function ComoFunciona() {
     <section id="como-funciona" className="bg-white">
       <div className="mx-auto max-w-6xl px-5 py-16">
         <h2 className="text-center text-[28px] font-bold tracking-tight text-titulo sm:text-[32px]">
-          Cuidar do seu pet ficou{" "}
+          Cuidar do seu animal ficou{" "}
           <span className="text-principal">mais simples.</span>
         </h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-[15px] text-corpo-texto">
@@ -284,7 +287,7 @@ function NovosPerfis() {
           Novos perfis na Vetria
         </h2>
         <p className="mt-1 text-[14px] text-corpo-texto">
-          Os primeiros veterinários e clínicas verificados aparecem aqui assim
+          Os primeiros veterinários e estabelecimentos verificados aparecem aqui assim
           que forem validados.
         </p>
 
@@ -323,7 +326,7 @@ function Confianca() {
     {
       icon: Star,
       title: "Avaliações reais",
-      desc: "Opiniões de tutores após contato ou atendimento.",
+      desc: "Opiniões de responsáveis após contato ou atendimento.",
     },
     {
       icon: CalendarCheck,
@@ -376,25 +379,25 @@ function VetCta() {
             Vetria para profissionais
           </span>
           <h2 className="mt-4 max-w-2xl text-[26px] font-bold leading-tight text-white sm:text-[32px]">
-            Você é veterinário ou clínica?
+            Você é veterinário ou estabelecimento veterinário?
           </h2>
           <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-white/80">
-            Crie seu perfil profissional na Vetria e seja encontrado por tutores
+            Crie seu perfil profissional na Vetria e seja encontrado por responsáveis
             que realmente buscam o seu tipo de atendimento.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/cadastro/vet"
+              href="/cadastro/veterinario"
               className="inline-flex items-center gap-2 rounded-pill bg-white px-6 py-3 text-[14px] font-semibold text-principal no-underline transition hover:bg-fundo-claro"
             >
               Sou veterinário
               <ArrowRight size={16} />
             </Link>
             <Link
-              href="/cadastro/clinica"
+              href="/cadastro/estabelecimento"
               className="inline-flex items-center gap-2 rounded-pill border border-white/40 px-6 py-3 text-[14px] font-semibold text-white no-underline transition hover:bg-white/10"
             >
-              Tenho uma clínica
+              Tenho um estabelecimento veterinário
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -411,7 +414,7 @@ function Blog() {
       icon: Dog,
       tag: "Comportamento",
       title:
-        "Meu pet está estranho: quando é hora de procurar um veterinário?",
+        "Meu animal está estranho: quando é hora de procurar um veterinário?",
     },
     {
       icon: Stethoscope,
@@ -423,7 +426,7 @@ function Blog() {
       icon: BadgeCheck,
       tag: "Confiança",
       title:
-        "Como saber se um veterinário é confiável e qualificado para cuidar do seu pet",
+        "Como saber se um veterinário é confiável e qualificado para cuidar do seu animal",
     },
   ];
   return (
@@ -434,7 +437,7 @@ function Blog() {
         </h2>
         <p className="mt-2 max-w-2xl text-[15px] text-corpo-texto">
           Conteúdos criados por profissionais para ajudar você a entender,
-          prevenir e agir no momento certo pela saúde do seu pet.
+          prevenir e agir no momento certo pela saúde do seu animal.
         </p>
 
         <div className="mt-10 grid gap-5 md:grid-cols-3">
@@ -509,18 +512,18 @@ function PublicFooter() {
           </div>
 
           <FooterCol
-            title="Para tutores"
+            title="Para responsáveis"
             links={[
               { label: "Entrar / Criar conta", href: "/login" },
               { label: "Como funciona", href: "#como-funciona" },
-              { label: "Blog Vetria", href: "#blog" },
+              { label: "Informativos", href: "#blog" },
             ]}
           />
           <FooterCol
             title="Área B2B"
             links={[
-              { label: "Sou veterinário", href: "/cadastro/vet" },
-              { label: "Tenho uma clínica", href: "/cadastro/clinica" },
+              { label: "Sou veterinário", href: "/cadastro/veterinario" },
+              { label: "Tenho um estabelecimento veterinário", href: "/cadastro/estabelecimento" },
               { label: "Como funciona", href: "#vet-cta" },
             ]}
           />

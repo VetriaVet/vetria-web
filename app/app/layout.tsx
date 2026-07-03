@@ -12,10 +12,10 @@ import AppHeaderNav from "./AppHeaderNav";
 // Nav do header (tutor): inclui APENAS rotas que já existem (nunca linka 404).
 const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
   tutor: [
-    { href: "/app/tutor", label: "Início" },
-    { href: "/app/tutor/perfil", label: "Perfil" },
-    { href: "/app/tutor/historico", label: "Histórico" },
-    { href: "/app/tutor/avaliacoes", label: "Avaliações" },
+    { href: "/app/responsavel", label: "Início" },
+    { href: "/app/responsavel/perfil", label: "Perfil" },
+    { href: "/app/responsavel/historico", label: "Histórico" },
+    { href: "/app/responsavel/avaliacoes", label: "Avaliações" },
   ],
   admin: [{ href: "/admin", label: "Admin" }],
   master: [{ href: "/admin", label: "Admin" }],

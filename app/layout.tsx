@@ -15,11 +15,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Vetria: veterinários e clínicas de confiança",
+    default: "Vetria: veterinários e estabelecimentos de confiança",
     template: "%s · Vetria",
   },
   description:
-    "A Vetria conecta tutores de pets a veterinários, clínicas e empresas do setor pet. Encontre profissionais de confiança perto de você.",
+    "A Vetria conecta responsáveis por animais a veterinários, estabelecimentos veterinários e empresas do setor. Encontre profissionais de confiança perto de você.",
 };
 
 export default function RootLayout({

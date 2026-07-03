@@ -13,20 +13,20 @@ const ROLES: Array<{
   {
     role: "tutor",
     emoji: "🐶",
-    title: "Sou tutor de pet",
-    desc: "Encontre profissionais perto de você, agende consultas e cuide melhor do seu pet.",
+    title: "Sou responsável",
+    desc: "Encontre profissionais perto de você, agende consultas e cuide melhor do seu animal.",
   },
   {
     role: "vet",
     emoji: "🩺",
     title: "Sou veterinário",
-    desc: "Crie seu perfil profissional, seja encontrado por tutores e organize sua agenda.",
+    desc: "Crie seu perfil profissional, seja encontrado por responsáveis e organize sua agenda.",
   },
   {
     role: "clinic",
     emoji: "🏥",
-    title: "Sou uma clínica",
-    desc: "Cadastre sua clínica, gerencie sua equipe e fortaleça sua marca regional.",
+    title: "Sou um estabelecimento veterinário",
+    desc: "Cadastre seu estabelecimento, gerencie sua equipe e fortaleça sua marca regional.",
   },
 ];
 

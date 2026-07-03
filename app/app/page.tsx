@@ -18,15 +18,15 @@ export default async function AppHome() {
 
   // 🔁 Onboarding obrigatório
   if (!profile.onboarding_completed) {
-    if (profile.role === "tutor") redirect("/app/tutor/onboarding");
-    if (profile.role === "vet") redirect("/app/vet/onboarding");
-    if (profile.role === "clinic") redirect("/app/clinic/onboarding");
+    if (profile.role === "tutor") redirect("/app/responsavel/onboarding");
+    if (profile.role === "vet") redirect("/app/veterinario/onboarding");
+    if (profile.role === "clinic") redirect("/app/estabelecimento/onboarding");
   }
 
   // ✅ Usuário já onboarded
-  if (profile.role === "tutor") redirect("/app/tutor");
-  if (profile.role === "vet") redirect("/app/vet");
-  if (profile.role === "clinic") redirect("/app/clinic");
+  if (profile.role === "tutor") redirect("/app/responsavel");
+  if (profile.role === "vet") redirect("/app/veterinario");
+  if (profile.role === "clinic") redirect("/app/estabelecimento");
   if (profile.role === "admin") redirect("/admin");
 
   redirect("/login");
