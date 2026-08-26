@@ -12,6 +12,29 @@
 --
 -- Referências: DL-044 a DL-047 · docs/06-PERMISSOES.md · T-001
 -- Escrita em: 26/08/2026
+--
+-- HISTÓRICO DE REVISÃO
+--   v1  26/08  primeira versão. REPROVADA na auditoria (SEC-2026-08-26):
+--              2 achados 🔴 e 4 🟠. Nunca foi aplicada.
+--   v2  26/08  corrigida. Principais mudanças:
+--              SEC-001  perfil_esta_ativo() e as policies de INSERT/UPDATE
+--                       passam a exigir o ROLE, não só o status. Antes, uma
+--                       conta de responsável (que nasce 'active') inseria uma
+--                       linha em vet_profiles e aparecia na busca pública.
+--              SEC-002  contato e documento saíram de vet_profiles e
+--                       clinic_profiles para `perfil_privado`. RLS é ROW-level:
+--                       liberar a linha liberava todas as colunas dela, e a API
+--                       anônima entregaria a base inteira de telefones.
+--              SEC-003  CHECK obriga documento_path a começar com o uuid do
+--                       dono, fechando o "deputado confuso".
+--              SEC-004  admin comum lê só vet e clinic, não a base inteira.
+--              SEC-005  suspender E reativar exigem master.
+--              SEC-006  admin passa a poder escrever nos perfis (moderação).
+--              SEC-007  status_motivo em profiles, legível pelo reprovado.
+--              SEC-008  o dono não troca o próprio slug.
+--              SEC-009  funções de policy não são chamáveis por anon.
+--              SEC-010  revoke por descoberta de assinatura, não fixo.
+--              SEC-012  a migração de dados virou condicional (reexecutável).
 -- ============================================================================
 
 begin;
@@ -73,16 +96,32 @@ as $$
   );
 $$;
 
--- 2.2 — o perfil está ativo? Usada nas policies de leitura PÚBLICA dos perfis
--- profissionais. Precisa ser DEFINER: um visitante anônimo não enxerga
--- profiles pela RLS, então a checagem tem que rodar por cima dela.
-create or replace function public.perfil_esta_ativo(p_id uuid)
+-- 2.2 — o perfil é publicamente visível? Usada nas policies de leitura PÚBLICA.
+-- Precisa ser DEFINER: um visitante anônimo não enxerga profiles pela RLS.
+--
+-- ⚠️ EXIGE role E status (correção SEC-001). A versão anterior checava só
+-- `status`, e como o responsável nasce 'active', qualquer conta de responsável
+-- podia inserir uma linha em vet_profiles e aparecer na busca. A matriz §3 manda
+-- `role IN ('vet','clinic') AND status='active'`: as DUAS metades.
+create or replace function public.perfil_esta_ativo(p_id uuid, p_role public.user_role)
 returns boolean
 language sql stable security definer set search_path = public
 as $$
   select exists (
     select 1 from public.profiles
-    where id = p_id and status = 'active'
+    where id = p_id and role = p_role and status = 'active'
+  );
+$$;
+
+-- 2.4 — o usuário logado tem este role? Guarda os INSERT/UPDATE dos perfis
+-- profissionais (correção SEC-001). DEFINER pelo mesmo motivo das outras.
+create or replace function public.tem_role(p_role public.user_role)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = p_role
   );
 $$;
 
@@ -105,6 +144,14 @@ $$;
 
 alter table public.profiles
   add column if not exists status public.user_status not null default 'incomplete';
+
+-- SEC-007: sem isto, o motivo da reprova só existe em `audit_logs`, que é
+-- master-only, e o profissional reprovado nunca descobre por que foi reprovado.
+alter table public.profiles
+  add column if not exists status_motivo text;
+
+comment on column public.profiles.status_motivo is
+  'Motivo da última mudança de status, legível pelo próprio usuário. Escrito só por admin_definir_status().';
 
 comment on column public.profiles.status is
   'Estado do usuário. NUNCA escrito pelo próprio usuário: só por admin, via admin_definir_status(). Ver docs/06-PERMISSOES.md §3.';
@@ -132,10 +179,11 @@ create table public.vet_profiles (
   atende_presencial       boolean     not null default false,
   atende_domiciliar       boolean     not null default false,
   atende_teleorientacao   boolean     not null default false,
-  whatsapp                text,
-  telefone                text,
-  email_contato           text,
-  documento_path          text,                 -- caminho no bucket privado, NUNCA URL pública
+  -- ⚠️ whatsapp/telefone/email_contato/documento_path NÃO ficam aqui.
+  -- Esta tabela é lida publicamente, e RLS é ROW-level: liberar a linha libera
+  -- TODAS as colunas dela. `GET /rest/v1/vet_profiles?select=whatsapp` com a
+  -- chave anônima entregaria a base inteira de telefones (correção SEC-002).
+  -- Dado sensível vive em `perfil_privado`, que anon nunca lê.
   created_at              timestamptz not null default now(),
   updated_at              timestamptz not null default now()
 );
@@ -154,13 +202,32 @@ create table public.clinic_profiles (
   estado              text,
   sobre               text,
   servicos            text[]      not null default '{}',
-  whatsapp            text,
-  telefone            text,
-  email_contato       text,
-  site                text,
-  documento_path      text,
+  site                text,              -- público de propósito: é vitrine
+  -- contato e documento vivem em `perfil_privado` (correção SEC-002)
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
+);
+
+-- 4.2b — perfil_privado: o que NUNCA pode ser lido publicamente
+-- Correção SEC-002 e SEC-003. Serve vet e estabelecimento (ambos 1:1 com
+-- profiles). O número de telefone é o ativo que a Vetria vende exposição para;
+-- deixá-lo legível pela API anônima entregaria a base inteira a um concorrente
+-- e anularia o DL-047 antes dele existir.
+--
+-- O CHECK do documento_path fecha o "deputado confuso" da SEC-003: o caminho
+-- tem que começar com o uuid do próprio dono, então ninguém consegue apontar o
+-- próprio registro para o documento de outra pessoa e fazer o admin abri-lo.
+create table public.perfil_privado (
+  id                   uuid primary key references public.profiles(id) on delete cascade,
+  whatsapp             text,
+  telefone             text,
+  email_contato        text,
+  documento_path       text,
+  documento_enviado_em timestamptz,
+  created_at           timestamptz not null default now(),
+  updated_at           timestamptz not null default now(),
+  constraint perfil_privado_documento_do_dono
+    check (documento_path is null or documento_path like id::text || '/%')
 );
 
 -- 4.3 — animais do responsável
@@ -222,6 +289,10 @@ create trigger trg_clinic_profiles_updated_at
   before update on public.clinic_profiles
   for each row execute function public.set_updated_at();
 
+create trigger trg_perfil_privado_updated_at
+  before update on public.perfil_privado
+  for each row execute function public.set_updated_at();
+
 create trigger trg_animais_updated_at
   before update on public.animais
   for each row execute function public.set_updated_at();
@@ -233,16 +304,17 @@ create trigger trg_animais_updated_at
 
 alter table public.vet_profiles    enable row level security;
 alter table public.clinic_profiles enable row level security;
+alter table public.perfil_privado  enable row level security;
 alter table public.animais         enable row level security;
 alter table public.contatos        enable row level security;
 alter table public.audit_logs      enable row level security;
 
 -- ---------- vet_profiles ----------
--- Leitura pública SÓ de quem está 'active'. É a regra de visibilidade da busca,
--- dentro do Postgres, exatamente como manda a matriz. Filtro no cliente não conta.
+-- Leitura pública SÓ de quem é 'vet' E está 'active'. É a regra de visibilidade
+-- da busca, dentro do Postgres. As DUAS metades (correção SEC-001).
 create policy vet_profiles_select_publico on public.vet_profiles
   for select to anon, authenticated
-  using (public.perfil_esta_ativo(id));
+  using (public.perfil_esta_ativo(id, 'vet'));
 
 create policy vet_profiles_select_own on public.vet_profiles
   for select to authenticated using (id = auth.uid());
@@ -250,17 +322,33 @@ create policy vet_profiles_select_own on public.vet_profiles
 create policy vet_profiles_select_admin on public.vet_profiles
   for select to authenticated using (public.is_admin());
 
+-- ⚠️ INSERT exige role='vet' (correção SEC-001). Sem isso, uma conta de
+-- responsável inseria a própria linha aqui e, como responsável nasce 'active',
+-- aparecia na busca pública com CRMV inventado.
 create policy vet_profiles_insert_own on public.vet_profiles
-  for insert to authenticated with check (id = auth.uid());
+  for insert to authenticated
+  with check (id = auth.uid() and public.tem_role('vet'));
 
+-- UPDATE do dono: não pode trocar o próprio slug (correção SEC-008, squatting
+-- de nome). O slug é definido pelo servidor na F4/S5.
 create policy vet_profiles_update_own on public.vet_profiles
   for update to authenticated
-  using (id = auth.uid()) with check (id = auth.uid());
+  using (id = auth.uid() and public.tem_role('vet'))
+  with check (
+    id = auth.uid()
+    and slug is not distinct from (select v2.slug from public.vet_profiles v2 where v2.id = auth.uid())
+  );
+
+-- Admin escreve: moderar bio ofensiva e derrubar perfil fraudulento (DL-045,
+-- matriz §3). Sem isto o DoD da F3/S4 não fecha (correção SEC-006).
+create policy vet_profiles_update_admin on public.vet_profiles
+  for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
 
 -- ---------- clinic_profiles ----------
 create policy clinic_profiles_select_publico on public.clinic_profiles
   for select to anon, authenticated
-  using (public.perfil_esta_ativo(id));
+  using (public.perfil_esta_ativo(id, 'clinic'));
 
 create policy clinic_profiles_select_own on public.clinic_profiles
   for select to authenticated using (id = auth.uid());
@@ -269,9 +357,33 @@ create policy clinic_profiles_select_admin on public.clinic_profiles
   for select to authenticated using (public.is_admin());
 
 create policy clinic_profiles_insert_own on public.clinic_profiles
-  for insert to authenticated with check (id = auth.uid());
+  for insert to authenticated
+  with check (id = auth.uid() and public.tem_role('clinic'));
 
 create policy clinic_profiles_update_own on public.clinic_profiles
+  for update to authenticated
+  using (id = auth.uid() and public.tem_role('clinic'))
+  with check (
+    id = auth.uid()
+    and slug is not distinct from (select c2.slug from public.clinic_profiles c2 where c2.id = auth.uid())
+  );
+
+create policy clinic_profiles_update_admin on public.clinic_profiles
+  for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+-- ---------- perfil_privado ----------
+-- Só o dono e o admin. Anon NUNCA. É onde vive o telefone que a Vetria vende.
+create policy perfil_privado_select_own on public.perfil_privado
+  for select to authenticated using (id = auth.uid());
+
+create policy perfil_privado_select_admin on public.perfil_privado
+  for select to authenticated using (public.is_admin());
+
+create policy perfil_privado_insert_own on public.perfil_privado
+  for insert to authenticated with check (id = auth.uid());
+
+create policy perfil_privado_update_own on public.perfil_privado
   for update to authenticated
   using (id = auth.uid()) with check (id = auth.uid());
 
@@ -309,8 +421,12 @@ create policy audit_logs_select_master on public.audit_logs
   for select to authenticated using (public.is_master_admin());
 
 -- ---------- profiles: leitura pelo admin (DL-045) ----------
+-- ⚠️ Admin COMUM só enxerga vet e clinic, que é a fila de validação dele.
+-- A matriz §5 diz "ver a base inteira: Admin ❌ / Master ✅" (correção SEC-004).
+-- O master já lê tudo por `profiles_select_all_master`, que a 0000 criou.
 create policy profiles_select_admin on public.profiles
-  for select to authenticated using (public.is_admin());
+  for select to authenticated
+  using (public.is_admin() and role in ('vet', 'clinic'));
 
 
 -- ============================================================================
@@ -335,6 +451,7 @@ alter policy profiles_update_own_safe_fields on public.profiles
     and coalesce(admin_team, 'none'::admin_team)
         = coalesce((select p2.admin_team from public.profiles p2 where p2.id = auth.uid()), 'none'::admin_team)
     and status = (select p2.status from public.profiles p2 where p2.id = auth.uid())
+    and status_motivo is not distinct from (select p2.status_motivo from public.profiles p2 where p2.id = auth.uid())
   );
 
 
@@ -363,11 +480,6 @@ begin
     raise exception 'not authorized';
   end if;
 
-  -- suspender é privilégio de master (DL-045)
-  if novo_status = 'suspended' and not public.is_master_admin() then
-    raise exception 'not authorized: suspender exige master';
-  end if;
-
   select p.status, p.role into status_antigo, alvo_role
   from public.profiles p where p.id = target_user_id;
 
@@ -375,12 +487,20 @@ begin
     raise exception 'usuario nao encontrado';
   end if;
 
+  -- Suspensão é privilégio de master nas DUAS direções (correção SEC-005).
+  -- Checar só o destino deixava admin comum REATIVAR conta suspensa pelo master,
+  -- desfazendo uma decisão que ele não teria poder de tomar.
+  if (novo_status = 'suspended' or status_antigo = 'suspended')
+     and not public.is_master_admin() then
+    raise exception 'not authorized: suspender ou reativar exige master';
+  end if;
+
   if alvo_role not in ('vet', 'clinic') then
     raise exception 'status so se aplica a vet e clinic';
   end if;
 
   update public.profiles
-  set status = novo_status, updated_at = now()
+  set status = novo_status, status_motivo = motivo, updated_at = now()
   where id = target_user_id;
 
   insert into public.audit_logs (actor_id, acao, alvo_tipo, alvo_id, detalhe)
@@ -483,12 +603,17 @@ $function$;
 update public.profiles set status = 'active'
 where role in ('tutor', 'admin');
 
--- 10.2 — os 3 vets e 3 estabelecimentos marcados como "onboarding concluído"
--- preencheram um formulário que era CASCA: nada foi persistido. Voltam ao
--- início para refazer o cadastro, agora de verdade.
-update public.profiles
+-- 10.2 — os profissionais marcados como "onboarding concluído" preencheram um
+-- formulário que era CASCA: nada foi persistido. Voltam ao início para refazer.
+--
+-- ⚠️ CONDICIONAL (correção SEC-012): só mexe em quem NÃO tem linha de perfil.
+-- Sem essa condição, reexecutar a migration por engano zeraria o onboarding de
+-- profissionais que já tivessem preenchido tudo de verdade.
+update public.profiles p
 set status = 'incomplete', onboarding_completed = false
-where role in ('vet', 'clinic');
+where p.role in ('vet', 'clinic')
+  and not exists (select 1 from public.vet_profiles    v where v.id = p.id)
+  and not exists (select 1 from public.clinic_profiles c where c.id = p.id);
 
 -- 10.3 — normaliza o NULL herdado de /api/admin/set-access (risco R-012)
 update public.profiles set admin_level = 'none'::admin_level where admin_level is null;
@@ -504,8 +629,42 @@ drop function if exists public.is_admin_master();
 
 -- anon não tem o que fazer chamando função de admin. Elas já se protegem
 -- internamente, então isto é defesa em profundidade, não correção de furo.
-revoke execute on function public.admin_list_profiles() from anon;
-revoke execute on function public.admin_set_user_access(uuid, public.user_role, public.admin_level, public.admin_team) from anon;
+-- Feito por descoberta em vez de assinatura fixa (correção SEC-010): errar a
+-- assinatura no `revoke` faria a migration inteira falhar no último passo e
+-- reverter tudo. Assim funciona qualquer que seja a aridade real da função.
+do $$
+declare f record;
+begin
+  for f in
+    select p.oid::regprocedure as assinatura
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('admin_list_profiles', 'admin_set_user_access')
+  loop
+    execute format('revoke execute on function %s from anon', f.assinatura);
+  end loop;
+end $$;
+
+-- SEC-009: perfil_esta_ativo era chamável por anon via RPC, virando oráculo
+-- para descobrir se um uuid qualquer é profissional ativo. Ela só precisa ser
+-- executável de dentro das policies, e policy roda como quem definiu.
+revoke execute on function public.perfil_esta_ativo(uuid, public.user_role) from anon, public;
+revoke execute on function public.tem_role(public.user_role) from anon, public;
+revoke execute on function public.is_admin() from anon, public;
+
+
+-- 11b. GRANTS EXPLÍCITOS (defesa em profundidade)
+-- ============================================================================
+-- O Supabase concede DML nas tabelas novas a anon e authenticated por default
+-- privileges. Hoje só a RLS segura a escrita. Se um dia alguém criar uma policy
+-- permissiva demais por engano, o grant faltando é a segunda porta trancada.
+
+revoke insert, update, delete on public.vet_profiles    from anon;
+revoke insert, update, delete on public.clinic_profiles from anon;
+revoke insert, update, delete on public.animais         from anon;
+revoke all                    on public.perfil_privado  from anon;
+revoke all                    on public.audit_logs      from anon, authenticated;
+revoke insert, update, delete on public.contatos        from anon, authenticated;
 
 
 -- ============================================================================
@@ -522,6 +681,7 @@ create index idx_contatos_profissional     on public.contatos (profissional_id, 
 create index idx_contatos_user             on public.contatos (user_id) where user_id is not null;
 create index idx_contatos_anon             on public.contatos (anon_id) where anon_id is not null;
 create index idx_audit_logs_criado         on public.audit_logs (created_at desc);
+create index idx_profiles_status_motivo    on public.profiles (status) where status = 'pending_validation';
 
 
 commit;
@@ -541,12 +701,15 @@ commit;
 --   drop table    if exists public.audit_logs;
 --   drop table    if exists public.contatos;
 --   drop table    if exists public.animais;
+--   drop table    if exists public.perfil_privado;
 --   drop table    if exists public.clinic_profiles;
 --   drop table    if exists public.vet_profiles;
+--   alter table   public.profiles drop column if exists status_motivo;
 --   alter table   public.profiles drop column if exists status;
 --   drop type     if exists public.contato_canal;
 --   drop type     if exists public.user_status;
---   drop function if exists public.perfil_esta_ativo(uuid);
+--   drop function if exists public.perfil_esta_ativo(uuid, public.user_role);
+--   drop function if exists public.tem_role(public.user_role);
 --   drop function if exists public.is_admin();
 --
 --   -- recria a policy removida na 7.1, exatamente como estava

@@ -21,7 +21,7 @@
 | 1 | **Responsável** | `tutor` | `null` | **nunca** | Organização: os profissionais que contatou, seus animais. É a isca do efeito de rede, não o cliente. |
 | 2 | **Veterinário** | `vet` | `null` | sim (mês 4+) | **Exposição na busca** e os contatos que ela gera. |
 | 3 | **Estabelecimento** | `clinic` | `null` | sim, tier maior (mês 4+) | Exposição institucional, e na V2 a gestão de equipe. |
-| 4 | **Admin** | `admin` | `comum` ⚠️ | — | Operação: valida, aprova, reprova, modera. |
+| 4 | **Admin** | `admin` | `admin` | — | Operação: valida, aprova, reprova, modera. |
 | 5 | **Master** | `admin` | `master` | — | Governo: concede role, suspende conta, vê a base inteira. |
 
 > ⚠️ **`master` NÃO é um `role`.** É `role = 'admin'` **+** `admin_level = 'master'`.
@@ -29,9 +29,9 @@
 > A documentação antiga (`CONTEXT.md` §4.1) dizia que era role e estava errada.
 > Ver **R-002**.
 >
-> ⚠️ O valor de `admin_level` para admin comum precisa ser confirmado contra o enum real:
-> `CONTEXT.md` diz `comum`, mas `set-access/route.ts:66` escreve `"admin"`. Um dos dois
-> está errado, e se o enum não aceitar o valor escrito, **promover alguém a admin quebra**.
+> ✅ **Confirmado por introspecção em 26/08/2026:** o enum `admin_level` é
+> `('none', 'admin', 'master')`. **`comum` não existe.** O `CONTEXT.md` §4.2 estava errado,
+> e `set-access/route.ts:66` escreve um valor válido. O R-002 item 3 é improcedente.
 
 ---
 
@@ -70,16 +70,17 @@
 | `profiles` (linha própria) | o dono, admin, master | o dono (campos limitados), master |
 | `profiles.role` / `admin_level` | o dono, admin, master | **só master**, e só via `/api/admin/set-access` |
 | `profiles.status` | o dono, admin, master | **só admin e master**. Nunca o próprio usuário. |
-| `vet_profiles` / `clinic_profiles` | **público, apenas se `status='active'`**; sempre o dono; admin e master | o dono (menos `status`), admin, master |
-| Documento no Storage | **só o dono e admin/master**, por URL assinada de vida curta | o dono |
+| `vet_profiles` / `clinic_profiles` | **público, apenas se `role` bate E `status='active'`**; sempre o dono; admin e master | o dono (menos `slug`), admin (moderação), master |
+| `perfil_privado` (whatsapp, telefone, email, documento) | **só o dono e admin/master. Nunca anônimo, nunca outro usuário.** | o dono |
+| Documento no Storage | **só o dono e admin/master**, por URL assinada de vida curta | o dono, e o caminho tem que começar com o próprio uuid |
 | `contatos` | o responsável que originou, o profissional que recebeu, admin, master | o servidor (nunca o cliente direto) |
 | `audit_logs` | **só master** | só o servidor |
 
 **Regras que não se negociam:**
 
 1. **`status` nunca é escrito pelo próprio usuário.** Se um veterinário conseguir se marcar `active`, ele aparece na busca sem validação e sem pagar. Isso é o modelo de negócio inteiro contornado por um `UPDATE`.
-2. **A regra de visibilidade da busca roda no Postgres**, não no Next.js: `role IN ('vet','clinic') AND status = 'active'`. Filtro no cliente é filtro que não existe.
-3. **Telefone e WhatsApp do profissional nunca vão no HTML** da busca nem do perfil. São revelados pelo servidor no evento de contato (§6). Link `wa.me` direto entrega sua base inteira de telefones pra quem raspar a página.
+2. **A regra de visibilidade da busca roda no Postgres**, não no Next.js: `role IN ('vet','clinic') AND status = 'active'`. **As duas metades.** Checar só `status` deixa passar quem tem outro role, e o responsável nasce `active`. Filtro no cliente é filtro que não existe.
+3. **Telefone e WhatsApp do profissional nunca vão no HTML** da busca nem do perfil, **nem na resposta da API**. Este é o ponto em que é fácil errar: RLS é *row*-level, então liberar a linha libera **todas as colunas dela**, e o PostgREST deixa o cliente escolher quais colunas quer. Por isso contato e documento vivem em `perfil_privado`, uma tabela separada que o anônimo nunca lê. Eles são revelados pelo servidor no evento de contato (§6).
 4. **Toda função usada em policy** é `SECURITY DEFINER` + `SET search_path = public` (DL-014/015).
 
 ---
@@ -115,12 +116,18 @@ servidor**, não escondido no menu.
 | Ver fila de validação | ✅ | ✅ |
 | Aprovar / reprovar profissional | ✅ | ✅ |
 | Ver documento enviado | ✅ | ✅ |
-| Moderar conteúdo | ✅ | ✅ |
+| Moderar conteúdo (editar bio ofensiva, derrubar perfil fraudulento) | ✅ | ✅ |
+| Reativar conta suspensa | ❌ | ✅ |
 | Ver a base inteira de usuários | ❌ | ✅ |
+| Ver responsáveis e outros admins | ❌ | ✅ |
 | Conceder ou remover role | ❌ | ✅ |
 | Promover alguém a admin | ❌ | ✅ |
 | Suspender conta | ❌ | ✅ |
 | Ler `audit_logs` | ❌ | ✅ |
+
+Admin comum enxerga **apenas** quem tem role `vet` ou `clinic`, que é a fila dele.
+Responsáveis e outros admins são invisíveis para ele. Suspender e **reativar** são os dois
+lados da mesma decisão, então ambos exigem master.
 
 Admin comum opera, master governa (DL-045). Escala a operação sem dar a chave do cofre
 a todo mundo. **Toda ação de admin entra em `audit_logs`, inclusive as do master.**
