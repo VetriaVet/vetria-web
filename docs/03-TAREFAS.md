@@ -47,6 +47,23 @@ _(vazio)_
 
 # ⬜ FILA — F3 / S1
 
+### T-005 — Onboarding profissional estoura a largura da tela
+- **Estado:** ⬜ fila
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** E2
+- **Nível:** 🟢
+- **Agente dono:** vetria-ui
+- **Depende de:** nada
+- **Por quê:** é a **primeira tela** que todo profissional vê depois de confirmar o email. Logo cortada e barra de rolagem horizontal na primeira impressão, num produto que se vende como "plataforma séria e profissional".
+- **Causa (diagnosticada em 26/08):** `app/app/veterinario/onboarding/VetOnboardingForm.tsx:92` usa `-m-6 sm:-m-8`, margem negativa feita pra furar o padding de um container pai. Esse pai deixou de existir quando os onboardings saíram do route group `(painel)` (DL-025/DL-031): `app/app/layout.tsx` devolve os filhos sem padding para vet e clínica. A margem negativa então joga 2rem pra fora de cada lado e a página fica 4rem mais larga que a viewport. O `min-h-[calc(100vh-4rem)]` tem o mesmo vício: desconta um header que não está ali.
+- **Feito quando:**
+  - [ ] Sem rolagem horizontal em 375, 768 e 1440
+  - [ ] Logo inteira e visível
+  - [ ] Mesma checagem no `ClinicOnboardingForm.tsx`, que é clone e provavelmente tem o mesmo problema
+  - [ ] Varredura por outras margens negativas órfãs no `app/` (`grep -rn "\-m-6\|\-m-8"`)
+- **Não fazer:** não redesenhar a tela. É correção de layout, não refação visual.
+- **Observação:** confirmado em produção pelo Elber em 26/08/2026, logo após o primeiro cadastro real.
+
 ### T-002 — Bucket de documentos no Storage
 - **Estado:** ⬜ fila
 - **Fase / Semana:** F3 / S1

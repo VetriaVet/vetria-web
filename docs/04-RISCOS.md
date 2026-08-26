@@ -64,7 +64,13 @@
 
 ## 🟡 ABERTOS — MÉDIOS
 
-### R-007 — `NEXT_PUBLIC_SITE_URL` não setada na Vercel
+### R-017 — Margens negativas órfãs depois da reestruturação do chrome
+- **Descoberto:** 26/08/2026, no primeiro cadastro real de ponta a ponta
+- **O quê:** telas escritas quando o layout pai tinha padding usam `-m-6 sm:-m-8` pra furá-lo. Quando o chrome foi reestruturado (DL-025/DL-031) e os onboardings saíram do route group `(painel)`, esse padding sumiu e a margem negativa passou a jogar o conteúdo pra fora da viewport.
+- **Por que ninguém tinha visto:** a fase visual foi conferida com as telas navegadas **por dentro do app**, não entrando por um link de confirmação de email. E ninguém tinha feito um cadastro real de ponta a ponta desde a reestruturação.
+- **Onde:** confirmado em `VetOnboardingForm.tsx:92`. Provável em `ClinicOnboardingForm.tsx` (é clone).
+- **Corrige em:** F3/S2 — T-005
+- **Lição pro `vetria-qa`:** conferir tela navegando por dentro do app esconde bug de layout de tela alcançada por link externo. 🟡
 - Herdado de DL-039/040. Canonical `www` × apex não padronizado. Vira problema de SEO quando os perfis públicos forem indexáveis (F4/S7).
 
 ### R-008 — Documentação fragmentada e contraditória
