@@ -152,3 +152,57 @@ feature pro escopo, só não fecha a porta**. Consequência de escopo: a tela
 `/app/responsavel/historico` hoje promete "Seus agendamentos" e precisa virar "Seus
 contatos", porque agendamento está fora dos 3 meses.
 **Status:** ✅ aplicada
+
+---
+
+### DL-048 — Núcleo de dados aplicado: o app deixa de ser casca
+**Data:** 26/08/2026 · **Fase/Task:** F3/S1 · T-001 · **Commits:** `2846ec2` a `52bd9b9`
+**Contexto:** o app tinha ~45 telas em produção e um banco com uma tabela só. Nenhuma das
+seis capacidades contratadas existia sem o núcleo.
+**Decisão/execução:** migration `0002` aplicada em produção. Criou `profiles.status` e
+`status_motivo`, `vet_profiles`, `clinic_profiles`, `perfil_privado`, `animais`, `contatos`
+e `audit_logs`, com RLS codificando `docs/06-PERMISSOES.md` célula por célula. Ações de
+admin passam por função guardada (`admin_definir_status`), não por UPDATE direto: a
+autorização fica num lugar só e a trilha de auditoria sai automática. Os 7 profissionais
+com onboarding de casca voltaram para `incomplete` (decisão B: nada foi apagado).
+**Alternativas descartadas:** apagar as contas de teste, descartada porque algumas são dos
+sócios; e deixar o estado inconsistente para resolver depois, que geraria bug fantasma.
+**Implicações:** a F3/S2 pode ligar os formulários de onboarding nas tabelas. A regra de
+visibilidade da busca (`role` E `status='active'`) vive no Postgres, então nenhuma tela
+consegue contorná-la. As tabelas estão vazias: as telas ainda não escrevem nelas.
+**Status:** ✅ aplicada e verificada por 9 sondas.
+
+### DL-049 — Contato e documento moram em tabela separada, porque RLS é row-level
+**Data:** 26/08/2026 · **Fase/Task:** F3/S1 · T-001 (achado SEC-002)
+**Contexto:** a primeira versão da `0002` guardava `whatsapp`, `telefone`, `email_contato` e
+`documento_path` dentro de `vet_profiles` e `clinic_profiles`, protegidos pela mesma policy
+de leitura pública que servia a busca.
+**Decisão:** esses campos passaram para `perfil_privado`, tabela sem nenhuma policy para
+`anon`. O DL-047 já dizia que o telefone nunca vai no HTML; o que faltava perceber é que a
+API é a porta principal.
+**Por quê:** **RLS é row-level.** Liberar a linha libera **todas as colunas dela**, e o
+PostgREST deixa o cliente escolher quais quer. `GET /rest/v1/vet_profiles?select=whatsapp`
+com a chave anônima, que está no bundle do site, entregaria a base inteira de telefones.
+Proteger o HTML e deixar a API aberta é proteger a porta e esquecer a janela.
+**Alternativas descartadas:** privilégio por coluna (`GRANT SELECT (col)`), que funcionaria
+mas depende de alguém lembrar do `GRANT` a cada coluna nova. Separar a linha é robusto por
+construção.
+**Implicações:** a F4/S8 revela o número pelo servidor, lendo `perfil_privado` com privilégio
+elevado. Toda coluna sensível nova nasce lá, não nas tabelas públicas.
+**Status:** ✅ aplicada
+
+### DL-050 — Revisão não substitui execução
+**Data:** 26/08/2026 · **Fase/Task:** F3/S1 · T-001
+**Contexto:** a `0002` passou por **quatro rodadas** de auditoria de segurança, que acharam
+2 achados críticos e 12 altos. Na primeira tentativa real de aplicar, ela **não rodou**:
+`perfil_esta_ativo()` é `LANGUAGE sql` e consulta `profiles.status`, mas era criada antes da
+coluna existir. O Postgres valida o corpo de função sql no `CREATE`, e a transação inteira
+falhou.
+**Decisão:** duas regras passam a valer. **(1)** Correção de segurança volta para revisão:
+em quatro rodadas seguidas houve achado nascido da correção anterior, e um deles teria
+desligado a busca pública inteira sem aparecer em nenhum teste feito com usuário logado.
+**(2)** Migration aprovada não é migration testada. A auditoria cobre semântica e
+autorização; ordem de execução só aparece rodando.
+**Implicações:** o custo foi baixo porque a transação reverteu inteira, e é justamente por
+isso que toda migration é uma transação só. Registrado como R-016 e no contrato dos agentes.
+**Status:** ✅ virou processo

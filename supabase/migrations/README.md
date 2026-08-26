@@ -27,7 +27,10 @@ o fluxo é **manual e controlado**:
 |---|---|---|
 | `0000_baseline.sql` | **Documental.** Registra o schema que já existia, criado direto no dashboard antes desta pasta existir. **Não rodar.** | (já estava) |
 | `0001_handle_new_user_role_from_metadata.sql` | Trigger lê role do metadata + hardening | 24/05/2026 |
-| `0002_nucleo.sql` | Núcleo de dados: `status`, `vet_profiles`, `clinic_profiles`, `animais`, `contatos`, `audit_logs`, RLS da matriz de permissões | ⏳ pendente |
+
+> A `0002` substituiu `handle_new_user` (acrescentando `status`). Verificado em produção
+> em 26/08/2026 com cadastro real: conta nasce `vet` / `incomplete` / `onboarding_completed=false`.
+| `0002_nucleo.sql` | Núcleo de dados: `status`, `vet_profiles`, `clinic_profiles`, `perfil_privado`, `animais`, `contatos`, `audit_logs`, RLS da matriz de permissões | **26/08/2026** ✅ |
 
 ## Ferramentas de leitura (nunca alteram nada)
 

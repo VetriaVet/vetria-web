@@ -3,7 +3,7 @@
 > Fila viva. **Uma task em execução por vez** no que escreve código.
 > Atualizado por quem executa, no início e no fim de cada task.
 >
-> **Semana atual:** S1 (26/08 → 01/09) · **Fase:** F3
+> **Semana atual:** S1 ✅ fechada em 26/08 · **Próxima:** S2 · **Fase:** F3
 
 ---
 
@@ -41,55 +41,11 @@
 
 # 🔵 EM EXECUÇÃO
 
-### T-001 — Migration 0002: núcleo de dados
-- **Estado:** 🔵 SQL pronto e **APROVADO na auditoria**. Aguarda o Elber aplicar.
-- **Onde parou:** 4 rodadas de auditoria (v1 reprovada com 2 críticos → v5 aprovada). Backup feito e conferido. Falta: aplicar em produção e rodar `supabase/verificar-apos-0002.sql`.
-- **Relatório:** `docs/relatorios/SEC-2026-08-26.md` (2854 linhas, 4 rodadas)
-- **Antes de aplicar:** avisar Marília e Durval de que o cadastro deles será refeito uma vez.
+_(vazio)_
 
 ---
 
 # ⬜ FILA — F3 / S1
-
-### T-000b — Baseline do schema atual versionado
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S1
-- **Capacidade:** E1
-- **Nível:** 🟡 (só leitura no banco, escreve arquivo no repo)
-- **Agente dono:** vetria-backend
-- **Depende de:** Elber rodar `supabase/introspect.sql` e colar o resultado
-- **Por quê:** fecha o R-006. Hoje só a migration `0001` está versionada; `profiles`, funções, triggers e policies foram criados direto no dashboard. Sem baseline, ninguém consegue revisar o que está em produção lendo o repo, e a `0002` seria escrita no escuro.
-- **Feito quando:**
-  - [ ] `supabase/migrations/0000_baseline.sql` versionado, com o schema real (tabelas, enums, funções, triggers, policies, índices)
-  - [ ] Marcado no cabeçalho como **documental, já aplicado** — nunca rodar de novo em produção
-  - [ ] Valores reais dos enums `user_role` e `admin_level` confirmados e registrados em `06-PERMISSOES.md` §1
-  - [ ] R-002 item 3 resolvido: sabemos se `set-access` escreve um valor de `admin_level` válido
-  - [ ] R-005 resolvido: sabemos quais funções de admin existem de fato e qual é a canônica
-- **Não fazer:** não alterar nada no banco. Esta task só lê e transcreve.
-
-### T-001 — Migration 0002: núcleo de dados
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S1
-- **Capacidade:** E1, E5
-- **Nível:** 🔴 **presencial — Elber aplica**
-- **Agente dono:** vetria-backend (escreve o SQL) + Elber (aplica)
-- **Depende de:** T-000b (baseline) + backup do banco de produção
-- **Por quê:** sem `status` e sem as tabelas de perfil, nenhuma das 6 capacidades do escopo existe. É a task que destrava as 12 semanas seguintes.
-- **Feito quando:**
-  - [ ] Backup do banco de produção feito e confirmado
-  - [ ] `supabase/migrations/0002_nucleo.sql` versionado, 100% aditivo (zero `DROP`)
-  - [ ] `profiles.status` enum (`incomplete|pending_validation|active|suspended`), default `incomplete`
-  - [ ] `vet_profiles` e `clinic_profiles` 1:1 com `profiles`, com `slug` único
-  - [ ] `contatos` com `user_id` **nulável**, `anon_id`, `canal` (`whatsapp` hoje) e origem da busca (DL-047)
-  - [ ] `audit_logs` criada
-  - [ ] RLS **ativa** em todas as tabelas novas, codificando `docs/06-PERMISSOES.md` §3 célula por célula
-  - [ ] `status` **não** é escrito pelo próprio usuário: a policy de update do dono exclui a coluna
-  - [ ] Toda função usada em policy é `SECURITY DEFINER` + `SET search_path = public` (DL-015 — isso já causou recursão infinita antes)
-  - [ ] Trigger de `updated_at` em cada tabela nova
-  - [ ] Procedimento de reversão escrito antes de aplicar
-  - [ ] `vetria-seguranca` revisou as policies **antes** de aplicar
-  - [ ] Aplicada em produção e conferida
-- **Não fazer:** não criar tabela de `reviews`, `appointments`, `favoritos` ou `planos` — fora do escopo dos 3 meses. Não alterar nem renomear nada existente em `profiles`. Não renomear o enum `user_role` (DL-043).
 
 ### T-002 — Bucket de documentos no Storage
 - **Estado:** ⬜ fila
@@ -146,6 +102,18 @@ _(vazio)_
 ---
 
 # ✅ CONCLUÍDAS
+
+### T-001 — Migration 0002: núcleo de dados
+- **Estado:** ✅ concluída em 26/08/2026
+- **Resultado:** `0002_nucleo.sql` aplicada em produção. Criou `profiles.status` e `status_motivo`, `vet_profiles`, `clinic_profiles`, `perfil_privado`, `animais`, `contatos`, `audit_logs`, com RLS codificando `06-PERMISSOES.md`. Mais `is_admin()`, `perfil_esta_ativo()`, `tem_role()`, `admin_definir_status()`, `concluir_onboarding_profissional()` e dois triggers de revalidação. Removeu `current_user_role()` (INVOKER sem search_path, mina do DL-014), `is_admin_master()` (duplicata, fecha R-005) e a policy `profiles_update_own_safe` (superada, e mantê-la anularia o pin de `status`).
+- **Auditoria:** 4 rodadas. v1 reprovada com 2 críticos (responsável entrava na busca como veterinário; base de telefones vazava pela API). v2 fechou os dois e abriu quatro nas próprias correções, incluindo um que desligaria a busca pública inteira sem aparecer em teste com usuário logado. v5 aprovada. Relatório: `docs/relatorios/SEC-2026-08-26.md`, 2854 linhas.
+- **Descoberto ao aplicar:** a migration **não rodava**. `perfil_esta_ativo()` é `LANGUAGE sql` e consulta `profiles.status`, mas era criada antes da coluna existir. As 4 auditorias revisaram semântica e autorização; nenhuma percorreu a ordem de execução contra um banco real. Corrigido trocando as seções 2 e 3 de lugar.
+- **Verificado:** 9 sondas. Destaques: busca pública funciona para o anônimo (Sonda 2 = 1); `perfil_privado` inacessível ao anônimo; o profissional **não** consegue se auto-aprovar (WITH CHECK levanta); travessia de caminho e SVG barrados; 18 contas e 18 profiles depois de um cadastro real de ponta a ponta.
+- **Commits:** `2846ec2` → `52bd9b9`
+
+### T-000b — Baseline do schema atual versionado
+- **Estado:** ✅ concluída em 26/08/2026
+- **Resultado:** `0000_baseline.sql` versiona o schema que existia antes desta pasta (fecha R-006). Corrigiu três coisas que a documentação afirmava errado: `profiles` **tem** `full_name` e `phone` (o DL-019 dizia que não); `master` não é role, é `admin_level`; o enum `admin_level` é `('none','admin','master')` e `comum` nunca existiu, o que torna o R-002 item 3 improcedente.
 
 ### T-000 — Instalar sistema de governança e agentes
 - **Estado:** ✅ concluída em 26/08/2026

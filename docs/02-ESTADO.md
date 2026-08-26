@@ -11,15 +11,14 @@
 
 **Fase:** F3 — Núcleo de dados · **Semana:** 1 de 13 · **Entrega:** 25/11/2026
 
-**Em execução:** `T-001` — a migration `0002` está escrita, passou por **4 rodadas de
-auditoria de segurança** e foi **aprovada** na quarta (v5). Não aplicada ainda.
+**Em execução:** nada. A **S1 fechou em 26/08/2026**.
 
-**Próximo passo:** o Elber aplica `supabase/migrations/0002_nucleo.sql` no SQL Editor e
-depois roda `supabase/verificar-apos-0002.sql`, sonda por sonda.
+**Concluído hoje:** migration `0002` **aplicada em produção** e verificada por 9 sondas.
+O banco deixou de ser só `profiles`.
 
-**Backup:** feito e conferido em `supabase/backups/` (17 linhas, fora do versionamento).
+**Próxima task:** `T-003` — Playwright + CI. Não depende do banco.
 
-👉 **Roteiro de execução passo a passo: [`docs/RODAR-S1.md`](RODAR-S1.md)**
+**Backup pré-migration:** `supabase/backups/` (17 linhas, fora do versionamento).
 
 ---
 
@@ -32,7 +31,7 @@ depois roda `supabase/verificar-apos-0002.sql`, sonda por sonda.
 | **RBAC** | 🟡 Parcial. Roteia por role e `requirePainel` guarda as páginas de painel — mas o `middleware.ts` não isola painel por role. **Ver R-001.** Matriz alvo definida em `docs/06-PERMISSOES.md` (DL-044 a DL-047). |
 | **Telas** | ✅ ~45 telas no design system v2 (Inter + tokens `@theme` do Tailwind v4), estados honestos, sem dado fake. |
 | **Admin** | 🟡 Painel dark completo; RBAC de usuários é real; validações/moderação/conteúdo são casca. |
-| **Banco** | 🟡 Só `profiles`. Migration `0001` aplicada. Falta o núcleo inteiro (F3/S1). |
+| **Banco** | ✅ Núcleo aplicado (`0002`, 26/08). `profiles.status`, `vet_profiles`, `clinic_profiles`, `perfil_privado`, `animais`, `contatos`, `audit_logs`, com RLS codificando a matriz. **Tabelas vazias:** as telas ainda não escrevem nelas (F3/S2). |
 | **Emails transacionais** | 🟡 3 do Supabase ativos; 3 do app versionados e desligados (esperam a F3). |
 | **Testes** | ❌ Não existem. Playwright + CI entram na F3/S2. |
 
@@ -52,8 +51,7 @@ Todas essas telas estão no ar, bonitas e navegáveis, mas **não persistem nada
 
 ## O QUE NÃO EXISTE AINDA
 
-- `profiles.status`, `vet_profiles`, `clinic_profiles`, `contatos`, `audit_logs`
-- Bucket de documentos no Storage
+- Bucket de documentos no Storage (T-002)
 - Rotas `/buscar`, `/veterinario/[slug]`, `/estabelecimento/[slug]`
 - As 6 landing pages
 - Consentimento, exportação e exclusão de dados (LGPD)

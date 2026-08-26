@@ -132,4 +132,7 @@
 
 ## ✅ FECHADOS
 
-_(vazio)_
+- **R-005** — `is_admin_master` era duplicata byte a byte de `is_master_admin`. Removida pela `0002` em 26/08/2026.
+- **R-006** — o schema vivia fora do repo. `0000_baseline.sql` versiona o que existia; da `0002` em diante tudo passa por arquivo.
+- **R-015** — token do GitHub em texto puro na URL do remote. O remote virou `https://VetriaVet@github.com/...` e a autenticação passou pro credential manager, em 26/08/2026.
+- **R-002 item 3** — o "bug latente" do `admin_level ?? "admin"` era improcedente: o enum aceita `admin`, e `comum` nunca existiu. Confirmado por introspecção.
