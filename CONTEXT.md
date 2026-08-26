@@ -1,5 +1,21 @@
 # 🧠 CONTEXT.md — Cérebro do Projeto Vetria
 
+> ## 🧊 ARQUIVO CONGELADO EM 26/08/2026
+>
+> Este arquivo virou **histórico**. Ele guarda DL-001 a DL-040 e vale a leitura quando
+> você precisar entender *por que* alguma coisa foi decidida antes de agosto/2026.
+>
+> **Não escreva mais aqui.**
+>
+> - Estado atual do projeto → [`docs/02-ESTADO.md`](docs/02-ESTADO.md)
+> - Decisões novas (DL-041+) → [`docs/05-DECISOES.md`](docs/05-DECISOES.md)
+> - Regras e escopo → [`HANDOFF.md`](HANDOFF.md) e [`docs/00-ESCOPO.md`](docs/00-ESCOPO.md)
+>
+> Motivo do congelamento: DL-041.
+
+---
+
+
 > **PARE.** Se você é o Claude Code começando uma nova sessão, **leia esse arquivo inteiro antes de qualquer ação**. Não pule, não invente, não improvise.
 >
 > Esse arquivo existe pra que toda sessão tenha o mesmo contexto e siga as mesmas regras.

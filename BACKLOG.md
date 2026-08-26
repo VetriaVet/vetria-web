@@ -1,5 +1,20 @@
 # 📋 VETRIA — BACKLOG DE TASKS AUTÔNOMAS
 
+> ## 🧊 ARQUIVO CONGELADO EM 26/08/2026
+>
+> Este arquivo virou **histórico**. Guarda TASK-001 a TASK-039, da fase visual (a casca),
+> concluída em maio/2026.
+>
+> **Não escreva mais aqui.**
+>
+> - Fila de tasks viva → [`docs/03-TAREFAS.md`](docs/03-TAREFAS.md)
+> - Plano das 13 semanas → [`docs/01-PLANO.md`](docs/01-PLANO.md)
+>
+> Motivo do congelamento: DL-041.
+
+---
+
+
 > Tasks organizadas por **fase**, **nível de autonomia** e **dependência**.
 > Cada uma tem prompt pronto pra colar no Claude Code.
 

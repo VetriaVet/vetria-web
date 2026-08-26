@@ -48,5 +48,9 @@ vetria-proto/
 /*.html
 /*.zip
 
-# Claude Code local config (não vai pro repo)
-.claude/
+# Claude Code
+# Config local (permissões da máquina) fica FORA do repo.
+# Os agentes do projeto são VERSIONADOS: precisam funcionar em qualquer
+# sessão e em qualquer máquina, não só nesta. Ver docs/AGENTES.md (DL-041).
+.claude/*
+!.claude/agents/
