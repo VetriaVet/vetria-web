@@ -6,6 +6,22 @@
 
 ---
 
+> ## ⚠️ ABRA A SESSÃO NA PASTA CERTA
+>
+> O Claude Code carrega os agentes de `.claude/agents/` **relativo à pasta onde a
+> sessão foi aberta**. Abrir em `Desktop/Vetria` (a pasta de cima) faz os 6 agentes
+> do projeto **não existirem**, e o `CLAUDE.md` não ser lido.
+>
+> ```
+> cd "C:/Users/Elber Desinger/Desktop/Vetria/Vetria Brasil"
+> claude
+> ```
+>
+> Como conferir: digite `/agents`. Se `vetria-maestro` não aparecer na lista, você
+> está na pasta errada. A pasta de cima só guarda marca, copies `.docx` e imagens.
+
+---
+
 ## EM 30 SEGUNDOS
 
 **Vetria** é um marketplace que conecta responsáveis por animais a veterinários e

@@ -2,6 +2,11 @@
 
 > Carregado automaticamente em toda sessão. Mantenha curto: é ponteiro, não conteúdo.
 
+> ⚠️ **Se você está lendo isto, a sessão abriu na pasta certa.** Confirme com `/agents`:
+> `vetria-maestro`, `vetria-backend`, `vetria-ui`, `vetria-seguranca`, `vetria-qa` e
+> `vetria-escriba` precisam aparecer. Se não aparecerem, a sessão foi aberta na pasta de
+> cima (`Desktop/Vetria`) e o sistema de governança está desligado. Ver R-013.
+
 ## Comece sempre por aqui
 
 1. [`docs/02-ESTADO.md`](docs/02-ESTADO.md) — onde o projeto está hoje

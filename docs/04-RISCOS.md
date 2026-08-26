@@ -75,6 +75,13 @@
 - Emails caem em spam no começo (DL-039). Piora na F3/S4, quando aprovação e reprovação passam a disparar email de verdade.
 - **Mitigação:** DMARC único, marcar "não é spam", monitorar taxa de entrega no Resend.
 
+### R-013 — Agentes não carregam se a sessão abrir na pasta errada
+- **Descoberto:** 26/08/2026, ao tentar invocar `vetria-seguranca` pela primeira vez
+- **O quê:** o Claude Code resolve `.claude/agents/` a partir do diretório onde a sessão foi aberta. Sessão aberta em `Desktop/Vetria` (a pasta de cima) não enxerga nenhum dos 6 agentes, e também não lê o `CLAUDE.md`. O erro é `Agent type 'vetria-seguranca' not found`, que parece problema de configuração e não é.
+- **Por que importa:** todo o sistema de governança depende dos agentes existirem. Se a sessão abre na pasta errada, o trabalho continua acontecendo, mas sem segurança, sem QA e sem as regras da matriz de permissões. Falha silenciosa, que é a pior categoria.
+- **Mitigação:** aviso no topo do `HANDOFF.md` e do `CLAUDE.md`. Conferir com `/agents` no começo da sessão.
+- **Corrige de vez em:** avaliar cópia em `~/.claude/agents/` na S2, aceitando o custo de manter duas cópias sincronizadas.
+
 ### R-010 — `.claude/settings.local.json` com ~90 permissões de commit hardcoded
 - Cada mensagem de commit virou uma permissão literal. Não escala e polui. Simplificar pra padrões amplos quando incomodar.
 
