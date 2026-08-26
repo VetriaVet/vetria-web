@@ -23,7 +23,7 @@
 |---|---|
 | **Auth** | ✅ Real. Email/senha + Google OAuth + confirmação + recuperação de senha, validados em produção (DL-039). |
 | **Domínio e email** | ✅ Real. `vetriabrasil.com.br` na Vercel; Resend verificado; envio de `contato@vetriabrasil.com.br` (DL-039/040). |
-| **RBAC** | 🟡 Parcial. Roteia por role e `requirePainel` guarda as páginas de painel — mas o `middleware.ts` não isola painel por role. **Ver R-001.** |
+| **RBAC** | 🟡 Parcial. Roteia por role e `requirePainel` guarda as páginas de painel — mas o `middleware.ts` não isola painel por role. **Ver R-001.** Matriz alvo definida em `docs/06-PERMISSOES.md` (DL-044 a DL-047). |
 | **Telas** | ✅ ~45 telas no design system v2 (Inter + tokens `@theme` do Tailwind v4), estados honestos, sem dado fake. |
 | **Admin** | 🟡 Painel dark completo; RBAC de usuários é real; validações/moderação/conteúdo são casca. |
 | **Banco** | 🟡 Só `profiles`. Migration `0001` aplicada. Falta o núcleo inteiro (F3/S1). |
@@ -113,6 +113,7 @@ API
 | Preciso de... | Está em |
 |---|---|
 | O que foi contratado | `docs/00-ESCOPO.md` 🔒 |
+| **Quem acessa o quê** | **`docs/06-PERMISSOES.md`** — vira RLS e middleware |
 | O plano das 13 semanas | `docs/01-PLANO.md` |
 | A fila de tasks | `docs/03-TAREFAS.md` |
 | Bugs, dívidas e riscos | `docs/04-RISCOS.md` |

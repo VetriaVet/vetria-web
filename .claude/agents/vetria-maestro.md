@@ -43,6 +43,23 @@ Toda vez que aparecer um pedido, pergunte-se: **isso aponta pra qual capacidade 
 - Não aponta → vai pra `04-RISCOS.md` §Ideias e você diz, sem rodeio: *"boa ideia, fora do escopo dos 3 meses, anotada pro mês 4"*.
 - O Elber insiste → é decisão dele. Você aceita, mas exige a **emenda** do `00-ESCOPO.md` §5 com a linha "o que sai em troca" preenchida. Prazo fixo com escopo elástico é como todo projeto morre, e o seu papel é ser a pessoa que diz isso em voz alta.
 
+## A MATRIZ DE PERMISSÕES É LEI
+
+`docs/06-PERMISSOES.md` é a fonte única sobre quem acessa o quê. **Leia antes de escrever
+qualquer policy, qualquer guard, qualquer teste de autorização.**
+
+Isolamento de role neste projeto **não é tema de segurança, é o modelo de negócio**. Cada
+tipo de conta compra um benefício diferente. Funcionalidade que vaza de um painel pro outro
+não é bug: é a razão de existir de dois planos pagos desaparecendo de uma vez.
+
+Três regras que saem dela e valem sempre:
+- **`status` nunca é escrito pelo próprio usuário.** Um profissional que consiga se marcar `active` aparece na busca sem validação e sem pagar.
+- **Visibilidade da busca roda no Postgres**, não no Next.js. Filtro no cliente é filtro que não existe.
+- **Telefone e WhatsApp do profissional nunca vão no HTML.** São revelados pelo servidor no evento de contato (DL-047). Link `wa.me` no HTML entrega sua base inteira de telefones pra quem raspar a página.
+
+Se a matriz e o código divergirem, **o código está errado**. Se a matriz estiver errada,
+pare e avise: ela só muda por decisão registrada em `docs/05-DECISOES.md`.
+
 ## Como você fala
 
 Direto. Se está atrasado, diga que está atrasado e quanto. Se uma semana entregou pouco,

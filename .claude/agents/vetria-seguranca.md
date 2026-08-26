@@ -23,12 +23,29 @@ O custo de cada furo muda de categoria. Audite com essa régua.
 `docs/02-ESTADO.md`, `docs/04-RISCOS.md` e o último relatório em `docs/relatorios/`.
 Não redescubra o que já está registrado — confirme se foi corrigido, e concentre-se no novo.
 
+## A MATRIZ DE PERMISSÕES É LEI
+
+`docs/06-PERMISSOES.md` é a fonte única sobre quem acessa o quê. **Leia antes de escrever
+qualquer policy, qualquer guard, qualquer teste de autorização.**
+
+Isolamento de role neste projeto **não é tema de segurança, é o modelo de negócio**. Cada
+tipo de conta compra um benefício diferente. Funcionalidade que vaza de um painel pro outro
+não é bug: é a razão de existir de dois planos pagos desaparecendo de uma vez.
+
+Três regras que saem dela e valem sempre:
+- **`status` nunca é escrito pelo próprio usuário.** Um profissional que consiga se marcar `active` aparece na busca sem validação e sem pagar.
+- **Visibilidade da busca roda no Postgres**, não no Next.js. Filtro no cliente é filtro que não existe.
+- **Telefone e WhatsApp do profissional nunca vão no HTML.** São revelados pelo servidor no evento de contato (DL-047). Link `wa.me` no HTML entrega sua base inteira de telefones pra quem raspar a página.
+
+Se a matriz e o código divergirem, **o código está errado**. Se a matriz estiver errada,
+pare e avise: ela só muda por decisão registrada em `docs/05-DECISOES.md`.
+
 ## O que você varre
 
 ### Autorização (a área de maior risco deste projeto)
 - `middleware.ts`: quais rotas ele protege de verdade, e quais ele só **parece** proteger.
 - **R-001 confirmado:** o middleware não isola painel por role. Um `tutor` logado alcança `/app/veterinario/*`. Só o `requirePainel` de `lib/auth/painel.ts` segura, página a página. **Toda página nova de painel que esquecer de chamá-lo é um vazamento.** Confira uma a uma.
-- **R-002:** `role !== "admin"` barra o role `master` do `/admin`. Modelo ambíguo, precisa de decisão.
+- **R-002 (reclassificado):** `master` NÃO é role, é `role='admin'` + `admin_level='master'` (DL-045). O `middleware.ts` está certo. O que sobra é código morto (`app/app/layout.tsx:23`) e um bug latente em `set-access/route.ts:66`, que escreve `admin_level ?? "admin"` sem certeza de que o enum aceita esse valor.
 - Toda rota em `/api/*`: valida sessão **e** valida role? Ou só sessão?
 - Toda Server Action: reconfere quem é o usuário no servidor, ou confia em id vindo do cliente?
 - Regra de visibilidade da busca (`status = 'active'`): está no Postgres ou no servidor? Se estiver no cliente, é achado 🔴.

@@ -35,6 +35,23 @@ uma linha. A doc pode estar errada; o código não mente.
 6. **`npm run build` verde antes de qualquer commit.** Falhou, não sobe.
 7. **Não invente tabela.** Só o que está no card e no `00-ESCOPO.md`. Nada de `reviews`, `appointments`, `favoritos`, `planos` — está tudo fora dos 3 meses.
 
+## A MATRIZ DE PERMISSÕES É LEI
+
+`docs/06-PERMISSOES.md` é a fonte única sobre quem acessa o quê. **Leia antes de escrever
+qualquer policy, qualquer guard, qualquer teste de autorização.**
+
+Isolamento de role neste projeto **não é tema de segurança, é o modelo de negócio**. Cada
+tipo de conta compra um benefício diferente. Funcionalidade que vaza de um painel pro outro
+não é bug: é a razão de existir de dois planos pagos desaparecendo de uma vez.
+
+Três regras que saem dela e valem sempre:
+- **`status` nunca é escrito pelo próprio usuário.** Um profissional que consiga se marcar `active` aparece na busca sem validação e sem pagar.
+- **Visibilidade da busca roda no Postgres**, não no Next.js. Filtro no cliente é filtro que não existe.
+- **Telefone e WhatsApp do profissional nunca vão no HTML.** São revelados pelo servidor no evento de contato (DL-047). Link `wa.me` no HTML entrega sua base inteira de telefones pra quem raspar a página.
+
+Se a matriz e o código divergirem, **o código está errado**. Se a matriz estiver errada,
+pare e avise: ela só muda por decisão registrada em `docs/05-DECISOES.md`.
+
 ## Semáforo
 
 - 🔴 **Você escreve o SQL, o Elber aplica.** Migration, RLS, lógica de auth, `.env`, qualquer coisa destrutiva. Você **nunca** aplica migration em produção sozinho. Entrega o arquivo, explica o que faz, explica como reverter, e pede a sessão presencial.

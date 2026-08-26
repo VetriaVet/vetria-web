@@ -36,7 +36,9 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 **Objetivo:** matar a casca. Tudo que a tela mostra passa a vir do banco.
 
 ### S1 — Fundação do schema 🔴
-- Migration `0002`: `profiles.status` (enum) + `vet_profiles` + `clinic_profiles` + RLS + trigger `updated_at`.
+- `0000_baseline.sql`: dump do schema que já existe em produção, versionado (fecha R-006).
+- Migration `0002`: `profiles.status` (enum) + `vet_profiles` + `clinic_profiles` + `contatos` + `audit_logs` + RLS + trigger `updated_at`.
+- `contatos` entra agora porque é aditiva e trivial, e assim a F4/S8 não precisa de outra sessão presencial (DL-047).
 - Supabase Storage: bucket `documentos` privado + policies (só o dono e o admin leem).
 - **Antes de tudo:** backup do banco. Migration aditiva, nunca destrutiva.
 - 🔴 **Sessão presencial obrigatória** (Elber aplica).
@@ -51,8 +53,9 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 ### S3 — Portão de status
 - `middleware.ts` reescrito: isolamento de role por prefixo de rota + bloqueio por `status`.
   - vet/estabelecimento com `status != active` → `/app/<painel>/aguardando`.
-  - **Corrige o furo atual:** hoje um responsável logado alcança `/app/veterinario/*`.
-  - **Corrige:** role `master` hoje é barrado do próprio `/admin`.
+  - **Corrige o furo atual (R-001):** hoje um responsável logado alcança `/app/veterinario/*`.
+  - Limpa o resíduo do R-002: código morto `NAV_BY_ROLE["master"]` e o `admin_level ?? "admin"` de `set-access`.
+  - Codifica a matriz de `docs/06-PERMISSOES.md` §2 e §4, célula por célula.
 - Editores de perfil (`/app/*/perfil`) carregam e salvam de verdade.
 
 ### S4 — Validação real pelo admin
@@ -95,7 +98,7 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 ### S8 — Contato
 - CTA WhatsApp com mensagem pré-preenchida.
 - Cada clique registra em `contatos` (quem, pra quem, quando).
-- `/app/responsavel/historico` passa a listar contatos reais.
+- `/app/responsavel/historico` passa a listar contatos reais. **Atenção:** hoje essa tela promete "Seus agendamentos" e desenha cards de consulta. Agendamento está fora dos 3 meses, então ela precisa virar "Seus contatos" (DL-047).
 - Painel do profissional mostra contagem real de contatos recebidos.
 
 ### ✅ Definition of Done da F4

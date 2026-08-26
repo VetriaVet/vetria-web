@@ -47,6 +47,23 @@ protótipo antigo. Só depois escreva.
 - Botão tem `cursor: pointer` (Tailwind v4 não aplica sozinho, DL-040).
 - Nenhum link pra rota que não existe. Link quebrado é pior que funcionalidade ausente.
 
+## A MATRIZ DE PERMISSÕES É LEI
+
+`docs/06-PERMISSOES.md` é a fonte única sobre quem acessa o quê. **Leia antes de escrever
+qualquer policy, qualquer guard, qualquer teste de autorização.**
+
+Isolamento de role neste projeto **não é tema de segurança, é o modelo de negócio**. Cada
+tipo de conta compra um benefício diferente. Funcionalidade que vaza de um painel pro outro
+não é bug: é a razão de existir de dois planos pagos desaparecendo de uma vez.
+
+Três regras que saem dela e valem sempre:
+- **`status` nunca é escrito pelo próprio usuário.** Um profissional que consiga se marcar `active` aparece na busca sem validação e sem pagar.
+- **Visibilidade da busca roda no Postgres**, não no Next.js. Filtro no cliente é filtro que não existe.
+- **Telefone e WhatsApp do profissional nunca vão no HTML.** São revelados pelo servidor no evento de contato (DL-047). Link `wa.me` no HTML entrega sua base inteira de telefones pra quem raspar a página.
+
+Se a matriz e o código divergirem, **o código está errado**. Se a matriz estiver errada,
+pare e avise: ela só muda por decisão registrada em `docs/05-DECISOES.md`.
+
 ## Semáforo
 
 🟢 tela existente, copy, asset, responsivo, até 3 arquivos, build verde → commita.

@@ -19,16 +19,26 @@
 - **Corrige em:** F3 / S3 (reescrita do middleware)
 - **Task:** a criar na S3
 
-### R-002 — Role `master` é barrado do próprio `/admin`
-- **Descoberto:** 26/08/2026
-- **Onde:** `middleware.ts:45` — `if (!profile || profile.role !== "admin")`
-- **O quê:** a documentação descreve 5 roles, sendo `master` uma delas, e `app/app/layout.tsx` tem entrada de nav pra `master`. Mas o middleware só aceita literalmente `"admin"`. Se existir alguém com `role = 'master'` no banco, esse alguém é redirecionado pra `/app` ao tentar entrar no admin, e no `/app` cai no fallback.
-- **Causa provável:** ambiguidade real no modelo — o `CONTEXT.md` §4.1 trata master ora como role, ora como `admin_level`. **Isso precisa ser decidido, não remendado.**
-- **Corrige em:** F3 / S3, junto com R-001, e a decisão vai pro `05-DECISOES.md`
-
----
-
 ## 🟠 ABERTOS — ALTOS
+
+### R-002 — Modelo de `master` inconsistente entre doc, código e enum ⚠️ RECLASSIFICADO
+- **Descoberto:** 26/08/2026 · **Reclassificado:** 26/08/2026, após leitura de `app/api/admin/*`
+- **Classificação original (errada):** "role `master` é barrado do próprio `/admin`". Não procede.
+- **O que é de fato:** `master` **não é um `role`**. É `role = 'admin'` + `admin_level = 'master'`, e o código já funciona assim (`api/admin/profiles/route.ts:57` e `api/admin/set-access/route.ts:52` autorizam por `admin_level === "master"`). Logo `middleware.ts:45` (`role !== "admin"`) está **correto** e não barra ninguém. Decidido e registrado em DL-045 e `06-PERMISSOES.md` §1.
+- **O que sobra de problema real, em três frentes:**
+  1. **Código morto que ensina errado:** `app/app/layout.tsx:23` tem `NAV_BY_ROLE["master"]`, inalcançável. Quem ler acredita que `master` é role. 🟡
+  2. **Documentação errada:** `CONTEXT.md` §4.1 lista `master` como role. Congelado, mas ainda é o que uma sessão desavisada lê. 🟡
+  3. **Bug latente 🟠:** `set-access/route.ts:66` escreve `admin_level: new_admin_level ?? "admin"`, mas `CONTEXT.md` §4.2 diz que o enum é `comum|master`. **Se o enum não aceitar `"admin"`, promover alguém a admin sem passar o nível explícito falha.** Nunca foi exercitado porque o painel sempre manda o nível.
+- **Depende de:** confirmar os valores reais do enum via `supabase/introspect.sql` (bloco 1)
+- **Corrige em:** F3 / S3, junto com R-001
+
+### R-011 — Veterinário e estabelecimento entregam o mesmo produto por preços diferentes
+- **Descoberto:** 26/08/2026 · **Gravidade:** 🟠 de negócio, não de código
+- **O quê:** `app/app/veterinario/(painel)/` e `app/app/estabelecimento/(painel)/` têm exatamente os mesmos itens (agenda, aguardando, ajuda, avaliações, configurações, contatos, perfil, plano). A única diferença é `equipe`, no estabelecimento, e `equipe` está na **V2**.
+- **Por que importa:** são dois planos vendidos por preços diferentes entregando funcionalidade idêntica na V1. As LPs de preço da **F5** vão precisar listar o que diferencia um do outro, e hoje não existe resposta.
+- **Não é bug.** É pergunta de produto sem dono, e ela vence antes do mês 4, quando o Stripe entra e o preço vira real.
+- **Precisa de decisão até:** F5 / S10 (LPs de preço)
+- **Registrado em:** `06-PERMISSOES.md` §7
 
 ### R-003 — Zero testes automatizados em código que já está em produção
 - **O quê:** ~45 telas, auth real, RBAC, e nenhuma verificação automática. Nas próximas 12 semanas o banco inteiro entra por baixo dessas telas.

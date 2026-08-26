@@ -47,26 +47,45 @@ _(vazio)_
 
 # ⬜ FILA — F3 / S1
 
-### T-001 — Migration 0002: núcleo de dados
+### T-000b — Baseline do schema atual versionado
 - **Estado:** ⬜ fila
 - **Fase / Semana:** F3 / S1
 - **Capacidade:** E1
+- **Nível:** 🟡 (só leitura no banco, escreve arquivo no repo)
+- **Agente dono:** vetria-backend
+- **Depende de:** Elber rodar `supabase/introspect.sql` e colar o resultado
+- **Por quê:** fecha o R-006. Hoje só a migration `0001` está versionada; `profiles`, funções, triggers e policies foram criados direto no dashboard. Sem baseline, ninguém consegue revisar o que está em produção lendo o repo, e a `0002` seria escrita no escuro.
+- **Feito quando:**
+  - [ ] `supabase/migrations/0000_baseline.sql` versionado, com o schema real (tabelas, enums, funções, triggers, policies, índices)
+  - [ ] Marcado no cabeçalho como **documental, já aplicado** — nunca rodar de novo em produção
+  - [ ] Valores reais dos enums `user_role` e `admin_level` confirmados e registrados em `06-PERMISSOES.md` §1
+  - [ ] R-002 item 3 resolvido: sabemos se `set-access` escreve um valor de `admin_level` válido
+  - [ ] R-005 resolvido: sabemos quais funções de admin existem de fato e qual é a canônica
+- **Não fazer:** não alterar nada no banco. Esta task só lê e transcreve.
+
+### T-001 — Migration 0002: núcleo de dados
+- **Estado:** ⬜ fila
+- **Fase / Semana:** F3 / S1
+- **Capacidade:** E1, E5
 - **Nível:** 🔴 **presencial — Elber aplica**
 - **Agente dono:** vetria-backend (escreve o SQL) + Elber (aplica)
-- **Depende de:** backup do banco de produção
+- **Depende de:** T-000b (baseline) + backup do banco de produção
 - **Por quê:** sem `status` e sem as tabelas de perfil, nenhuma das 6 capacidades do escopo existe. É a task que destrava as 12 semanas seguintes.
 - **Feito quando:**
   - [ ] Backup do banco de produção feito e confirmado
   - [ ] `supabase/migrations/0002_nucleo.sql` versionado, 100% aditivo (zero `DROP`)
   - [ ] `profiles.status` enum (`incomplete|pending_validation|active|suspended`), default `incomplete`
   - [ ] `vet_profiles` e `clinic_profiles` 1:1 com `profiles`, com `slug` único
+  - [ ] `contatos` com `user_id` **nulável**, `anon_id`, `canal` (`whatsapp` hoje) e origem da busca (DL-047)
   - [ ] `audit_logs` criada
-  - [ ] RLS **ativa** em todas as tabelas novas, com policy de leitura pública só pra `status = active`
+  - [ ] RLS **ativa** em todas as tabelas novas, codificando `docs/06-PERMISSOES.md` §3 célula por célula
+  - [ ] `status` **não** é escrito pelo próprio usuário: a policy de update do dono exclui a coluna
   - [ ] Toda função usada em policy é `SECURITY DEFINER` + `SET search_path = public` (DL-015 — isso já causou recursão infinita antes)
   - [ ] Trigger de `updated_at` em cada tabela nova
-  - [ ] Aplicada em produção e conferida
+  - [ ] Procedimento de reversão escrito antes de aplicar
   - [ ] `vetria-seguranca` revisou as policies **antes** de aplicar
-- **Não fazer:** não criar tabela de `reviews`, `appointments`, `favoritos` ou `planos` — fora do escopo dos 3 meses. Não alterar nem renomear nada existente em `profiles`.
+  - [ ] Aplicada em produção e conferida
+- **Não fazer:** não criar tabela de `reviews`, `appointments`, `favoritos` ou `planos` — fora do escopo dos 3 meses. Não alterar nem renomear nada existente em `profiles`. Não renomear o enum `user_role` (DL-043).
 
 ### T-002 — Bucket de documentos no Storage
 - **Estado:** ⬜ fila
