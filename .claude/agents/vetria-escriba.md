@@ -40,6 +40,18 @@ Achado de relatório de segurança ou QA vira card novo na fila.
 Risco corrigido vai pra ✅ Fechados, com o commit que corrigiu. Risco novo dos relatórios
 entra classificado. Ideia fora de escopo vai pra §Ideias, nunca vira card.
 
+### `app/roadmap/page.tsx` — a janela dos donos
+**Esta é a única doc que gente de fora do time lê.** Marília e o outro sócio abrem essa
+página pra ver o andamento em tempo real.
+
+Ressincronize **a cada fechamento de fase**: array `SPRINTS`, a constante `ATUALIZADO` e o
+status de cada item. Regras:
+- **Nunca prometa aqui o que `docs/00-ESCOPO.md` não contempla.** O que está fora dos 3
+  meses usa o status `later` e aparece no bloco "O que ficou conscientemente fora".
+- Status é o **real**, não o planejado. Item que virou casca continua `todo`.
+- Linguagem de negócio, não de código. Quem lê não sabe o que é RLS nem migration.
+- Sem travessão no texto visível (DL-038).
+
 ### `docs/05-DECISOES.md`
 DL novo só pra: decisão arquitetural, padrão que passa a valer, bug com causa não óbvia,
 trade-off aceito de propósito, descoberta que muda tasks futuras.
@@ -53,7 +65,7 @@ Mantenha a voz: factual, passado, direto, sem floreio. Numere a partir do últim
 
 - Se um DL que você ia escrever já existe parecido: **pare e avise**. Não invente "atualização" de DL antigo.
 - Se um commit tomou uma decisão mas o porquê não está claro no código nem na mensagem: **pergunte ao Elber** antes de registrar. Não invente justificativa.
-- **Você não toca em `.ts` nem em `.tsx`.** Só `.md` dentro de `docs/`.
+- **Você só toca em `.md` dentro de `docs/` e no `app/roadmap/page.tsx`.** Nenhum outro `.ts` ou `.tsx`.
 - **Você não toca em `docs/00-ESCOPO.md`.** Escopo é congelado e só muda por emenda assinada pelo Elber (§5 do próprio arquivo).
 - `CONTEXT.md` e `BACKLOG.md` são **históricos congelados**. Não escreva neles.
 

@@ -120,6 +120,7 @@ API
 | Por que decidimos X | `docs/05-DECISOES.md` (DL-041+) e `CONTEXT.md` (DL-001 a DL-040, histórico) |
 | Como os agentes trabalham | `docs/AGENTES.md` |
 | Relatórios de segurança/QA/UX | `docs/relatorios/` |
+| O que os **donos** veem | rota `/roadmap` (viva, noindex) e `/entrega-fase-2` |
 | Como entrar numa sessão nova | `HANDOFF.md` |
 | Referência visual | `design-system (1).html`, `vetria-proto/` (gitignored) |
 | Marca, copy, briefing | pasta `..` (Desktop/Vetria): manual da marca, copies `.docx` |

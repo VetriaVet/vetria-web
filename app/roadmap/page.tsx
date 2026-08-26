@@ -3,10 +3,14 @@ import Image from "next/image";
 import { Check, Clock, ChevronRight, Info, Crown, type LucideIcon } from "lucide-react";
 
 // Roadmap vivo da Vetria — rota isolada (não linkada na navegação; acessível
-// por link direto). noindex pra não ser indexada. Status REAL do projeto, não
-// o desenhado: a casca visual de todo o produto está pronta (marco da Sprint 2),
-// mas a persistência de dados / estados / busca dependem do backend (próximas).
-// Para manter VIVO: editar o array SPRINTS + a data ATUALIZADO abaixo.
+// por link direto). noindex pra não ser indexada. É a janela dos donos pro
+// andamento real: mostra o que já está em produção, o que está sendo feito
+// agora e o que ficou conscientemente FORA da janela de entrega (status
+// "later"). Alinhado a docs/01-PLANO.md e docs/00-ESCOPO.md.
+//
+// REGRA VIVA: ressincronizar a cada fechamento de fase (vetria-escriba).
+// Editar o array SPRINTS + a data ATUALIZADO. Nunca prometer aqui o que o
+// escopo congelado não contempla.
 
 export const metadata: Metadata = {
   title: "Roadmap",
@@ -14,9 +18,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const ATUALIZADO = "25 de maio de 2026";
+const ATUALIZADO = "26 de agosto de 2026";
+const ENTREGA = "25 de novembro de 2026";
 
-type Status = "done" | "doing" | "todo";
+type Status = "done" | "doing" | "todo" | "later";
 
 type Sprint = {
   num: string;
@@ -30,7 +35,7 @@ type Sprint = {
 
 const SPRINTS: Sprint[] = [
   {
-    num: "Sprint 1",
+    num: "Sprint 1 · concluída",
     title: "Base técnica, autenticação e RBAC",
     status: "done",
     goal: "Erguer o alicerce: contas, papéis e a estrutura de painéis que sustenta tudo o que vem depois.",
@@ -40,130 +45,139 @@ const SPRINTS: Sprint[] = [
       { label: "Controle de acesso por papel (RBAC)", status: "done" },
       { label: "Painéis isolados (responsável, veterinário, estabelecimento)", status: "done" },
       { label: "Painel administrativo funcional", status: "done" },
-      {
-        label: "Recuperação de senha + emails reais no domínio oficial",
-        status: "done",
-      },
+      { label: "Recuperação de senha + emails reais no domínio oficial", status: "done" },
     ],
     result:
       "Base de entrada sólida e no ar (vetriabrasil.com.br): contas, login, recuperação de senha e papéis funcionando de verdade.",
   },
   {
-    num: "Sprint 2",
-    title: "Identidade visual e onboarding",
-    status: "doing",
-    goal: "Dar ao produto a cara final (da landing aos painéis) e transformar usuários genéricos em veterinários, estabelecimentos e responsáveis com identidade própria.",
+    num: "Sprint 2 · concluída",
+    title: "Identidade visual e camada de entrada",
+    status: "done",
+    goal: "Dar ao produto a cara final, da página inicial aos painéis, e deixar a porta de entrada funcionando ponta a ponta no domínio oficial.",
     items: [
       {
         label:
-          "Design system v2 e casca visual de todo o produto (landing, responsável, veterinário, estabelecimento, admin)",
+          "Design system e todas as telas do produto (página inicial, responsável, veterinário, estabelecimento, admin)",
         status: "done",
       },
-      { label: "Home pública do consumidor", status: "done" },
-      {
-        label: "Telas de onboarding do veterinário, do estabelecimento e do responsável",
-        status: "done",
-      },
-      {
-        label:
-          "Salvar os dados do onboarding no banco (CRMV, especialidade, bio, endereço)",
-        status: "doing",
-      },
-      {
-        label: "Estados do usuário (incompleto, em validação, ativo)",
-        status: "todo",
-      },
-      {
-        label: "Bloqueio: veterinário e estabelecimento só aparecem na busca após validação",
-        status: "todo",
-      },
+      { label: "Página inicial pública do consumidor", status: "done" },
+      { label: "Telas de onboarding das três personas", status: "done" },
+      { label: "Marca oficial aplicada em todas as telas", status: "done" },
+      { label: "Emails transacionais com identidade Vetria", status: "done" },
+      { label: "Domínio oficial no ar com email verificado", status: "done" },
     ],
     result:
-      "A Vetria deixa de ser um sistema com login e ganha a cara e a base de um marketplace real.",
+      "A Vetria deixa de ser um sistema com login e ganha a cara de um marketplace real. Todas as telas navegáveis, prontas para receber os dados.",
   },
   {
-    num: "Sprint 3",
-    title: "Perfis públicos e base de busca",
-    status: "todo",
-    goal: "Permitir que responsáveis encontrem veterinários e estabelecimentos: a conexão entre quem oferece e quem procura.",
+    num: "Fase 3 · até 22 de setembro",
+    title: "O produto passa a guardar dados",
+    status: "doing",
+    goal: "Sair da casca. Tudo o que o profissional preenche passa a ser guardado, e o admin passa a validar de verdade quem entra na plataforma.",
     items: [
+      { label: "Estrutura de dados dos perfis profissionais", status: "doing" },
+      { label: "Onboarding que guarda o que foi preenchido", status: "todo" },
+      { label: "Envio de documento para validação (CRMV, CNPJ)", status: "todo" },
+      { label: "Estados do profissional: incompleto, em validação, ativo", status: "todo" },
+      { label: "Fila de validação real no painel do admin", status: "todo" },
+      { label: "Aprovação e reprovação com aviso por email", status: "todo" },
+      { label: "Isolamento reforçado entre os painéis", status: "todo" },
+      { label: "Testes automáticos dos fluxos críticos", status: "todo" },
+    ],
+    result:
+      "O profissional se cadastra, preenche o perfil, envia o documento e é aprovado por uma pessoa. A partir daqui a plataforma tem dados reais.",
+  },
+  {
+    num: "Fase 4 · até 20 de outubro",
+    title: "Busca, perfil público e contato",
+    status: "todo",
+    goal: "O momento em que a Vetria começa a girar: o responsável encontra o profissional certo e fala com ele.",
+    items: [
+      { label: "Busca por cidade, especialidade e tipo de atendimento", status: "todo" },
+      { label: "Só profissionais validados aparecem na busca", status: "todo" },
       { label: "Página pública do veterinário", status: "todo" },
       { label: "Página pública do estabelecimento", status: "todo" },
-      { label: "Busca por cidade e especialidade", status: "todo" },
-      { label: "Listagem só de perfis ativos e validados", status: "todo" },
-    ],
-    result: "Nasce a conexão entre oferta (veterinário/estabelecimento) e demanda (responsável).",
-  },
-  {
-    num: "Sprint 4",
-    title: "Sistema de agendamento",
-    status: "todo",
-    goal: "O coração do produto: marcação de consultas entre responsável e profissional.",
-    items: [
-      { label: "Agenda do veterinário (dias e horários)", status: "todo" },
-      { label: "Responsável escolhe horário e marca consulta", status: "todo" },
-      { label: "Veterinário vê sua agenda; responsável vê suas consultas", status: "todo" },
-      { label: "Gestão de status das consultas", status: "todo" },
-    ],
-    result: "O produto começa a gerar valor real e recorrente.",
-  },
-  {
-    num: "Sprint 5",
-    title: "Experiência e retenção",
-    status: "todo",
-    goal: "Fazer o usuário voltar: recursos que criam hábito e fidelidade.",
-    items: [
-      { label: "Responsável: favoritos, histórico e avaliações", status: "todo" },
-      { label: "Veterinário: dashboard com métricas simples", status: "todo" },
-      { label: "Estabelecimento: gestão de equipe (básico)", status: "todo" },
+      { label: "Páginas preparadas para o Google encontrar", status: "todo" },
+      { label: "Contato direto por WhatsApp", status: "todo" },
+      { label: "Cada contato recebido fica registrado para o profissional", status: "todo" },
     ],
     result:
-      "Usuários engajados e recorrentes, não só visitantes de passagem.",
+      "O marketplace passa a funcionar. E o profissional passa a ver quantos contatos recebeu, que é exatamente o valor que ele contrata.",
   },
   {
-    num: "Sprint 6",
-    title: "Monetização",
+    num: "Fase 5 · até 3 de novembro",
+    title: "Páginas de venda",
     status: "todo",
-    goal: "Começar a faturar, quando já existe base de usuários e valor entregue.",
+    goal: "Montar o funil comercial: páginas que explicam o valor e páginas que apresentam os planos.",
     items: [
-      {
-        label: "Veterinário premium (destaque na busca, mais visibilidade)",
-        status: "todo",
-      },
-      {
-        label: "Estabelecimento premium (múltiplos veterinários, agenda avançada)",
-        status: "todo",
-      },
-      { label: "Comissão por consulta (futuro)", status: "todo" },
+      { label: "Página para veterinários", status: "todo" },
+      { label: "Página para clínicas e hospitais", status: "todo" },
+      { label: "Página para empresas pet e agrovet", status: "todo" },
+      { label: "Três páginas de planos e preços", status: "todo" },
     ],
-    warn: "Pagamentos (Stripe) entram somente nesta fase.",
+    warn: "Os planos aparecem como vitrine. A cobrança entra depois da entrega.",
     result:
-      "A plataforma passa a gerar receita sobre uma base já consolidada.",
+      "O caminho completo existe: o profissional descobre a Vetria, entende o valor, vê os planos e se cadastra.",
   },
   {
-    num: "Sprint 7",
-    title: "Escala e diferencial competitivo",
+    num: "Fase 6 · até 17 de novembro",
+    title: "Segurança, privacidade e qualidade",
     status: "todo",
-    goal: "Criar vantagem competitiva e abrir novas frentes de crescimento.",
+    goal: "O que separa um sistema que funciona na demonstração de um sistema que pode receber gente de verdade.",
     items: [
-      { label: "Chat entre responsável e veterinário", status: "todo" },
-      { label: "Telemedicina", status: "todo" },
-      { label: "IA de triagem", status: "todo" },
-      { label: "Notificações inteligentes", status: "todo" },
-      { label: "Aplicativo mobile", status: "todo" },
+      { label: "Auditoria completa de acesso aos dados", status: "todo" },
+      { label: "LGPD: consentimento, exportação e exclusão de dados", status: "todo" },
+      { label: "Termos de uso e política de privacidade", status: "todo" },
+      { label: "Varredura de qualidade em todos os fluxos", status: "todo" },
+      { label: "Velocidade das páginas públicas", status: "todo" },
+      { label: "Acessibilidade e telas de erro", status: "todo" },
     ],
     result:
-      "A Vetria se diferencia e se prepara para escalar nacionalmente.",
+      "A plataforma passa a tratar o dado de quem confia nela com o cuidado que ele merece.",
+  },
+  {
+    num: "Entrega · 25 de novembro",
+    title: "MVP no ar, pronto para receber usuários",
+    status: "todo",
+    goal: "Semana reservada para acabamento e para a apresentação. Nada novo é planejado aqui, de propósito.",
+    items: [
+      { label: "Correção do que ficou pendente", status: "todo" },
+      { label: "Relatório de entrega", status: "todo" },
+      { label: "Apresentação", status: "todo" },
+    ],
+    result:
+      "A Vetria recebendo os primeiros profissionais e os primeiros responsáveis de verdade.",
+  },
+  {
+    num: "Depois da entrega",
+    title: "O que ficou conscientemente fora",
+    status: "later",
+    goal: "Não é esquecimento nem falta de capacidade. É o que garante que tudo acima seja entregue de verdade, no prazo. Cada item entra quando a base sustentar.",
+    items: [
+      { label: "Cobrança recorrente dos planos", status: "later" },
+      { label: "Avaliações dos responsáveis e moderação", status: "later" },
+      { label: "Agendamento de consultas", status: "later" },
+      { label: "Favoritos", status: "later" },
+      { label: "Equipe do estabelecimento", status: "later" },
+      { label: "Mapa com raio de busca", status: "later" },
+      { label: "Chat, telemedicina e aplicativo", status: "later" },
+    ],
+    result:
+      "Um produto pequeno que funciona vale mais que um produto grande que não fica pronto. Estes itens entram sobre uma base já validada por uso real.",
   },
 ];
 
-const concluidas = SPRINTS.filter((s) => s.status === "done").length;
+// "later" e o que ficou fora da janela de entrega: nao conta no progresso.
+const ENTREGAVEIS = SPRINTS.filter((s) => s.status !== "later");
+const concluidas = ENTREGAVEIS.filter((s) => s.status === "done").length;
 const emAndamento = SPRINTS.find((s) => s.status === "doing");
 
 const segColor: Record<Status, string> = {
   done: "bg-success",
   doing: "bg-warning",
   todo: "bg-neutro-border",
+  later: "bg-neutro-border-soft",
 };
 
 export default function RoadmapPage() {
@@ -199,14 +213,19 @@ export default function RoadmapPage() {
           </h1>
           <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-corpo-texto">
             Este é o mapa de evolução da Vetria, do alicerce técnico ao
-            marketplace completo. Cada sprint entrega uma camada de valor real e
-            desbloqueia a próxima.
+            marketplace funcionando. Cada etapa entrega uma camada de valor real
+            e desbloqueia a próxima.
+          </p>
+          <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-corpo-texto">
+            A entrega do MVP está marcada para <b className="text-titulo">{ENTREGA}</b>,
+            com escopo fechado. O último bloco desta página mostra, sem rodeio, o
+            que ficou de fora dessa janela e por quê.
           </p>
           <div className="mt-7 inline-flex items-center gap-2.5 rounded-md bg-white px-5 py-3.5 text-[14px] font-medium text-titulo shadow-sm">
             <ChevronRight size={18} className="text-principal" />
             Princípio:{" "}
             <b className="font-semibold text-principal">
-              cada sprint desbloqueia a próxima. Não se pula etapa.
+              cada etapa desbloqueia a próxima. Não se pula etapa.
             </b>
           </div>
         </div>
@@ -219,8 +238,9 @@ export default function RoadmapPage() {
           <div>
             <b className="font-semibold">Como ler este roadmap:</b> verde =
             concluído e em produção · amarelo = em andamento agora · cinza =
-            planejado. Cada bloco lista os entregáveis daquela fase e o resultado
-            que ela destrava para o produto.
+            planejado para esta entrega · tracejado = fora desta entrega,
+            adiado de propósito. Cada bloco lista os entregáveis daquela etapa e
+            o resultado que ela destrava para o produto.
           </div>
         </div>
       </div>
@@ -234,12 +254,12 @@ export default function RoadmapPage() {
             </h2>
             <span className="text-[13px] text-corpo-texto">
               <b className="text-[15px] text-principal">{concluidas}</b> de{" "}
-              {SPRINTS.length} sprints concluídas · produto visualmente completo
-              (todas as telas no ar)
+              {ENTREGAVEIS.length} etapas concluídas · todas as telas no ar,
+              agora ligando os dados reais
             </span>
           </div>
           <div className="flex gap-[3px] overflow-hidden rounded-pill">
-            {SPRINTS.map((s) => (
+            {ENTREGAVEIS.map((s) => (
               <div
                 key={s.num}
                 className={`h-2.5 flex-1 rounded-pill ${segColor[s.status]}`}
@@ -251,6 +271,7 @@ export default function RoadmapPage() {
             <Legend color="bg-success" label="Concluído" />
             <Legend color="bg-warning" label="Em andamento" />
             <Legend color="bg-neutro-border" label="Planejado" />
+            <Legend color="bg-neutro-border-soft" label="Fora desta entrega" />
           </div>
         </div>
       </div>
@@ -271,8 +292,8 @@ export default function RoadmapPage() {
             <b className="text-white">Vetria</b> · Roadmap de evolução do produto
           </p>
           <p className="mt-2 text-[12px] text-white/55">
-            Cada sprint constrói sobre a anterior. As próximas fases ganham vida
-            conforme a base amadurece.
+            Cada etapa constrói sobre a anterior. Página atualizada a cada
+            fechamento de fase, com o andamento real e não com o planejado.
           </p>
         </div>
       </footer>
@@ -293,18 +314,21 @@ const dotStyle: Record<Status, string> = {
   done: "border-success bg-success text-white",
   doing: "border-warning bg-warning text-white",
   todo: "border-neutro-border bg-white text-transparent",
+  later: "border-neutro-border-soft bg-neutro-bg-alt text-transparent",
 };
 
 const badgeStyle: Record<Status, string> = {
   done: "bg-success-soft text-success",
   doing: "bg-warning-soft text-warning",
   todo: "border border-neutro-border bg-neutro-bg-alt text-text-muted",
+  later: "border border-dashed border-neutro-border bg-transparent text-text-muted",
 };
 
 const badgeLabel: Record<Status, string> = {
   done: "Concluída",
   doing: "Em andamento",
   todo: "Planejado",
+  later: "Fora desta entrega",
 };
 
 function StatusIcon({ status, size = 12 }: { status: Status; size?: number }) {

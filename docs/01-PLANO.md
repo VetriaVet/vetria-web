@@ -178,6 +178,7 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 | **Quinta** | Varredura de QA da semana → relatório | qa |
 | **Sexta** | Fecha a semana: achados viram tasks, docs sincronizados, commit de fechamento | escriba |
 | **Fim de fase** | Checa o Definition of Done item por item. **Não avança sem passar.** | maestro |
+| **Fim de fase** | Ressincroniza `/roadmap`, que é a janela dos donos pro andamento real. | escriba |
 
 > **Regra de não-deriva:** nenhuma task entra na fila da semana sem apontar pra uma
 > capacidade E1–E6 do escopo. Ideia boa que não aponta vai pra `04-RISCOS.md` §Ideias
