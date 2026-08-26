@@ -19,6 +19,8 @@ depois roda `supabase/verificar-apos-0002.sql`, sonda por sonda.
 
 **Backup:** feito e conferido em `supabase/backups/` (17 linhas, fora do versionamento).
 
+👉 **Roteiro de execução passo a passo: [`docs/RODAR-S1.md`](RODAR-S1.md)**
+
 ---
 
 ## O QUE FUNCIONA DE VERDADE HOJE
