@@ -54,3 +54,8 @@ vetria-proto/
 # sessão e em qualquer máquina, não só nesta. Ver docs/AGENTES.md (DL-041).
 .claude/*
 !.claude/agents/
+
+# Backups manuais do banco: contem dado pessoal (nome, telefone). Nunca versionar.
+supabase/backups/
+backup-*.txt
+backup-*.csv
