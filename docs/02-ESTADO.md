@@ -11,9 +11,13 @@
 
 **Fase:** F3 — Núcleo de dados · **Semana:** 1 de 13 · **Entrega:** 25/11/2026
 
-**Em execução:** nenhuma task iniciada. Sistema de governança recém-instalado.
+**Em execução:** `T-001` — a migration `0002` está escrita, passou por **4 rodadas de
+auditoria de segurança** e foi **aprovada** na quarta (v5). Não aplicada ainda.
 
-**Próxima task:** `T-001` — Migration 0002 (schema do núcleo). 🔴 presencial.
+**Próximo passo:** o Elber aplica `supabase/migrations/0002_nucleo.sql` no SQL Editor e
+depois roda `supabase/verificar-apos-0002.sql`, sonda por sonda.
+
+**Backup:** feito e conferido em `supabase/backups/` (17 linhas, fora do versionamento).
 
 ---
 

@@ -18,6 +18,16 @@
 -- HISTÓRICO DE REVISÃO
 --   v1  26/08  primeira versão. REPROVADA na auditoria (SEC-2026-08-26):
 --              2 achados 🔴 e 4 🟠. Nunca foi aplicada.
+--   v5  26/08  conferência final: APROVADA. Mais dois 🟡 fechados de véspera:
+--              SEC-028  o carimbo da data cobria UPDATE e deixava o INSERT, e
+--                       a PRIMEIRA data de envio é a que importa. Agora TG_OP.
+--              SEC-032  `perfil_privado` não tinha guarda de role: o responsável
+--                       inseria linha, o trigger o punha em pending_validation e
+--                       admin_definir_status recusava o alvo. A conta ficava
+--                       presa num estado do qual nem o admin tirava. Quarta
+--                       rodada seguida em que o achado nasce do ENCONTRO de uma
+--                       correção nova com um pendente antigo.
+--
 --   v4  26/08  terceira auditoria: modelo de segurança FECHADO (nenhum caminho
 --              de vazamento restante). Os 3 pendentes eram rede de segurança:
 --              SEC-024  a REVERSÃO restaurava as policies e esquecia
@@ -424,7 +434,12 @@ returns trigger
 language plpgsql set search_path = public
 as $$
 begin
-  if new.documento_path is distinct from old.documento_path then
+  -- ⚠️ SEC-028 — cobrir INSERT também. A versão anterior só tratava UPDATE,
+  -- então a PRIMEIRA data de envio, que é a que importa, vinha do cliente e
+  -- podia nascer retroagida. `old` não existe no INSERT, daí o TG_OP.
+  if tg_op = 'INSERT' then
+    new.documento_enviado_em := case when new.documento_path is null then null else now() end;
+  elsif new.documento_path is distinct from old.documento_path then
     new.documento_enviado_em := case when new.documento_path is null then null else now() end;
   else
     new.documento_enviado_em := old.documento_enviado_em;
@@ -434,7 +449,7 @@ end;
 $$;
 
 create trigger trg_perfil_privado_carimbo
-  before update on public.perfil_privado
+  before insert or update on public.perfil_privado
   for each row execute function public.carimbar_envio_documento();
 
 create trigger trg_perfil_privado_updated_at
@@ -528,12 +543,29 @@ create policy perfil_privado_select_own on public.perfil_privado
 create policy perfil_privado_select_admin on public.perfil_privado
   for select to authenticated using (public.is_admin());
 
+-- ⚠️ SEC-032 — guarda de role, e não é preciosismo.
+-- Sem ela, uma conta de responsável insere linha aqui; o trigger de revalidação
+-- então a coloca em `pending_validation`; e `admin_definir_status` recusa alvo
+-- que não seja vet/clinic. A conta fica presa num estado do qual nem o admin
+-- tira. Responsável não tem CRMV nem documento: não tem o que fazer nesta
+-- tabela. O telefone dele mora em `profiles.phone`.
 create policy perfil_privado_insert_own on public.perfil_privado
-  for insert to authenticated with check (id = auth.uid());
+  for insert to authenticated
+  with check (
+    id = auth.uid()
+    and (public.tem_role('vet') or public.tem_role('clinic'))
+  );
 
 create policy perfil_privado_update_own on public.perfil_privado
   for update to authenticated
-  using (id = auth.uid()) with check (id = auth.uid());
+  using (
+    id = auth.uid()
+    and (public.tem_role('vet') or public.tem_role('clinic'))
+  )
+  with check (
+    id = auth.uid()
+    and (public.tem_role('vet') or public.tem_role('clinic'))
+  );
 
 -- ---------- animais ----------
 -- Dado privado do responsável. Ninguém mais lê, nem admin.

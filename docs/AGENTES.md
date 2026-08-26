@@ -95,6 +95,15 @@ Herdadas do `HANDOFF.md` histórico e do `CONTEXT.md` §7 — elas continuam val
                                   vetria-escriba sincroniza docs
 ```
 
+> ### Correção de segurança volta pra revisão. Sempre.
+>
+> Na migration `0002` foram **quatro rodadas**, e em todas houve achado nascido da
+> correção anterior. Um deles teria desligado a busca pública inteira sem aparecer em
+> nenhum teste feito com usuário logado.
+>
+> **Não existe "já corrigi, pode aplicar".** Corrigiu achado 🔴 ou 🟠? Volta pro auditor.
+> A rodada seguinte é barata; o furo que passa, não.
+
 **Auditor nunca conserta o que encontrou.** Quem audita e conserta ao mesmo tempo perde a
 capacidade de enxergar o próprio erro.
 

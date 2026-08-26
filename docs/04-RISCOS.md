@@ -82,6 +82,13 @@
 - **Mitigação:** aviso no topo do `HANDOFF.md` e do `CLAUDE.md`. Conferir com `/agents` no começo da sessão.
 - **Corrige de vez em:** avaliar cópia em `~/.claude/agents/` na S2, aceitando o custo de manter duas cópias sincronizadas.
 
+### R-016 — Um só par de olhos revisando não teria bastado
+- **Descoberto:** 26/08/2026, olhando a curva das 4 auditorias da migration `0002`
+- **O quê:** v1 tinha 2 furos por onde dado real sairia. A v2 fechou os dois e **abriu quatro nas próprias correções**. A v3 fechou os quatro e deixou três. A v4 fechou os três e a conferência achou mais dois, um deles nascido do encontro de uma correção nova com um pendente antigo.
+- **O padrão:** em **quatro rodadas seguidas** houve achado nascido da correção anterior. Um deles (SEC-014) teria desligado a busca pública inteira **sem aparecer em nenhum teste feito com usuário logado**.
+- **A regra que sai disso:** correção de segurança **volta pra revisão**. Não existe "já corrigi, pode aplicar". Está no `docs/AGENTES.md`.
+- **Status:** ✅ virou processo, não fica aberto.
+
 ### R-014 — Não está definido quem OPERA o painel admin
 - **Descoberto:** 26/08/2026, ao conferir de quem são as 17 contas do banco
 - **O quê:** existem apenas 2 contas de admin (1 master, 1 comum). Os sócios da Vetria não são admin: o Durval está no banco como `vet`. A partir da **F3/S4**, quando a validação de CRMV e CNPJ ficar real, alguém precisa abrir a fila diariamente, conferir documento e aprovar.

@@ -41,7 +41,11 @@
 
 # 🔵 EM EXECUÇÃO
 
-_(vazio)_
+### T-001 — Migration 0002: núcleo de dados
+- **Estado:** 🔵 SQL pronto e **APROVADO na auditoria**. Aguarda o Elber aplicar.
+- **Onde parou:** 4 rodadas de auditoria (v1 reprovada com 2 críticos → v5 aprovada). Backup feito e conferido. Falta: aplicar em produção e rodar `supabase/verificar-apos-0002.sql`.
+- **Relatório:** `docs/relatorios/SEC-2026-08-26.md` (2854 linhas, 4 rodadas)
+- **Antes de aplicar:** avisar Marília e Durval de que o cadastro deles será refeito uma vez.
 
 ---
 
