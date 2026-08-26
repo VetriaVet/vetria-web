@@ -21,6 +21,32 @@
 
 ## 🟠 ABERTOS — ALTOS
 
+> **R-020 a R-022 nasceram todos da mesma auditoria** (`docs/relatorios/SEC-2026-08-26-0003.md`,
+> 26/08). Nenhum deles é vazamento **hoje**: o bucket `documentos` ainda não existe e a `0003`
+> não foi aplicada. Os três descrevem o que passa a valer no minuto seguinte à aplicação, e os
+> três custam uma linha enquanto o bucket estiver vazio.
+
+### R-020 — O documento aprovado pode ser trocado no bucket sem que a linha mude (SEC-033)
+- **Descoberto:** 26/08/2026, auditoria da `0003` (não aplicada)
+- **O quê:** a SEC-023 amarrou a revalidação ao **texto** de `documento_path`. No modelo de zero policy quem escreve é o servidor, por URL de upload assinada. Se o mesmo caminho for reutilizado, se um token antigo ainda estiver válido (vivem cerca de 2h) ou se a T-008 usar `upsert`, os bytes mudam, a string não muda, o trigger não dispara e o perfil segue `active`.
+- **Por que importa:** é o cheque em branco vitalício da SEC-016 voltando pela porta que a correção da SEC-020 abre. E vira negação de serviço na fila: caminho apontando pra objeto inexistente dá 404 sem explicação na tela cujo trabalho é abrir aquele arquivo.
+- **Precisa de decisão antes de o bucket existir.** Depois que houver documento de gente real dentro, o conserto fica caro.
+- **Task:** **T-009**
+
+### R-021 — O pré-voo da `0003` não prova "zero policy": ele procura uma string (SEC-034)
+- **Descoberto:** 26/08/2026, auditoria da `0003` (não aplicada)
+- **O quê:** o pré-voo 1.3 aborta se existir policy em `storage.objects` citando `documentos`. Policy **sem filtro de `bucket_id`** alcança todos os buckets e não contém essa string — é a forma que os templates do painel do Supabase geram. A Sonda 2 conta as policies e desqualifica o próprio resultado por escrito.
+- **Consequência se houver policy legada:** a partir da T-008, qualquer conta logada lê documento de identidade de toda a base, com a migration afirmando que a superfície é zero.
+- **Verificação de 10 segundos, e é bloqueante:** `select policyname, cmd, roles, qual, with_check from pg_policies where schemaname='storage' and tablename='objects';` **Tem que vir vazio.**
+- **Task:** **T-010**
+
+### R-022 — Sonda que entrega o veredito por NOTICE devolve "Success" no passa e no falha (SEC-035)
+- **Descoberto:** 26/08/2026, auditoria da `0003` (não aplicada)
+- **O quê:** a Sonda 10 do `verificar-apos-0003.sql` é um bloco `do $$` que só fala por `raise notice`/`raise warning`. O Studio do Supabase é conhecido por não renderizar NOTICE: o resultado na tela é idêntico nos dois casos. Mesmo defeito, menor, no `raise warning` do pré-voo 1.2.
+- **Por que importa:** é o degrau seguinte do DL-050. Lá: revisão não substitui execução. Aqui: **execução que não reporta não é execução.** A sonda que justifica o arquivo é a única que não pode falhar visivelmente.
+- **Verificação de 10 segundos, e é bloqueante:** `do $$ begin raise notice 'teste de notice'; end $$;` Se o texto não aparecer no editor, a sonda é cega.
+- **Task:** **T-011**
+
 ### R-002 — Modelo de `master` inconsistente entre doc, código e enum ⚠️ RECLASSIFICADO
 - **Descoberto:** 26/08/2026 · **Reclassificado:** 26/08/2026, após leitura de `app/api/admin/*`
 - **Classificação original (errada):** "role `master` é barrado do próprio `/admin`". Não procede.
@@ -64,6 +90,27 @@
 
 ## 🟡 ABERTOS — MÉDIOS
 
+### R-023 — Excluir a conta apaga a linha e deixa o documento de identidade no bucket (SEC-039)
+- **Descoberto:** 26/08/2026, auditoria da `0003`
+- **O quê:** `perfil_privado.id` tem `on delete cascade` pra `profiles`, então apagar a conta derruba a linha e o `documento_path`. **O objeto no bucket não é tocado por cascade nenhum** — `storage` é outro serviço. Sem policy, só `service_role` apaga, ou seja: alguém precisa escrever código, e não há card que peça.
+- **Por que importa:** RG, CNH e comprovante de CRMV de quem pediu exclusão continuam no projeto, agora **órfãos**, sem nem a linha que dizia de quem eram. LGPD art. 18 VI atendido pela metade, e a metade que fica é a mais sensível.
+- **Onde entra:** card da exclusão de dados da **F6**, e citado no card da **T-008**, que é onde a convenção de caminho (`<uuid>/`) é fixada e é ela que torna a varredura possível. Não vira card agora.
+
+### R-024 — O CNPJ do estabelecimento viaja no `raw_user_meta_data` e no JWT (SEC-042)
+- **Descoberto:** 26/08/2026, auditoria da `0003`. **Confirmado no código.**
+- **Onde:** `app/cadastro/estabelecimento/page.tsx:47` manda `cnpj` no `data` do `signUp`. `handle_new_user` ignora o campo, que fica gravado pra sempre em `auth.users.raw_user_meta_data`.
+- **Três problemas:** (1) cópia não classificada num lugar que nenhum documento menciona e nenhuma policy governa, no exato momento em que a `0003` decide por escrito que CNPJ é privado; (2) é **dado não confiável** (escrito pelo cliente, reescrevível por `auth.updateUser`), e o risco é alguém na T-007 achar que "o CNPJ já está no metadata" e economizar o campo; (3) **viaja no JWT** — o Supabase inclui `user_metadata` nas claims —, indo pro storage do navegador e pra todo header `Authorization`.
+- **LGPD:** a rotina de exportação e exclusão da F6 vai ser escrita olhando `profiles` e `perfil_privado`. Essa cópia escapa das duas, e o defeito é invisível pra quem escrever a rotina.
+- **É o único outlier dos três funis:** `app/cadastro/veterinario/page.tsx:46` e `app/cadastro/responsavel/page.tsx:50` mandam só `full_name`, `cidade` e `role`. O custo de alinhar é apagar uma palavra.
+- **Bônus, que não é segurança:** `full_name` está recebendo o **nome fantasia**, que não é nome de pessoa, e vai aparecer em saudação e em email como se fosse.
+- **Corrige em:** F3/S2, junto com a T-007 (mesmo arquivo, mesmo funil). Não vira card próprio.
+
+### R-025 — O pré-voo da `0003` nunca olha `storage.buckets`, e o `on conflict` reconcilia em silêncio (SEC-045)
+- **Descoberto:** 26/08/2026, auditoria da `0003` (não aplicada)
+- **O quê:** são cinco asserções de pré-voo e nenhuma pergunta se já existe bucket `documentos`. Se existir, público, com objetos de uma tentativa manual anterior, a migration o torna privado e **segue sem dizer nada**: o operador termina a sessão sem saber que existia um bucket de documentos exposto, por quanto tempo e com o quê dentro.
+- **Agravante de ordem:** a reconciliação acontece na seção 2 e o `commit` só vem depois da seção 7. Se a guarda da seção 5 ou o DROP levantarem, a transação reverte e **o bucket volta a ser público**, com a única mensagem na tela falando de divergência entre `clinic_profiles` e `perfil_privado`, assunto sem relação.
+- **Correção:** pré-voo 1.6, um bloco `do`, que aborta se o bucket já existir, imprimindo `public`, `file_size_limit` e `allowed_mime_types` atuais. Entra na correção da `0003`, antes da sessão presencial. Não vira card próprio.
+
 ### R-018 — `clinic_profiles` publica CNPJ, razão social e o nome do responsável técnico para `anon` (SEC-020)
 - **Descoberto:** 26/08/2026, auditoria da `0002` (2ª revisão). **Nunca foi decidido, e a `0002` foi aplicada assim.**
 - **O quê:** a policy `clinic_profiles_select_publico` libera a **linha inteira** de todo estabelecimento `active`. RLS é ROW-level: liberar a linha libera `cnpj`, `razao_social`, `responsavel_tecnico`, `endereco` e `cep` junto com o que é vitrine. `responsavel_tecnico` é **nome de pessoa física**.
@@ -71,6 +118,14 @@
 - **A decisão que falta:** ou as cinco colunas são vitrine por decisão registrada em `05-DECISOES.md`, ou descem para `perfil_privado` — e descer é **migration**, ou seja, 🔴 e sessão presencial.
 - **Onde decidir sem custo:** na mesma sessão da **T-002**, com o banco já aberto. Está no card.
 - **Prazo máximo:** antes da F3/S4 (primeira aprovação real). 🟡
+- **26/08 — CONTINUA ABERTO, e é importante não confundir.** A decisão foi tomada e a correção
+  foi **escrita** (`0003`: os três campos descem pra `perfil_privado`; `endereco`, `cep`,
+  `cidade` e `estado` continuam públicos por `comment on column`). Mas a `0003` **não foi
+  aplicada** e foi **reprovada** pela auditoria (`SEC-2026-08-26-0003.md`). Risco só fecha
+  quando o banco muda, não quando o SQL existe. **Achado novo na mesma linha:** depois da
+  `0003`, o ramo `clinic_profiles` do trigger vigia só `nome_fantasia`, então um
+  estabelecimento aprovado troca `endereco`, `cep`, `cidade` e `estado` e continua `active`
+  (SEC-041). É uma linha no trigger e entra na mesma correção.
 
 ### R-019 — O plano promete foto de perfil e horários, e não existe nem campo nem coluna para nenhum dos dois
 - **Descoberto:** 26/08/2026, na abertura da S2, conferindo o `01-PLANO.md` §S2 contra o código e o schema
@@ -110,6 +165,7 @@
 - **O quê:** v1 tinha 2 furos por onde dado real sairia. A v2 fechou os dois e **abriu quatro nas próprias correções**. A v3 fechou os quatro e deixou três. A v4 fechou os três e a conferência achou mais dois, um deles nascido do encontro de uma correção nova com um pendente antigo.
 - **O padrão:** em **quatro rodadas seguidas** houve achado nascido da correção anterior. Um deles (SEC-014) teria desligado a busca pública inteira **sem aparecer em nenhum teste feito com usuário logado**.
 - **A regra que sai disso:** correção de segurança **volta pra revisão**. Não existe "já corrigi, pode aplicar". Está no `docs/AGENTES.md`.
+- **26/08 — o padrão se repetiu na `0003`, na variante mais cara.** A auditoria não achou erro de SQL: achou **salvaguarda que afirma mais do que faz** (pré-voo que diz provar "zero policy" e procura uma string; sonda que entrega o veredito por um canal que o editor não mostra). Salvaguarda que produz confiança falsa é pior que a ausência dela, porque ninguém volta a conferir o que já foi declarado verde. **Corolário do R-016:** revisar a correção não basta se a correção for uma asserção — a asserção também precisa ser exercitada contra o caso que ela diz cobrir.
 - **Status:** ✅ virou processo, não fica aberto.
 
 ### R-014 — Não está definido quem OPERA o painel admin
@@ -120,12 +176,6 @@
   1. Marília e Durval recebem conta de **admin comum** para aprovar profissionais?
   2. Se o Durval também quiser **perfil público de veterinário**, precisa de **duas contas com emails diferentes**. `1 usuário = 1 role` é a regra que sustenta o RBAC inteiro (DL-044), e abrir exceção para sócio é abrir para todo mundo.
 - **Não bloqueia a F3/S1.** Bloqueia o uso real da S4.
-
-### R-015 — Token do GitHub em texto puro na URL do remote
-- **Herdado de:** DL-002, quando resolver rápido era o certo
-- **O quê:** o token fica no `.git/config` em texto puro e aparece em qualquer `git remote -v`. Expirou em 26/08/2026 e travou o push.
-- **Por que importa agora:** são 3 meses de commits pela frente, e o `credential.helper` já está configurado como `manager` nesta máquina. Dá pra deixar o remote limpo e autenticar uma vez pelo navegador.
-- **Corrige em:** F3/S2, junto com as outras tarefas de infraestrutura. 🟡
 
 ### R-010 — `.claude/settings.local.json` com ~90 permissões de commit hardcoded
 - Cada mensagem de commit virou uma permissão literal. Não escala e polui. Simplificar pra padrões amplos quando incomodar.

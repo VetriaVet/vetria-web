@@ -3,7 +3,7 @@
 > **Este é o primeiro arquivo que qualquer sessão ou agente lê.**
 > Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
 >
-> **Última atualização:** 26/08/2026 · **Fase:** F3 (S2 aberta) · **Commit base:** `7ce2518` (HEAD do código na abertura da S2)
+> **Última atualização:** 26/08/2026 (auditoria da `0003`) · **Fase:** F3 (S2 aberta) · **Commit base:** `2138fe1`
 
 ---
 
@@ -11,7 +11,17 @@
 
 **Fase:** F3 — Núcleo de dados · **Semana:** 2 de 13 · **Entrega:** 25/11/2026
 
-**Em execução:** nada ainda. A **S2 foi aberta em 26/08/2026** com 5 cards em `03-TAREFAS.md`.
+**Em execução:** nada. A **S2 foi aberta em 26/08/2026** com 5 cards, e a auditoria da `0003`
+acrescentou mais 4 no mesmo dia: **9 cards** em `03-TAREFAS.md`.
+
+**A `0003` existe em arquivo, foi auditada e foi REPROVADA.** Ela cria o bucket privado
+`documentos` e desce `razao_social`, `cnpj` e `responsavel_tecnico` pra `perfil_privado` (fecha
+SEC-020 / R-018). **Nada disso está no banco.** O SQL de dado está certo — ordem, cópia,
+dependência e reversão percorridas contra o schema real. O que reprova são **salvaguardas que
+não fazem o que o comentário diz que fazem**: um pré-voo que declara provar "zero policy" e não
+vê a policy que alcança tudo, e a sonda mais importante entregando o veredito por um canal que
+o editor não mostra. 13 achados em `docs/relatorios/SEC-2026-08-26-0003.md`. **T-009 a T-012
+são os bloqueantes**, e nenhum pede reescrita.
 
 **O trabalho da semana:** matar a casca dos onboardings profissionais. Hoje o "Concluir"
 do veterinário e o do estabelecimento só marcam `onboarding_completed = true` e **descartam
@@ -19,23 +29,24 @@ tudo que a pessoa digitou**. Ninguém entra na fila de validação, porque `stat
 `incomplete`. As tabelas (`vet_profiles`, `clinic_profiles`, `perfil_privado`), a RLS e a
 função `concluir_onboarding_profissional()` já existem desde a `0002`: falta o código chamar.
 
-**Ordem da S2:** `T-002` (🔴 presencial) → `T-006` (vet persiste) → `T-007` (estabelecimento
-persiste) → `T-008` (upload, bloqueada pela T-002). **`T-003` (Playwright + CI) corre em
-paralelo desde o primeiro dia**, porque `vetria-qa` só escreve em `tests/`.
+**Ordem da S2:** `T-010`/`T-011` (correção da `0003`) e `T-009`/`T-012` (decisões, antes de o
+bucket existir) → `T-002` (🔴 presencial, aplicar) → `T-006` (vet persiste) → `T-007`
+(estabelecimento persiste) → `T-008` (upload). **`T-003` (Playwright + CI) corre em paralelo
+desde o primeiro dia**, porque `vetria-qa` só escreve em `tests/`.
 
 ⚠️ **Precisa do Elber:** a `T-002` é 🔴 e **não anda sem sessão presencial**. Ela já escorregou
-uma semana. Sem ela não há upload (T-008) e o item 3 do DoD da F3 fica sem documento pra
-abrir. **Agende.** Na mesma sessão, decidir a SEC-020 (R-018) custa quase nada e evita uma
-terceira sessão presencial antes da F4.
+uma semana. Sem ela não há upload (T-008) e o item 3 do DoD da F3 fica sem documento pra abrir.
+**Agende.**
 
-**S1 entregou 5 de 6:** governança, baseline, migration `0002`, auditoria (4 rodadas) e o
-fix de layout dos onboardings. **Escorregaram pra S2:** T-002 e T-003.
+⚠️ **Duas consultas de 10 segundos, no dashboard, ANTES de agendar.** Elas decidem se dois dos
+quatro bloqueantes existem de fato:
+1. `select policyname, cmd, roles, qual, with_check from pg_policies where schemaname='storage' and tablename='objects';` — **tem que vir vazio.** Se vier linha sem filtro de `bucket_id`, a migration não roda.
+2. `do $$ begin raise notice 'teste de notice'; end $$;` — se o texto não aparecer no editor, a Sonda 10 é cega.
 
-**Saiu da S2 por decisão do maestro:** o onboarding do responsável vai pra S3 (nenhum item
-do DoD da F3 depende dele), e foto de perfil e horários não entram (não existe campo nem
-coluna, ver R-019).
-
-**Backup pré-migration:** `supabase/backups/` (17 linhas, fora do versionamento).
+**S1 entregou 5 de 6:** governança, baseline, migration `0002`, auditoria (4 rodadas) e o fix
+de layout dos onboardings. **Escorregaram pra S2:** T-002 e T-003. **Saiu da S2 por decisão do
+maestro:** onboarding do responsável vai pra S3, e foto de perfil e horários não entram (R-019).
+**Backup pré-migration:** `supabase/backups/`, fora do versionamento.
 
 ---
 
@@ -151,7 +162,7 @@ API
 
 ## ARQUIVOS HISTÓRICOS (leitura só quando precisar de contexto antigo)
 
-- `CONTEXT.md` — 1043 linhas, DL-001 a DL-040. **Congelado.** Decisões novas vão pro `05-DECISOES.md`.
-- `BACKLOG.md` — tasks TASK-001 a TASK-039 da fase visual. **Congelado.** Fila nova vai pro `03-TAREFAS.md`.
-- `DEMO.md` — roteiro de apresentação da fase visual.
-- `../VETRIA_PROJETO.md` — documento mãe de abril. **Desatualizado** (fala de Poppins/Cormorant, revertidos em DL-032). Vale pelo mapa de telas e pelos backlogs V2/V3.
+**Congelados, não escreva neles.** `CONTEXT.md` (DL-001 a DL-040) · `BACKLOG.md` (TASK-001 a
+039, fase visual) · `DEMO.md` (roteiro de apresentação) · `../VETRIA_PROJETO.md`, documento mãe
+de abril, **desatualizado** (fala de Poppins/Cormorant, revertidos em DL-032) mas ainda válido
+pelo mapa de telas e pelos backlogs V2/V3.
