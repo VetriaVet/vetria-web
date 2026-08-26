@@ -44,13 +44,23 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 - 🔴 **Sessão presencial obrigatória** (Elber aplica).
 
 ### S2 — Onboarding que persiste
-- Onboarding do veterinário grava em `vet_profiles` (CRMV, especialidades, cidades, bio, foto).
-- Onboarding do estabelecimento grava em `clinic_profiles` (CNPJ, endereço, serviços, horários).
-- Onboarding do responsável grava nome/cidade em `profiles`.
-- Upload de documento pro Storage com validação de tipo e tamanho.
+> **Ajustado na abertura da semana, 26/08/2026** (`vetria-maestro`). O que mudou e por quê
+> está no cabeçalho da fila da S2 em `03-TAREFAS.md`. Resumo: entram a T-002 e a T-003, que
+> escorregaram da S1; sai o onboarding do responsável; saem foto e horários.
+
+- Onboarding do veterinário grava em `vet_profiles` (CRMV, especialidades, cidade, bio) e o
+  contato em `perfil_privado`. ~~foto~~ → não existe coluna nem campo, ver **R-019**.
+- Onboarding do estabelecimento grava em `clinic_profiles` (CNPJ, endereço, serviços).
+  ~~horários~~ → não existe coluna nem campo, ver **R-019**.
+- ~~Onboarding do responsável grava nome/cidade em `profiles`~~ → **movido para a S3**, junto
+  com os editores de perfil. Nenhum item do DoD da F3 depende dele.
+- Bucket de documentos (T-002, 🔴 herdada da S1) e upload com validação de tipo e tamanho.
 - Ao concluir: `status` vai de `incomplete` → `pending_validation` **no servidor**.
+- Playwright + CI (T-003, herdada da S1), em paralelo.
 
 ### S3 — Portão de status
+- Onboarding do responsável passa a gravar nome e cidade em `profiles`, e o animal em `animais`
+  (veio da S2).
 - `middleware.ts` reescrito: isolamento de role por prefixo de rota + bloqueio por `status`.
   - vet/estabelecimento com `status != active` → `/app/<painel>/aguardando`.
   - **Corrige o furo atual (R-001):** hoje um responsável logado alcança `/app/veterinario/*`.

@@ -42,12 +42,12 @@
 
 ### R-003 — Zero testes automatizados em código que já está em produção
 - **O quê:** ~45 telas, auth real, RBAC, e nenhuma verificação automática. Nas próximas 12 semanas o banco inteiro entra por baixo dessas telas.
-- **Corrige em:** F3 / S1 — T-003
+- **Corrige em:** F3 / **S2** — T-003. **Escorregou da S1 sem ninguém decidir que escorregaria**, que é a forma mais comum de dívida crescer. Se escorregar de novo, o item 5 do DoD da F3 fica sem chance de fechar em quatro semanas.
 
 ### R-004 — `dangerouslyAllowSVG: true` no `next.config.ts`
 - **O quê:** necessário pra logo SVG renderizar via `next/image` (DL-040). Está mitigado por CSP sandbox. Vira risco real se algum dia entrar SVG enviado por usuário (foto de perfil, documento).
 - **Regra:** **nunca** servir SVG de origem de usuário por `next/image`. Upload de imagem de usuário aceita só raster (jpg/png/webp).
-- **Corrige em:** F3 / S2, como validação de MIME no upload
+- **Corrige em:** F3 / S2 — **T-008**, como validação de MIME no upload. O CHECK de `documento_path` já barra `.svg` no banco (SEC-026); falta barrar no servidor, antes de o arquivo existir.
 
 ### R-005 — Duplicação `is_master_admin` / `is_admin_master`
 - **Herdado de:** DL-014/015 (a versão `SECURITY INVOKER` causou recursão infinita de RLS)
@@ -64,14 +64,30 @@
 
 ## 🟡 ABERTOS — MÉDIOS
 
-### R-017 — Margens negativas órfãs depois da reestruturação do chrome
+### R-018 — `clinic_profiles` publica CNPJ, razão social e o nome do responsável técnico para `anon` (SEC-020)
+- **Descoberto:** 26/08/2026, auditoria da `0002` (2ª revisão). **Nunca foi decidido, e a `0002` foi aplicada assim.**
+- **O quê:** a policy `clinic_profiles_select_publico` libera a **linha inteira** de todo estabelecimento `active`. RLS é ROW-level: liberar a linha libera `cnpj`, `razao_social`, `responsavel_tecnico`, `endereco` e `cep` junto com o que é vitrine. `responsavel_tecnico` é **nome de pessoa física**.
+- **Por que não explodiu ainda:** não existe nenhum estabelecimento `active` no banco. A conta só vence quando o primeiro for aprovado (F3/S4) e, principalmente, quando o perfil público existir (F4/S7).
+- **A decisão que falta:** ou as cinco colunas são vitrine por decisão registrada em `05-DECISOES.md`, ou descem para `perfil_privado` — e descer é **migration**, ou seja, 🔴 e sessão presencial.
+- **Onde decidir sem custo:** na mesma sessão da **T-002**, com o banco já aberto. Está no card.
+- **Prazo máximo:** antes da F3/S4 (primeira aprovação real). 🟡
+
+### R-019 — O plano promete foto de perfil e horários, e não existe nem campo nem coluna para nenhum dos dois
+- **Descoberto:** 26/08/2026, na abertura da S2, conferindo o `01-PLANO.md` §S2 contra o código e o schema
+- **O quê:** o plano da S2 diz "foto" para o veterinário e "horários" para o estabelecimento. Na realidade: `vet_profiles` não tem coluna de foto, `clinic_profiles` não tem coluna de horários, o `ClinicOnboardingForm` **não coleta horário nenhum**, e o `VetOnboardingForm:229` já avisa honestamente "Upload de foto chega em breve".
+- **Consequência de fazer agora:** coluna nova é migration (🔴) e foto pública é **outro bucket**, público, com regra própria. Some com a semana.
+- **Não é corte de escopo:** o `00-ESCOPO.md` §2 não menciona foto nem horário em E1 a E6. É imprecisão do plano, não do contrato.
+- **Onde entra de fato:** foto pesa na **F4/S7** (perfil público sem foto converte mal). Horário é candidato natural a mês 4. Quem decidir, registra em `05-DECISOES.md`. 🟡
+
+### R-017 — Margens negativas órfãs depois da reestruturação do chrome ✅ CORRIGIDO
 - **Descoberto:** 26/08/2026, no primeiro cadastro real de ponta a ponta
 - **O quê:** telas escritas quando o layout pai tinha padding usam `-m-6 sm:-m-8` pra furá-lo. Quando o chrome foi reestruturado (DL-025/DL-031) e os onboardings saíram do route group `(painel)`, esse padding sumiu e a margem negativa passou a jogar o conteúdo pra fora da viewport.
 - **Por que ninguém tinha visto:** a fase visual foi conferida com as telas navegadas **por dentro do app**, não entrando por um link de confirmação de email. E ninguém tinha feito um cadastro real de ponta a ponta desde a reestruturação.
-- **Onde:** confirmado em `VetOnboardingForm.tsx:92`. Provável em `ClinicOnboardingForm.tsx` (é clone).
-- **Corrige em:** F3/S2 — T-005
-- **Lição pro `vetria-qa`:** conferir tela navegando por dentro do app esconde bug de layout de tela alcançada por link externo. 🟡
-- Herdado de DL-039/040. Canonical `www` × apex não padronizado. Vira problema de SEO quando os perfis públicos forem indexáveis (F4/S7).
+- **Corrigido em:** T-005, commit `2ca98cf` (26/08/2026), nos dois formulários. Varredura confirmou que eram as duas únicas ocorrências no `app/`.
+- **Lição pro `vetria-qa`, que continua valendo:** conferir tela navegando por dentro do app esconde bug de layout de tela alcançada por link externo.
+
+### R-007 — Canonical `www` × apex não padronizado
+- Herdado de DL-039/040. Vira problema de SEO quando os perfis públicos forem indexáveis (F4/S7). 🟡
 
 ### R-008 — Documentação fragmentada e contraditória
 - `VETRIA_PROJETO.md` (raiz do Desktop) fala de Poppins + Cormorant, revertidos em DL-032. Diz que "Supabase será refeito", o que não aconteceu.
@@ -86,7 +102,8 @@
 - **O quê:** o Claude Code resolve `.claude/agents/` a partir do diretório onde a sessão foi aberta. Sessão aberta em `Desktop/Vetria` (a pasta de cima) não enxerga nenhum dos 6 agentes, e também não lê o `CLAUDE.md`. O erro é `Agent type 'vetria-seguranca' not found`, que parece problema de configuração e não é.
 - **Por que importa:** todo o sistema de governança depende dos agentes existirem. Se a sessão abre na pasta errada, o trabalho continua acontecendo, mas sem segurança, sem QA e sem as regras da matriz de permissões. Falha silenciosa, que é a pior categoria.
 - **Mitigação:** aviso no topo do `HANDOFF.md` e do `CLAUDE.md`. Conferir com `/agents` no começo da sessão.
-- **Corrige de vez em:** avaliar cópia em `~/.claude/agents/` na S2, aceitando o custo de manter duas cópias sincronizadas.
+- **Corrige de vez em:** avaliar cópia em `~/.claude/agents/`, aceitando o custo de manter duas cópias sincronizadas.
+- **Decisão do maestro na abertura da S2:** **não virou card.** Não aponta para nenhuma capacidade E1 a E6, e card sem capacidade não entra na fila (regra 1 da fila). Continua como mitigação por aviso no `CLAUDE.md` e no `HANDOFF.md`. Se a falha se repetir uma segunda vez, aí sim vira card e come tempo de semana.
 
 ### R-016 — Um só par de olhos revisando não teria bastado
 - **Descoberto:** 26/08/2026, olhando a curva das 4 auditorias da migration `0002`
@@ -132,7 +149,8 @@
 > Aqui mora tudo que é boa ideia mas não foi contratado pras 13 semanas.
 > Registrar aqui é o que permite dizer "não" sem perder a ideia.
 
-- _(vazio — anotar aqui quando surgir)_
+- **Horários de funcionamento do estabelecimento.** Boa ideia, e o `01-PLANO.md` §S2 chegou a prometer. Não existe campo no formulário nem coluna na tabela, e criar coluna é migration presencial. Fora do escopo dos 3 meses (`00-ESCOPO.md` §2 não cita horário em nenhuma das seis capacidades). **Anotada pro mês 4.** Ver R-019.
+- **Foto de perfil com upload.** Precisa de um segundo bucket, público, com regra própria de moderação de imagem. Não é requisito de E1 a E6. Volta como decisão na F4/S7, quando o perfil público existir e a falta dela custar conversão. Ver R-019.
 
 ---
 

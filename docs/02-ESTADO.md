@@ -3,24 +3,37 @@
 > **Este é o primeiro arquivo que qualquer sessão ou agente lê.**
 > Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
 >
-> **Última atualização:** 26/08/2026 · **Fase:** F3 (S1) · **Commit base:** `832db2d`
+> **Última atualização:** 26/08/2026 · **Fase:** F3 (S2 aberta) · **Commit base:** `7ce2518` (HEAD do código na abertura da S2)
 
 ---
 
 ## AGORA
 
-**Fase:** F3 — Núcleo de dados · **Semana:** 1 de 13 · **Entrega:** 25/11/2026
+**Fase:** F3 — Núcleo de dados · **Semana:** 2 de 13 · **Entrega:** 25/11/2026
 
-**Em execução:** nada. A **S1 fechou em 26/08/2026**.
+**Em execução:** nada ainda. A **S2 foi aberta em 26/08/2026** com 5 cards em `03-TAREFAS.md`.
 
-**Concluído hoje:** migration `0002` **aplicada em produção** e verificada por 9 sondas.
-O banco deixou de ser só `profiles`.
+**O trabalho da semana:** matar a casca dos onboardings profissionais. Hoje o "Concluir"
+do veterinário e o do estabelecimento só marcam `onboarding_completed = true` e **descartam
+tudo que a pessoa digitou**. Ninguém entra na fila de validação, porque `status` continua
+`incomplete`. As tabelas (`vet_profiles`, `clinic_profiles`, `perfil_privado`), a RLS e a
+função `concluir_onboarding_profissional()` já existem desde a `0002`: falta o código chamar.
 
-**Próxima task:** `T-003` — Playwright + CI. Não depende do banco.
+**Ordem da S2:** `T-002` (🔴 presencial) → `T-006` (vet persiste) → `T-007` (estabelecimento
+persiste) → `T-008` (upload, bloqueada pela T-002). **`T-003` (Playwright + CI) corre em
+paralelo desde o primeiro dia**, porque `vetria-qa` só escreve em `tests/`.
+
+⚠️ **Precisa do Elber:** a `T-002` é 🔴 e **não anda sem sessão presencial**. Ela já escorregou
+uma semana. Sem ela não há upload (T-008) e o item 3 do DoD da F3 fica sem documento pra
+abrir. **Agende.** Na mesma sessão, decidir a SEC-020 (R-018) custa quase nada e evita uma
+terceira sessão presencial antes da F4.
 
 **S1 entregou 5 de 6:** governança, baseline, migration `0002`, auditoria (4 rodadas) e o
-fix de layout dos onboardings. **Sobrou:** T-002 (bucket de documentos, 🔴 presencial) e
-T-003, que escorregam pra S2.
+fix de layout dos onboardings. **Escorregaram pra S2:** T-002 e T-003.
+
+**Saiu da S2 por decisão do maestro:** o onboarding do responsável vai pra S3 (nenhum item
+do DoD da F3 depende dele), e foto de perfil e horários não entram (não existe campo nem
+coluna, ver R-019).
 
 **Backup pré-migration:** `supabase/backups/` (17 linhas, fora do versionamento).
 
@@ -46,6 +59,7 @@ T-003, que escorregam pra S2.
 Todas essas telas estão no ar, bonitas e navegáveis, mas **não persistem nada**:
 
 - Onboarding de veterinário e de estabelecimento (multi-step) → F3/S2
+- Onboarding do responsável (coleta cidade e um animal, e descarta os dois) → F3/S3
 - Editores de perfil das 3 personas → F3/S3
 - `/admin/validacoes`, `/admin/moderacao`, `/admin/conteudo` → F3/S4
 - Agenda, contatos, avaliações, plano (nos painéis B2B) → fora do escopo dos 3 meses
