@@ -22,6 +22,33 @@
 
 ---
 
+## 📋 PROMPT PRA COLAR NUMA SESSÃO NOVA
+
+Primeiro, abra na pasta certa e confirme com `/agents` que os 6 aparecem.
+Depois cole **uma** destas linhas. O `CLAUDE.md` carrega sozinho e faz o resto.
+
+**Dia a dia:**
+```
+Leia docs/02-ESTADO.md e docs/03-TAREFAS.md. Me diga onde paramos e qual é o próximo card. Não invente task.
+```
+
+**Abrir a semana formalmente:**
+```
+Use o agente vetria-maestro pra abrir a semana.
+```
+
+**Quando algo parecer errado ou desatualizado:**
+```
+Leia docs/02-ESTADO.md, rode git log --oneline -15 e git status, e me diga se a documentação bate com o código. Se não bater, o código é a verdade.
+```
+
+**Retomar uma task que ficou pela metade:**
+```
+A task T-NNN ficou 🔵 em execução. Leia o card em docs/03-TAREFAS.md, confira no git o que já entrou, e continue daquele ponto sem refazer o que já está feito.
+```
+
+---
+
 ## EM 30 SEGUNDOS
 
 **Vetria** é um marketplace que conecta responsáveis por animais a veterinários e
