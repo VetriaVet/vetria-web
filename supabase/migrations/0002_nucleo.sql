@@ -18,6 +18,19 @@
 -- HISTÓRICO DE REVISÃO
 --   v1  26/08  primeira versão. REPROVADA na auditoria (SEC-2026-08-26):
 --              2 achados 🔴 e 4 🟠. Nunca foi aplicada.
+--   v6  26/08  PRIMEIRA TENTATIVA REAL DE APLICAR FALHOU, e o erro não estava
+--              em nada que as 4 auditorias procuraram:
+--              `ERROR 42703: column "status" does not exist`, na linha da
+--              função `perfil_esta_ativo()`.
+--              Causa: ela é LANGUAGE sql e consulta `profiles.status`. O
+--              Postgres valida o corpo de função sql no CREATE
+--              (check_function_bodies), e a coluna só era criada DEPOIS.
+--              Correção: as colunas passaram para a seção 2, as funções para a
+--              seção 3. Nada mais mudou.
+--              Lição: as auditorias revisaram semântica e autorização, que era
+--              o pedido, e ninguém percorreu a ordem de execução contra um
+--              banco de verdade. Revisão não substitui execução.
+--
 --   v5  26/08  conferência final: APROVADA. Mais dois 🟡 fechados de véspera:
 --              SEC-028  o carimbo da data cobria UPDATE e deixava o INSERT, e
 --                       a PRIMEIRA data de envio é a que importa. Agora TG_OP.
@@ -131,68 +144,16 @@ create type public.contato_canal as enum ('whatsapp', 'telefone', 'agendamento')
 -- NENHUM dos dois é usado nos 3 meses. Ver DL-047.
 
 
--- ============================================================================
--- 2. FUNÇÕES DE AUTORIZAÇÃO
--- ============================================================================
--- Toda função usada em policy é SECURITY DEFINER + SET search_path (DL-015).
--- SECURITY DEFINER ignora RLS, que é justamente o que evita a recursão.
-
--- 2.1 — admin comum OU master. Necessária pelo DL-045: admin comum vê a fila
--- de validação. Hoje NÃO existe policy que deixe admin comum ler profiles, e o
--- painel só funciona porque a API usa SERVICE_ROLE, ignorando RLS.
-create or replace function public.is_admin()
-returns boolean
-language sql stable security definer set search_path = public
-as $$
-  select exists (
-    select 1 from public.profiles
-    where id = auth.uid() and role = 'admin'
-  );
-$$;
-
--- 2.2 — o perfil é publicamente visível? Usada nas policies de leitura PÚBLICA.
--- Precisa ser DEFINER: um visitante anônimo não enxerga profiles pela RLS.
---
--- ⚠️ EXIGE role E status (correção SEC-001). A versão anterior checava só
--- `status`, e como o responsável nasce 'active', qualquer conta de responsável
--- podia inserir uma linha em vet_profiles e aparecer na busca. A matriz §3 manda
--- `role IN ('vet','clinic') AND status='active'`: as DUAS metades.
-create or replace function public.perfil_esta_ativo(p_id uuid, p_role public.user_role)
-returns boolean
-language sql stable security definer set search_path = public
-as $$
-  select exists (
-    select 1 from public.profiles
-    where id = p_id and role = p_role and status = 'active'
-  );
-$$;
-
--- 2.4 — o usuário logado tem este role? Guarda os INSERT/UPDATE dos perfis
--- profissionais (correção SEC-001). DEFINER pelo mesmo motivo das outras.
-create or replace function public.tem_role(p_role public.user_role)
-returns boolean
-language sql stable security definer set search_path = public
-as $$
-  select exists (
-    select 1 from public.profiles
-    where id = auth.uid() and role = p_role
-  );
-$$;
-
--- 2.3 — endurece a trigger de updated_at (faltava search_path)
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql set search_path = public
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
-
+-- ⚠️ A ORDEM DESTAS DUAS SEÇÕES IMPORTA, E JÁ QUEBROU UMA VEZ.
+-- As colunas vêm ANTES das funções. `perfil_esta_ativo()` é LANGUAGE sql e
+-- consulta `profiles.status`; o Postgres valida o corpo de função sql na hora
+-- do CREATE (check_function_bodies), então criá-la antes da coluna existir
+-- falha com `column "status" does not exist` e derruba a migration inteira.
+-- Descoberto na primeira tentativa real de aplicar, em 26/08/2026: quatro
+-- auditorias revisaram a semântica e nenhuma pegou a ordem de execução.
 
 -- ============================================================================
--- 3. profiles.status
+-- 2. profiles.status e profiles.status_motivo
 -- ============================================================================
 -- NOT NULL com DEFAULT não reescreve a tabela no Postgres 11+.
 
@@ -209,6 +170,66 @@ comment on column public.profiles.status_motivo is
 
 comment on column public.profiles.status is
   'Estado do usuário. NUNCA escrito pelo próprio usuário: só por admin, via admin_definir_status(). Ver docs/06-PERMISSOES.md §3.';
+
+
+-- ============================================================================
+-- 3. FUNÇÕES DE AUTORIZAÇÃO
+-- ============================================================================
+-- Toda função usada em policy é SECURITY DEFINER + SET search_path (DL-015).
+-- SECURITY DEFINER ignora RLS, que é justamente o que evita a recursão.
+
+-- 3.1 — admin comum OU master. Necessária pelo DL-045: admin comum vê a fila
+-- de validação. Hoje NÃO existe policy que deixe admin comum ler profiles, e o
+-- painel só funciona porque a API usa SERVICE_ROLE, ignorando RLS.
+create or replace function public.is_admin()
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+-- 3.2 — o perfil é publicamente visível? Usada nas policies de leitura PÚBLICA.
+-- Precisa ser DEFINER: um visitante anônimo não enxerga profiles pela RLS.
+--
+-- ⚠️ EXIGE role E status (correção SEC-001). A versão anterior checava só
+-- `status`, e como o responsável nasce 'active', qualquer conta de responsável
+-- podia inserir uma linha em vet_profiles e aparecer na busca. A matriz §3 manda
+-- `role IN ('vet','clinic') AND status='active'`: as DUAS metades.
+create or replace function public.perfil_esta_ativo(p_id uuid, p_role public.user_role)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = p_id and role = p_role and status = 'active'
+  );
+$$;
+
+-- 3.3 — o usuário logado tem este role? Guarda os INSERT/UPDATE dos perfis
+-- profissionais (correção SEC-001). DEFINER pelo mesmo motivo das outras.
+create or replace function public.tem_role(p_role public.user_role)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = p_role
+  );
+$$;
+
+-- 3.4 — endurece a trigger de updated_at (faltava search_path)
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql set search_path = public
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
 
 
 -- ============================================================================
