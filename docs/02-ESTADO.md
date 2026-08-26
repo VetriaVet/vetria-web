@@ -3,7 +3,7 @@
 > **Este é o primeiro arquivo que qualquer sessão ou agente lê.**
 > Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
 >
-> **Última atualização:** 26/08/2026 (auditoria da `0003`) · **Fase:** F3 (S2 aberta) · **Commit base:** `2138fe1`
+> **Última atualização:** 26/08/2026 (2ª auditoria da `0003`, aprovada) · **Fase:** F3 (S2 aberta) · **Commit base:** `7ce2518`
 
 ---
 
@@ -11,42 +11,42 @@
 
 **Fase:** F3 — Núcleo de dados · **Semana:** 2 de 13 · **Entrega:** 25/11/2026
 
-**Em execução:** nada. A **S2 foi aberta em 26/08/2026** com 5 cards, e a auditoria da `0003`
-acrescentou mais 4 no mesmo dia: **9 cards** em `03-TAREFAS.md`.
+**Em execução:** nada. **6 cards na fila** em `03-TAREFAS.md`. A auditoria da `0003` abriu 4
+cards em 26/08 e **os quatro fecharam no mesmo dia**; sobrou **T-013**, que é uma medição.
 
-**A `0003` existe em arquivo, foi auditada e foi REPROVADA.** Ela cria o bucket privado
-`documentos` e desce `razao_social`, `cnpj` e `responsavel_tecnico` pra `perfil_privado` (fecha
-SEC-020 / R-018). **Nada disso está no banco.** O SQL de dado está certo — ordem, cópia,
-dependência e reversão percorridas contra o schema real. O que reprova são **salvaguardas que
-não fazem o que o comentário diz que fazem**: um pré-voo que declara provar "zero policy" e não
-vê a policy que alcança tudo, e a sonda mais importante entregando o veredito por um canal que
-o editor não mostra. 13 achados em `docs/relatorios/SEC-2026-08-26-0003.md`. **T-009 a T-012
-são os bloqueantes**, e nenhum pede reescrita.
+**A `0003` v2 está APROVADA e aguarda a sessão presencial. Nada dela está no banco ainda.**
+Ela cria o bucket privado `documentos`, desce `razao_social`, `cnpj` e `responsavel_tecnico`
+pra `perfil_privado` (fecha SEC-020 / R-018) e amarra a linha aos **bytes** do documento
+(`documento_hash` + `documento_tamanho`). A v1 foi reprovada; a v2 fechou os quatro bloqueantes
+com prova e cresceu de 810 pra **1598 linhas sem um único erro de SQL**. 6 achados novos,
+nenhum bloqueante e nenhum de vazamento, em `docs/relatorios/SEC-2026-08-26-0003-v2.md`.
 
-**O trabalho da semana:** matar a casca dos onboardings profissionais. Hoje o "Concluir"
-do veterinário e o do estabelecimento só marcam `onboarding_completed = true` e **descartam
-tudo que a pessoa digitou**. Ninguém entra na fila de validação, porque `status` continua
-`incomplete`. As tabelas (`vet_profiles`, `clinic_profiles`, `perfil_privado`), a RLS e a
-função `concluir_onboarding_profissional()` já existem desde a `0002`: falta o código chamar.
-
-**Ordem da S2:** `T-010`/`T-011` (correção da `0003`) e `T-009`/`T-012` (decisões, antes de o
-bucket existir) → `T-002` (🔴 presencial, aplicar) → `T-006` (vet persiste) → `T-007`
-(estabelecimento persiste) → `T-008` (upload). **`T-003` (Playwright + CI) corre em paralelo
-desde o primeiro dia**, porque `vetria-qa` só escreve em `tests/`.
-
-⚠️ **Precisa do Elber:** a `T-002` é 🔴 e **não anda sem sessão presencial**. Ela já escorregou
-uma semana. Sem ela não há upload (T-008) e o item 3 do DoD da F3 fica sem documento pra abrir.
+⚠️ **Precisa do Elber: a `T-002` é 🔴 e não anda sem sessão presencial.** Ela já escorregou uma
+semana. Sem ela não há upload (T-008) e o item 3 do DoD da F3 fica sem documento pra abrir.
 **Agende.**
 
-⚠️ **Duas consultas de 10 segundos, no dashboard, ANTES de agendar.** Elas decidem se dois dos
-quatro bloqueantes existem de fato:
-1. `select policyname, cmd, roles, qual, with_check from pg_policies where schemaname='storage' and tablename='objects';` — **tem que vir vazio.** Se vier linha sem filtro de `bucket_id`, a migration não roda.
-2. `do $$ begin raise notice 'teste de notice'; end $$;` — se o texto não aparecer no editor, a Sonda 10 é cega.
+**Os quatro passos que antecedem a aplicação** (detalhe e as consultas inteiras no card da
+T-002): **(1)** três consultas de dez segundos no dashboard, **antes de agendar** — se o editor
+mostra `select` dentro de transação revertida (T-013), se `storage.objects` e `storage.buckets`
+têm RLS ligada, e se existe conta `clinic` **e** `vet` (sem as duas, cinco sondas se declaram
+inválidas); **(2)** `md5(prosrc)` de `carimbar_envio_documento`, **lendo o corpo** contra
+`0002_nucleo.sql:453-470`, e colar no pré-voo 1.7; **(3)** backup inteiro, com CSV exportados;
+**(4)** colar a migration de uma vez e **ler a tabela de onze colunas** que ela devolve, toda
+`true` e `copia_linhas = 0`. **Só então as sondas**, uma por vez, começando pela 4.
 
-**S1 entregou 5 de 6:** governança, baseline, migration `0002`, auditoria (4 rodadas) e o fix
-de layout dos onboardings. **Escorregaram pra S2:** T-002 e T-003. **Saiu da S2 por decisão do
-maestro:** onboarding do responsável vai pra S3, e foto de perfil e horários não entram (R-019).
-**Backup pré-migration:** `supabase/backups/`, fora do versionamento.
+**O trabalho da semana, depois disso:** matar a casca dos onboardings profissionais. Hoje o
+"Concluir" do veterinário e o do estabelecimento só marcam `onboarding_completed = true` e
+**descartam tudo que a pessoa digitou**. Ninguém entra na fila de validação, porque `status`
+continua `incomplete`. As tabelas, a RLS e `concluir_onboarding_profissional()` existem desde a
+`0002`: falta o código chamar.
+
+**Ordem da S2:** `T-013` (medir) → `T-002` (🔴 presencial, aplicar) → `T-006` → `T-007` →
+`T-008`. **`T-003` (Playwright + CI) corre em paralelo desde o primeiro dia**, porque
+`vetria-qa` só escreve em `tests/`.
+
+**S1 entregou 5 de 6:** governança, baseline, migration `0002`, auditoria e o fix de layout dos
+onboardings. **Escorregaram pra S2:** T-002 e T-003. **Saiu da S2:** onboarding do responsável
+vai pra S3; foto e horários não entram (R-019). **Backup:** `supabase/backups/`, fora do repo.
 
 ---
 

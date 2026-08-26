@@ -5,13 +5,14 @@
 >
 > **Semana atual:** **S2 aberta em 26/08** · **Anterior:** S1 ✅ fechada em 26/08 (5 de 6) · **Fase:** F3
 >
-> **Ordem de execução da S2:** **T-010 e T-011** (correção da `0003`, uma linha cada) e
-> **T-009 e T-012** (decisões, antes de o bucket existir) → **T-002** (🔴 presencial, agendar já)
-> → T-006 → T-007 → T-008.
+> **Ordem de execução da S2:** **T-002** (🔴 presencial, **agendar já** — a `0003` v2 está
+> aprovada e só espera a sessão) → T-006 → T-007 → T-008.
+> **T-013 é medição de dez segundos e vem antes da T-002.**
 > **T-003 corre em paralelo do primeiro dia**, porque `vetria-qa` não disputa arquivo com ninguém.
 >
-> ⚠️ **A `0003` foi reprovada pela auditoria em 26/08.** Os quatro cards novos são os
-> bloqueantes do veredito. Relatório: `docs/relatorios/SEC-2026-08-26-0003.md`.
+> ✅ **A `0003` v2 foi APROVADA pela auditoria em 26/08**, com dois pré-checks de dez segundos.
+> Relatório: `docs/relatorios/SEC-2026-08-26-0003-v2.md` (SEC-046 a SEC-051).
+> **T-009 a T-012 fecharam.** O único card novo é a **T-013** (SEC-046).
 
 ---
 
@@ -56,8 +57,8 @@ _(vazio)_
 # ⬜ FILA — F3 / S2
 
 > **Semana aberta em 26/08/2026 pelo `vetria-maestro`.** 5 cards, na ordem de execução abaixo.
-> **Mais 4 em 26/08, vindos da auditoria da `0003`** (T-009 a T-012): são pré-requisito da
-> T-002 e estão logo depois dela, com o cabeçalho que explica por quê. **9 no total.**
+> **Mais 4 em 26/08, vindos da auditoria da `0003`** (T-009 a T-012) — **os quatro fecharam no
+> mesmo dia**, com a `0003` v2. **Mais 1 da segunda rodada** (T-013, SEC-046). **6 na fila.**
 >
 > **O que mudou em relação ao `01-PLANO.md` §S2, e por quê:**
 > - **T-002 e T-003 escorregaram da S1** e abrem a S2. A T-002 continua 🔴: **sem sessão presencial com o Elber ela não anda, e a T-008 não existe sem ela.**
@@ -97,84 +98,42 @@ _(vazio)_
   - **⚠️ Duas consultas de 10 segundos, no dashboard, ANTES da sessão presencial.** Elas decidem se dois dos quatro bloqueantes existem: `select policyname, cmd, roles, qual, with_check from pg_policies where schemaname='storage' and tablename='objects';` (tem que vir vazio) e `do $$ begin raise notice 'teste de notice'; end $$;` (o texto tem que aparecer no editor).
   - **Achados que viraram card:** T-009 (SEC-033), T-010 (SEC-034), T-011 (SEC-035), T-012 (SEC-036). **Viraram risco:** R-020 a R-025.
   - **A `0003` não precisa ser reescrita.** Tudo cabe no arquivo que existe: duas linhas de asserção, um bloco `do`, uma sonda reformulada e duas decisões escritas.
+- **Resultado (2ª auditoria, da v2 — 26/08/2026, `vetria-seguranca`): ✅ APROVADA para aplicação, com dois pré-checks de dez segundos.**
+  - Relatório: **`docs/relatorios/SEC-2026-08-26-0003-v2.md`**. **6 achados novos, SEC-046 a SEC-051: um 🟠, cinco 🟡, nenhum 🔴.** Base: commit `7ce2518`. A migration continua **não aplicada**.
+  - **Os quatro bloqueantes da v1 estão fechados com prova.** A v2 acrescentou **785 linhas** (810 → 1598) e o arquivo de verificação foi de 14 para **18 sondas** (934 linhas), **sem introduzir um único erro de SQL**. **Nada piorou** em relação à v1.
+  - **Nenhum dos seis achados novos exige mexer no SQL antes de aplicar, e nenhum é vazamento.**
+  - **As seis medições de produção que sustentam o veredito** (colhidas entre as duas rodadas): `pg_policies` em `storage.objects` **vazio**; `storage.buckets` **vazio**; `rolbypassrls` = `service_role` true, `postgres` true, `anon` false, `authenticated` false; `md5(prosrc)` de `revalidar_ao_mudar_dado_sensivel` = `035f8c64c139f2b6e1865341b4995fb7` **com o corpo lido linha a linha contra a `0002`**; o teste de NOTICE **não imprimiu o texto** (SEC-035 confirmada); QUERY 0 do backup com todas as tabelas em 0 e **18 contas / 18 profiles**.
+  - **O 🟠 é a T-013** (SEC-046): três sondas (3, 7C e 9) terminam em `rollback` **depois** do `select` que carrega o veredito. Não impede aplicar; **impede declarar verificado**.
+  - **Os cinco 🟡 viraram R-027 a R-031** e estão anotados nos cards que os herdam: SEC-049 (guarda da SEC-044 trava a linha depois de troca de role) e SEC-051 (o passo 8 da rota tem que gravar com a **sessão do usuário**, senão `actor_id` sai nulo em `audit_logs`) foram levados para os cards que tocam `/api/admin/set-access` e para a **T-008**.
+  - **Uma discordância do autor foi julgada a favor dele e contra o auditor:** derivar o hash do pré-voo 1.7 **de produção** e não do repo está certo; a remediação escrita na SEC-037 estava mal formulada. O que sobra é a SEC-050, e é outra coisa.
+  - ⚠️ **ORDEM DE APLICAÇÃO — siga esta, nesta sequência:**
+    1. **As três consultas de dez segundos**, antes de agendar: (a) `begin; select 42 as prova; rollback;` (decide a SEC-046 / T-013); (b) `select relname, relrowsecurity from pg_class where relnamespace = 'storage'::regnamespace and relname in ('objects','buckets');` — **as duas têm que vir `true`** (decide a SEC-047 e evita perder a sessão); (c) `select role, count(*) from public.profiles group by role;` — **sem conta `clinic` E conta `vet`, cinco sondas se declaram inválidas** e a verificação não prova nada.
+    2. `select md5(prosrc) from pg_proc where proname = 'carimbar_envio_documento';` — **e LER o corpo contra `0002_nucleo.sql:453-470`**, não contra a seção 6.b da `0003` (SEC-050). Colar o hash na constante do pré-voo 1.7.
+    3. **`supabase/backup-antes-da-0003.sql` inteiro**, exportando os CSV.
+    4. **Colar a migration de uma vez** e **ler a tabela de onze colunas** que ela devolve depois do `commit`: **toda coluna `true`**, `copia_linhas = 0`. **Anotar a linha inteira neste card** — os dois `md5` novos são o que a `0004` vai precisar no pré-voo dela.
+    5. **Só então as sondas**, uma por vez, **começando pela 4**.
 
-> ### ⚠️ T-009 a T-012 nasceram da auditoria da `0003` e são **pré-requisito da T-002**
->
-> A `0003` foi **reprovada** em 26/08 (`docs/relatorios/SEC-2026-08-26-0003.md`, SEC-033 a
-> SEC-045). Os quatro cards abaixo são os bloqueantes do veredito. **T-010 e T-011 são uma
-> linha cada** e cabem na correção do arquivo; **T-009 e T-012 são decisão de arquitetura e
-> precisam estar registradas em `05-DECISOES.md` antes de o bucket existir**, porque depois
-> que houver documento de gente real dentro do bucket o conserto muda de preço.
->
-> **Antes de qualquer um deles, rode as duas consultas de 10 segundos** listadas no Resultado
-> da T-002. Elas decidem se dois dos quatro bloqueantes existem de fato.
-
-### T-009 — Amarrar a linha do banco ao objeto que está no bucket
+### T-013 — Medir se o editor renderiza `select` que não é o último comando, e só então mexer nas três sondas
 - **Estado:** ⬜ fila
 - **Fase / Semana:** F3 / S2
 - **Capacidade:** E1
-- **Nível:** 🟠 — decisão de arquitetura, pergunta antes de escrever código
-- **Agente dono:** vetria-backend + Elber
-- **Depende de:** nada (é pré-requisito da T-002)
-- **Por quê:** SEC-033. A revalidação da SEC-023 está amarrada ao **texto** de `documento_path`. Trocar os bytes no mesmo caminho não muda a string, não dispara o trigger e não carimba data: o perfil aprovado segue `active` exibindo um documento que ninguém conferiu. É o cheque em branco vitalício da SEC-016 voltando pela porta que a `0003` abre.
-- **Feito quando:**
-  - [ ] Decidido e registrado em `05-DECISOES.md` **como** a linha se amarra ao objeto: caminho imutável por envio, upload sem `upsert`, e algo que o bucket controle guardado na linha (não só o caminho)
-  - [ ] Respondido no card: **o token de `createSignedUploadUrl` permite `upsert` na versão do SDK que a T-008 vai usar, e quanto tempo ele vive?** Sem essa resposta a decisão é chute
-  - [ ] O card da T-008 passa a dizer, explicitamente, que a rota **nunca reemite URL de upload para caminho que já existe**
-  - [ ] Tratado o caso de negação de serviço: caminho apontando pra objeto inexistente não pode virar 404 mudo na fila do admin
-- **Não fazer:** não escrever a rota de upload (é a T-008). Não criar policy de Storage "só pra resolver isso": a decisão de zero policy está tomada e reabri-la é assunto do Elber, não efeito colateral de card.
-- **Resultado:** _(a preencher)_
-
-### T-010 — O pré-voo da `0003` exige zero policy de verdade
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S2
-- **Capacidade:** E1
-- **Nível:** 🟡 — o arquivo **não está aplicado**; mostra o diff. Aplicar continua 🔴, dentro da T-002
+- **Nível:** 🟢 pra medir (é um `select` de leitura, em rollback) · 🟡 se a correção das sondas for necessária
 - **Agente dono:** vetria-backend
-- **Depende de:** nada (é pré-requisito da T-002)
-- **Por quê:** SEC-034. O pré-voo 1.3 aborta só se a policy **citar a string** `documentos`. Policy sem filtro de `bucket_id` alcança todos os buckets, não contém essa string, e é a forma que os templates do painel do Supabase geram. Se existir uma legada, a partir da T-008 qualquer conta logada lê documento de identidade de toda a base — com a migration declarando por escrito que a superfície é zero.
+- **Depende de:** nada. **Vem antes da T-002.**
+- **Por quê:** SEC-046. As sondas 3, 7C e 9 do `verificar-apos-0003.sql` terminam em `rollback;` **depois** do `select` que carrega o veredito. O próprio arquivo declara, em `:49-50`, que "o editor do Supabase mostra só o resultado da última query" — e usa esse modelo para justificar o select pós-`commit` da migration. Sob o mesmo modelo, o último comando dessas três é `rollback`, que não devolve linha, e o veredito some. **É a SEC-035 com o canal trocado, e nasceu dentro da correção da SEC-038.** A Sonda 3 é a pior das três: sucesso é `0`, falha é qualquer número maior, e os dois casos são "Success" com o mesmo aspecto.
 - **Feito quando:**
-  - [ ] Rodada no dashboard, e o resultado colado neste card: `select policyname, cmd, roles, qual, with_check from pg_policies where schemaname='storage' and tablename='objects';` **Se vier qualquer linha, a migration não roda até alguém decidir o que fazer com ela**
-  - [ ] O pré-voo 1.3 aborta com **zero policy em `storage.objects`, ponto**. Sem `like '%documentos%'`
-  - [ ] A Sonda 2 do `verificar-apos-0003.sql` trata `policies_no_storage > 0` como **falha**, e o comentário que hoje diz que "não é falha automática" sai
-- **Não fazer:** não apagar policy de storage por conta própria. Se aparecer alguma, ela é de alguém, pra alguma coisa: descobrir qual antes.
-- **Resultado:** _(a preencher)_
+  - [ ] Rodado no dashboard e o resultado colado neste card: `begin; select 42 as prova; rollback;`
+  - [ ] **Se `42` aparecer:** o achado cai inteiro. Muda **uma frase** do cabeçalho do arquivo de verificação, dizendo que `select` dentro de transação revertida aparece sim. Fim do card
+  - [ ] **Se `42` não aparecer:** as sondas 3, 7C e 9 adotam o padrão que as 10, 10B e 13B já usam (tabela temporária + `select` como último comando, fora de transação), com a troca de papel saindo por `perform set_config('role','anon',true)` em vez de `set local role`
+- **Não fazer:** ⚠️ **não mexer nas três sondas antes de medir.** Reescrever sonda que já funciona é como se fabrica achado na rodada seguinte (R-016). Não tocar nas 7A e 7B: elas esperam **erro** como sucesso, e erro aparece em vermelho. Não tocar nas 10, 10B e 13B: o padrão delas está certo.
+- **Resultado:** _(preencher)_
 
-### T-011 — As sondas da `0003` passam a reportar o que descobrem
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S2
-- **Capacidade:** E1
-- **Nível:** 🟡
-- **Agente dono:** vetria-backend
-- **Depende de:** nada (é pré-requisito da T-002)
-- **Por quê:** SEC-035. A Sonda 10 é a que justifica o arquivo de verificação, e ela fala por `raise notice`. No Studio do Supabase o resultado é "Success. No rows returned" **tanto quando o trigger passa quanto quando falha**. É o degrau seguinte do DL-050: execução que não reporta não é execução.
-- **Feito quando:**
-  - [ ] Rodado no dashboard, e o resultado anotado: `do $$ begin raise notice 'teste de notice'; end $$;` — **se o texto aparecer no editor, este card encolhe pro item do pré-voo e mais nada**
-  - [ ] A Sonda 10 devolve **result set**: uma linha por asserção, com uma coluna `ok` legível na tela
-  - [ ] O `raise warning` do pré-voo 1.2 (RLS de `storage.buckets`) vira `raise exception`
-  - [ ] Acrescentada sonda para os ramos `vet_profiles` e `clinic_profiles` do trigger reescrito. Hoje só o ramo de `perfil_privado` é testado, e `create or replace` reescreve o corpo inteiro (SEC-038)
-  - [ ] Acrescentada sonda que assume o papel **`authenticated`** e prova que a conta A não lê a linha da conta B em `perfil_privado`. A 7B mede `anon`, que nunca teve grant ali (SEC-038)
-  - [ ] `notify pgrst, 'reload schema';` no fim da migration (SEC-038)
-  - [ ] A Sonda 9 conta só a linha que ela mesma ativou, em vez de exigir `count = 1` no total (SEC-038)
-- **Não fazer:** não transformar o arquivo de verificação em suíte de teste. Ele é lido por humano no SQL Editor, uma sonda por vez, e essa é a razão de ele existir separado da migration.
-- **Resultado:** _(a preencher)_
-
-### T-012 — Decidir a arquitetura de upload, e corrigir o que o card da T-008 promete
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S2
-- **Capacidade:** E1
-- **Nível:** 🟠 — decisão de arquitetura, pergunta antes
-- **Agente dono:** vetria-backend + Elber
-- **Depende de:** nada (é pré-requisito da T-002 e da T-008)
-- **Por quê:** SEC-036. A seção 2.c da `0003` diz que a validação de MIME do servidor é "a primeira porta" e a whitelist do bucket é "a segunda". Com `createSignedUploadUrl` **não existe primeira porta**: o cliente faz PUT direto no storage-api, o byte nunca passa pelo Next.js, e tudo que o servidor pode validar é uma string que o cliente mandou antes. As duas portas são a mesma, e é a fraca. O risco caro não é o vazamento: é a **T-008 ser escrita acreditando num controle que não tem**.
-- **Feito quando:**
-  - [ ] Decidido e registrado em `05-DECISOES.md`: ou o upload passa pelo servidor de verdade (primeira porta existe, ao custo de trafegar até 10 MiB pela função), ou se aceita por escrito que a validação é **declarativa** e a defesa real é a whitelist mais a origem separada
-  - [ ] O comentário da seção 2.c da migration passa a dizer o que o desenho de fato faz
-  - [ ] O card da T-008 é corrigido pra não prometer validação que o desenho escolhido não entrega
-  - [ ] Registrado no card **o que continua fechado**, pra ninguém reabrir por engano: `image/svg+xml` e `text/html` estão fora das duas whitelists, e a URL assinada vive em `*.supabase.co`, origem diferente da do app. **O R-004 não reabre.**
-  - [ ] Acrescentado ao card da T-008 o passo que falta na seção 2.b: **registrar em `audit_logs` (`acao = 'documento_visualizado'`) antes de devolver a URL assinada do documento de terceiro** (SEC-040)
-- **Não fazer:** não implementar o upload aqui. Este card decide e escreve; quem constrói é a T-008.
-- **Resultado:** _(a preencher)_
+> ### ✅ T-009 a T-012 nasceram da auditoria da `0003` e **fecharam em 26/08**
+>
+> A v1 foi reprovada (`docs/relatorios/SEC-2026-08-26-0003.md`, SEC-033 a SEC-045); os quatro
+> cards eram os bloqueantes do veredito. A **v2** os fechou e foi **aprovada**
+> (`docs/relatorios/SEC-2026-08-26-0003-v2.md`). Os quatro cards estão em **✅ CONCLUÍDAS**,
+> com o Resultado preenchido.
 
 ### T-006 — Onboarding do veterinário passa a persistir
 - **Estado:** ⬜ fila
@@ -229,9 +188,11 @@ _(vazio)_
   - [ ] Nenhuma URL pública em lugar nenhum: só URL assinada, e só para o dono e o admin
   - [ ] Falha de upload **impede** a conclusão. O profissional não pode sair achando que enviou o documento quando não enviou
 - **Herdado da auditoria da `0003` (26/08). Leia antes de começar:**
-  - ⚠️ **O critério de MIME acima pode estar prometendo o que o desenho não entrega** (SEC-036). Com URL de upload assinada, o byte não passa pelo servidor. **A T-012 decide isso e corrige este card.** Não comece a T-008 antes.
+  - ✅ **SEC-036 decidida em 26/08 (T-012): o upload passa por Route Handler nosso.** Nada de `createSignedUploadUrl`, nenhum token de escrita no cliente. O critério de MIME acima passa a ser entregável, e ele é por **assinatura mágica dos primeiros bytes**, nunca pelo `content-type` declarado nem pela extensão do nome: `%PDF-` / `FF D8 FF` / `89 50 4E 47 0D 0A 1A 0A` / `RIFF`…`WEBP`. A extensão do caminho é derivada do tipo detectado. O contrato completo, oito passos, está na seção 2.b da `0003`: leia antes de escrever a rota.
+  - [ ] **A rota grava `documento_path`, `documento_hash` (sha256 hex dos bytes que ela mesma escreveu) e `documento_tamanho` num único UPDATE** (SEC-033 / T-009). O CHECK `perfil_privado_documento_completo` recusa dois de três, e é de propósito: documento sem identidade dos bytes não é estado válido.
   - [ ] **A rota nunca reemite URL de upload pra caminho que já existe** (SEC-033 / T-009). Trocar os bytes sem trocar a string deixa um perfil aprovado exibindo documento que ninguém conferiu
-  - [ ] **Registrar em `audit_logs` (`acao = 'documento_visualizado'`, `alvo_id` = dono do documento) antes de devolver a URL assinada** (SEC-040). Os quatro passos da seção 2.b da `0003` são sessão, autorização, URL curta e nunca aceitar caminho do cliente. Falta o quinto: a leitura do documento de identidade de terceiro é o acesso mais sensível do sistema e é o único fora da trilha automática
+  - [ ] ⚠️ **O passo 8 grava a linha com a SESSÃO DO USUÁRIO, não com `service_role`** (SEC-051 / R-031, 2ª auditoria de 26/08). **Recomendação da auditoria; confirmar com o Elber na sessão da T-002, porque muda o contrato da seção 2.b.** O contrato da seção 2.b diz "escrever no bucket com `service_role`" no passo 7 e **não diz nada** no passo 8. Com `service_role`, `auth.uid()` é nulo e o `insert into audit_logs` do trigger de revalidação grava **`actor_id = null`**: a trilha diz que o perfil voltou pra fila e não diz quem mexeu. **O desenho antigo, de URL assinada, gravava com a sessão do usuário e o `actor_id` saía certo — a arquitetura nova apagou um dado da trilha sem ninguém decidir isso.** Com a sessão, o `actor_id` sai certo e a policy `perfil_privado_update_own` vira segunda porta de graça. **Só o passo 7 (o bucket) precisa de `service_role`.** ⚠️ Não confundir com a gravação de `documento_visualizado` do item acima: **aquela** sai por `service_role`, porque `authenticated` não tem INSERT em `audit_logs`
+  - [ ] **Registrar em `audit_logs` (`acao = 'documento_visualizado'`, `alvo_id` = dono do documento) antes de devolver a URL assinada** (SEC-040). ⚠️ Grave com `service_role`: a `0002` revogou INSERT em `audit_logs` de `authenticated` (seção 11b), então gravar com a sessão do admin devolve `permission denied` e a trilha some junto com o erro. Os quatro passos da seção 2.b da `0003` são sessão, autorização, URL curta e nunca aceitar caminho do cliente. Falta o quinto: a leitura do documento de identidade de terceiro é o acesso mais sensível do sistema e é o único fora da trilha automática
   - [ ] **Anotar no card da exclusão de dados da F6** que apagar conta tem que apagar o objeto do bucket (SEC-039 / R-023). O `on delete cascade` derruba a linha e deixa o arquivo órfão, pra sempre. A convenção de caminho `<uuid>/` que esta task fixa é o que torna a varredura possível depois
 - **Não fazer:** não construir a tela de leitura do documento pelo admin (S4). Não usar `next/image` em nada vindo de usuário (R-004). Não aceitar arquivo checando só a extensão.
 
@@ -269,6 +230,80 @@ _(vazio)_
 ---
 
 # ✅ CONCLUÍDAS
+
+### T-009 — Amarrar a linha do banco ao objeto que está no bucket
+- **Estado:** ✅ concluída em 26/08/2026
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** E1
+- **Nível:** 🟠 — decisão de arquitetura, pergunta antes de escrever código
+- **Agente dono:** vetria-backend + Elber
+- **Depende de:** nada (é pré-requisito da T-002)
+- **Por quê:** SEC-033. A revalidação da SEC-023 está amarrada ao **texto** de `documento_path`. Trocar os bytes no mesmo caminho não muda a string, não dispara o trigger e não carimba data: o perfil aprovado segue `active` exibindo um documento que ninguém conferiu. É o cheque em branco vitalício da SEC-016 voltando pela porta que a `0003` abre.
+- **Feito quando:**
+  - [ ] Decidido e registrado em `05-DECISOES.md` **como** a linha se amarra ao objeto: caminho imutável por envio, upload sem `upsert`, e algo que o bucket controle guardado na linha (não só o caminho)
+  - [ ] Respondido no card: **o token de `createSignedUploadUrl` permite `upsert` na versão do SDK que a T-008 vai usar, e quanto tempo ele vive?** Sem essa resposta a decisão é chute
+  - [ ] O card da T-008 passa a dizer, explicitamente, que a rota **nunca reemite URL de upload para caminho que já existe**
+  - [ ] Tratado o caso de negação de serviço: caminho apontando pra objeto inexistente não pode virar 404 mudo na fila do admin
+- **Não fazer:** não escrever a rota de upload (é a T-008). Não criar policy de Storage "só pra resolver isso": a decisão de zero policy está tomada e reabri-la é assunto do Elber, não efeito colateral de card.
+- **Resultado:** 🟡 escrito na `0003` v2, **não aplicado**, volta pro `vetria-seguranca` (R-016). A linha passa a guardar a identidade dos BYTES: `perfil_privado.documento_hash` (sha256 hex, CHECK de 64 caracteres) e `documento_tamanho` (inteiro, teto igual ao `file_size_limit` do bucket), mais o CHECK `perfil_privado_documento_completo` (caminho, hash e tamanho vivem e morrem juntos: documento sem identidade deixa de ser estado válido). O ramo `perfil_privado` do trigger de revalidação passa a vigiar as duas colunas novas, e `carimbar_envio_documento` passa a recarimbar `documento_enviado_em` quando o hash muda (era o "carimbo da conferência que aconteceu sobre o arquivo antigo"). O caminho vira imutável por envio: epoch em **milissegundos**, sem `upsert`, e caminho que já existe é ERRO e não sobrescrita (seção 3 e passo 6 da 2.b). O token de upload deixou de existir (ver T-012), então o primeiro vetor da SEC-033 morreu na arquitetura, e a pergunta do card sobre tempo de vida e `upsert` do `createSignedUploadUrl` deixou de ter objeto. **Medido em produção em 26/08:** o ramo `perfil_privado` da função é literalmente `new.documento_path is distinct from old.documento_path`, só a string. SEC-033 confirmada contra o banco, não contra o repo.
+  **✅ FECHADO em 26/08 pela 2ª auditoria** (`SEC-2026-08-26-0003-v2.md`): os três CHECKs foram exercitados estado a estado e aguentam os parciais (hash sem path barrado, path sem tamanho barrado, tamanho 0 e negativo barrados, arquivo de zero byte barrado pelo par). **Ressalva registrada como SEC-048 / R-028:** `add column if not exists` com CHECK inline é **uma** instrução, então se a coluna já existir o Postgres pula o CHECK junto, e não há pré-voo para as cinco colunas novas. Probabilidade baixíssima e não bloqueia; o conserto é um pré-voo 1.9 de três linhas.
+
+### T-010 — O pré-voo da `0003` exige zero policy de verdade
+- **Estado:** ✅ concluída em 26/08/2026
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** E1
+- **Nível:** 🟡 — o arquivo **não está aplicado**; mostra o diff. Aplicar continua 🔴, dentro da T-002
+- **Agente dono:** vetria-backend
+- **Depende de:** nada (é pré-requisito da T-002)
+- **Por quê:** SEC-034. O pré-voo 1.3 aborta só se a policy **citar a string** `documentos`. Policy sem filtro de `bucket_id` alcança todos os buckets, não contém essa string, e é a forma que os templates do painel do Supabase geram. Se existir uma legada, a partir da T-008 qualquer conta logada lê documento de identidade de toda a base — com a migration declarando por escrito que a superfície é zero.
+- **Feito quando:**
+  - [ ] Rodada no dashboard, e o resultado colado neste card: `select policyname, cmd, roles, qual, with_check from pg_policies where schemaname='storage' and tablename='objects';` **Se vier qualquer linha, a migration não roda até alguém decidir o que fazer com ela**
+  - [ ] O pré-voo 1.3 aborta com **zero policy em `storage.objects`, ponto**. Sem `like '%documentos%'`
+  - [ ] A Sonda 2 do `verificar-apos-0003.sql` trata `policies_no_storage > 0` como **falha**, e o comentário que hoje diz que "não é falha automática" sai
+- **Não fazer:** não apagar policy de storage por conta própria. Se aparecer alguma, ela é de alguém, pra alguma coisa: descobrir qual antes.
+- **Resultado:** ✅ corrigido na `0003` v2 (não aplicada). **Consulta rodada no dashboard em 26/08: veio VAZIO** — zero policy em `storage.objects` hoje, então o cenário de exploração da SEC-034 não existe no banco atual e a correção vale como endurecimento, não como conserto de exposição ativa. Está escrito assim no comentário do pré-voo 1.3, com data. O pré-voo agora aborta com **qualquer** policy em `storage.objects`, sem filtro por string, e imprime nome, `cmd` e `roles` de cada uma. A Sonda 2 trata `> 0` como falha, o texto que a desqualificava saiu, e ela ganhou uma coluna com os nomes encontrados. Anotado nos dois arquivos: quando a F4/S7 criar o bucket público de foto, a regra muda de "zero policy" para "nenhuma policy sem filtro de `bucket_id`", e os dois lugares mudam juntos.
+  **✅ FECHADO em 26/08 pela 2ª auditoria:** a 1.3 agora exige zero policy, ponto. **SEC-034 encerrada.**
+
+### T-011 — As sondas da `0003` passam a reportar o que descobrem
+- **Estado:** ✅ concluída em 26/08/2026
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** E1
+- **Nível:** 🟡
+- **Agente dono:** vetria-backend
+- **Depende de:** nada (é pré-requisito da T-002)
+- **Por quê:** SEC-035. A Sonda 10 é a que justifica o arquivo de verificação, e ela fala por `raise notice`. No Studio do Supabase o resultado é "Success. No rows returned" **tanto quando o trigger passa quanto quando falha**. É o degrau seguinte do DL-050: execução que não reporta não é execução.
+- **Feito quando:**
+  - [ ] Rodado no dashboard, e o resultado anotado: `do $$ begin raise notice 'teste de notice'; end $$;` — **se o texto aparecer no editor, este card encolhe pro item do pré-voo e mais nada**
+  - [ ] A Sonda 10 devolve **result set**: uma linha por asserção, com uma coluna `ok` legível na tela
+  - [ ] O `raise warning` do pré-voo 1.2 (RLS de `storage.buckets`) vira `raise exception`
+  - [ ] Acrescentada sonda para os ramos `vet_profiles` e `clinic_profiles` do trigger reescrito. Hoje só o ramo de `perfil_privado` é testado, e `create or replace` reescreve o corpo inteiro (SEC-038)
+  - [ ] Acrescentada sonda que assume o papel **`authenticated`** e prova que a conta A não lê a linha da conta B em `perfil_privado`. A 7B mede `anon`, que nunca teve grant ali (SEC-038)
+  - [ ] `notify pgrst, 'reload schema';` no fim da migration (SEC-038)
+  - [ ] A Sonda 9 conta só a linha que ela mesma ativou, em vez de exigir `count = 1` no total (SEC-038)
+- **Não fazer:** não transformar o arquivo de verificação em suíte de teste. Ele é lido por humano no SQL Editor, uma sonda por vez, e essa é a razão de ele existir separado da migration.
+- **Resultado:** ✅ corrigido nos dois arquivos (não aplicados). **O teste de NOTICE foi rodado no dashboard em 26/08 e devolveu "Success. No rows returned", sem imprimir o texto: SEC-035 CONFIRMADA.** Este card não encolheu, cresceu. Varredura feita: **zero** `raise notice` e **zero** `raise warning` sobraram nos dois arquivos — o `raise warning` do pré-voo 1.2 virou `raise exception`, a notice que "confirmava a cópia" na seção 5 saiu, e as cinco notices da Sonda 10 saíram. A Sonda 10 acumula `(ordem, cenario, esperado, obtido, veredito)` numa tabela temporária e termina em `select`. Sondas novas: **7C** (`authenticated` de outra conta lendo `perfil_privado` alheio, com controle positivo para não medir porta soldada), **10B** (ramos `vet_profiles` e `clinic_profiles`, com controle negativo em `bio`, `sobre` e `site`) e **13B** (a guarda da SEC-044). A Sonda 9 conta só o alvo que ela mesma ativou e ganhou controle negativo: o mesmo alvo, fora de `active`, tem que sumir. `notify pgrst, 'reload schema'` entrou antes do `commit`. E a migration ganhou um `select` de resultado **depois do commit**, com uma coluna booleana por consequência: é o único canal de saída dela. **Limite honesto anotado no arquivo:** o recarimbo de `documento_enviado_em` quando o hash muda NÃO é verificável por sonda, porque `now()` é o timestamp da transação e dentro de um rollback o valor antigo e o novo são o mesmo; ficou coberto pelo catálogo (Sonda 11) e pelo item (d) da Sonda 14.
+  **✅ FECHADO em 26/08 pela 2ª auditoria**, nos quatro itens da SEC-038, e o limite honesto do recarimbo foi julgado **procedente**: `now()` é o timestamp da transação, então a asserção pedida na v1 reprovaria um banco correto. **Ressalva que virou card:** a entrega do resultado das sondas 7C e 9 (e da 3) é a **SEC-046 / T-013** — as três terminam em `rollback` depois do `select` do veredito. As 10, 10B e 13B **não** são afetadas: o padrão delas está certo e foi inventado neste card.
+
+### T-012 — Decidir a arquitetura de upload, e corrigir o que o card da T-008 promete
+- **Estado:** ✅ concluída em 26/08/2026
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** E1
+- **Nível:** 🟠 — decisão de arquitetura, pergunta antes
+- **Agente dono:** vetria-backend + Elber
+- **Depende de:** nada (é pré-requisito da T-002 e da T-008)
+- **Por quê:** SEC-036. A seção 2.c da `0003` diz que a validação de MIME do servidor é "a primeira porta" e a whitelist do bucket é "a segunda". Com `createSignedUploadUrl` **não existe primeira porta**: o cliente faz PUT direto no storage-api, o byte nunca passa pelo Next.js, e tudo que o servidor pode validar é uma string que o cliente mandou antes. As duas portas são a mesma, e é a fraca. O risco caro não é o vazamento: é a **T-008 ser escrita acreditando num controle que não tem**.
+- **Feito quando:**
+  - [ ] Decidido e registrado em `05-DECISOES.md`: ou o upload passa pelo servidor de verdade (primeira porta existe, ao custo de trafegar até 10 MiB pela função), ou se aceita por escrito que a validação é **declarativa** e a defesa real é a whitelist mais a origem separada
+  - [ ] O comentário da seção 2.c da migration passa a dizer o que o desenho de fato faz
+  - [ ] O card da T-008 é corrigido pra não prometer validação que o desenho escolhido não entrega
+  - [ ] Registrado no card **o que continua fechado**, pra ninguém reabrir por engano: `image/svg+xml` e `text/html` estão fora das duas whitelists, e a URL assinada vive em `*.supabase.co`, origem diferente da do app. **O R-004 não reabre.**
+  - [ ] Acrescentado ao card da T-008 o passo que falta na seção 2.b: **registrar em `audit_logs` (`acao = 'documento_visualizado'`) antes de devolver a URL assinada do documento de terceiro** (SEC-040)
+- **Não fazer:** não implementar o upload aqui. Este card decide e escreve; quem constrói é a T-008.
+- **Resultado:** ✅ decidido pelo Elber em 26/08 e escrito nas seções 2.b e 2.c da `0003` v2. Falta o DL em `05-DECISOES.md`, que é do `vetria-escriba`. **O upload passa por um Route Handler nosso:** a rota lê os bytes, confere a **assinatura mágica** do tipo real (não o `content-type` declarado), deriva a extensão do tipo detectado, gera o caminho, escreve com `service_role` e só então grava a linha com caminho, sha256 e tamanho. `createSignedUploadUrl` **não é usada em lugar nenhum** e nenhum token de escrita chega ao cliente. Com isso a "primeira porta" da 2.c deixou de ser mentira: ela é o passo 4 da rota, sobre os bytes. Custo aceito por escrito: até 10 MiB trafegam pela função, num arquivo por profissional, uma vez. A 2.c passou a listar **quatro** listas que mudam juntas (MIME do bucket, extensão do CHECK, tabela de assinatura mágica, limite de bytes) e traz os magic numbers de pdf, jpeg, png e webp. Registrado que **o R-004 não reabre**: `image/svg+xml` e `text/html` estão fora de todas as listas, e a URL assinada vive em origem diferente da do app. A rota de leitura ganhou o quinto passo da SEC-040 (grava `documento_visualizado` em `audit_logs`, com o dono em `alvo_id`, **antes** de emitir a URL) e o tratamento do 404 mudo na fila do admin.
+  **✅ FECHADO em 26/08 pela 2ª auditoria: SEC-036 encerrada.** O julgamento acrescentou uma precisão que passa a valer: com o upload pela nossa rota, **a whitelist do bucket deixa de ser porta e vira alarme** sobre o nosso próprio código, porque quem declara o `content-type` passamos a ser nós. A defesa contra atacante é a assinatura mágica. **R-004 continua fechado por três barreiras independentes:** SVG não tem assinatura mágica e não entra na tabela do passo 4; `.svg` está fora da whitelist de extensão do CHECK; e o objeto é servido de `*.supabase.co`, origem diferente da do app.
+  **O DL que faltava foi registrado: DL-051.**
+  **Achado novo herdado pela T-008: SEC-051 / R-031** — o passo 8 não diz com qual cliente grava a linha, e com `service_role` o `actor_id` de `audit_logs` sai nulo.
+
 
 ### T-005 — Onboarding profissional estoura a largura da tela
 - **Estado:** ✅ concluída em 26/08/2026

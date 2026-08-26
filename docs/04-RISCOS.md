@@ -25,27 +25,46 @@
 > 26/08). Nenhum deles é vazamento **hoje**: o bucket `documentos` ainda não existe e a `0003`
 > não foi aplicada. Os três descrevem o que passa a valer no minuto seguinte à aplicação, e os
 > três custam uma linha enquanto o bucket estiver vazio.
+>
+> ⚠️ **26/08, 2ª auditoria (`SEC-2026-08-26-0003-v2.md`): os três estão CORRIGIDOS NO ARQUIVO e
+> continuam ABERTOS.** A `0003` v2 foi **aprovada**, mas **não aplicada**. **Risco só fecha
+> quando o banco muda, não quando o SQL existe** — é a mesma regra que mantém o R-018 aberto.
+> Os três fecham na sessão da T-002, com o select de onze colunas da migration como prova.
+> **R-026 é o achado novo dessa rodada.**
 
 ### R-020 — O documento aprovado pode ser trocado no bucket sem que a linha mude (SEC-033)
 - **Descoberto:** 26/08/2026, auditoria da `0003` (não aplicada)
 - **O quê:** a SEC-023 amarrou a revalidação ao **texto** de `documento_path`. No modelo de zero policy quem escreve é o servidor, por URL de upload assinada. Se o mesmo caminho for reutilizado, se um token antigo ainda estiver válido (vivem cerca de 2h) ou se a T-008 usar `upsert`, os bytes mudam, a string não muda, o trigger não dispara e o perfil segue `active`.
 - **Por que importa:** é o cheque em branco vitalício da SEC-016 voltando pela porta que a correção da SEC-020 abre. E vira negação de serviço na fila: caminho apontando pra objeto inexistente dá 404 sem explicação na tela cujo trabalho é abrir aquele arquivo.
 - **Precisa de decisão antes de o bucket existir.** Depois que houver documento de gente real dentro, o conserto fica caro.
-- **Task:** **T-009**
+- **26/08 — corrigido na `0003` v2, não aplicado.** A linha passa a guardar `documento_hash` (sha256 hex) e `documento_tamanho`, os dois vigiados pelo trigger, com CHECK all-or-nothing. O token de upload deixou de existir (DL-051), então o primeiro vetor morreu na arquitetura. **Fecha quando a migration rodar.**
+- **Task:** **T-009** ✅
 
 ### R-021 — O pré-voo da `0003` não prova "zero policy": ele procura uma string (SEC-034)
 - **Descoberto:** 26/08/2026, auditoria da `0003` (não aplicada)
 - **O quê:** o pré-voo 1.3 aborta se existir policy em `storage.objects` citando `documentos`. Policy **sem filtro de `bucket_id`** alcança todos os buckets e não contém essa string — é a forma que os templates do painel do Supabase geram. A Sonda 2 conta as policies e desqualifica o próprio resultado por escrito.
 - **Consequência se houver policy legada:** a partir da T-008, qualquer conta logada lê documento de identidade de toda a base, com a migration afirmando que a superfície é zero.
 - **Verificação de 10 segundos, e é bloqueante:** `select policyname, cmd, roles, qual, with_check from pg_policies where schemaname='storage' and tablename='objects';` **Tem que vir vazio.**
-- **Task:** **T-010**
+- **26/08 — a consulta foi rodada em produção e veio VAZIO.** Zero policy em `storage.objects` hoje: o cenário de exploração **não existe no banco atual**, e a correção vale como endurecimento. O pré-voo 1.3 agora aborta com qualquer policy, sem filtro por string. **Fecha quando a migration rodar.**
+- **Task:** **T-010** ✅
 
 ### R-022 — Sonda que entrega o veredito por NOTICE devolve "Success" no passa e no falha (SEC-035)
 - **Descoberto:** 26/08/2026, auditoria da `0003` (não aplicada)
 - **O quê:** a Sonda 10 do `verificar-apos-0003.sql` é um bloco `do $$` que só fala por `raise notice`/`raise warning`. O Studio do Supabase é conhecido por não renderizar NOTICE: o resultado na tela é idêntico nos dois casos. Mesmo defeito, menor, no `raise warning` do pré-voo 1.2.
 - **Por que importa:** é o degrau seguinte do DL-050. Lá: revisão não substitui execução. Aqui: **execução que não reporta não é execução.** A sonda que justifica o arquivo é a única que não pode falhar visivelmente.
 - **Verificação de 10 segundos, e é bloqueante:** `do $$ begin raise notice 'teste de notice'; end $$;` Se o texto não aparecer no editor, a sonda é cega.
-- **Task:** **T-011**
+- **26/08 — o teste foi rodado e NÃO imprimiu o texto: confirmado que o editor deste projeto não renderiza NOTICE.** Varredura nos dois arquivos: **zero** `raise notice` e **zero** `raise warning` sobraram. A Sonda 10 devolve tabela, e a migration ganhou um select de resultado depois do `commit`. **Fecha quando a migration rodar.**
+- **Task:** **T-011** ✅
+
+### R-026 — Três sondas entregam o veredito por um `select` que não é o último comando (SEC-046)
+- **Descoberto:** 26/08/2026, 2ª auditoria da `0003` (não aplicada)
+- **O quê:** as sondas 3, 7C e 9 do `verificar-apos-0003.sql` terminam em `rollback;` **depois** do `select` que carrega o veredito. O próprio arquivo declara o modelo do editor ("mostra só o resultado da última query") e usa esse modelo para justificar o select pós-`commit` da migration. Sob o mesmo modelo, o último comando dessas três é `rollback`, que não devolve linha.
+- **É a SEC-035 com o canal trocado, e nasceu dentro da correção da SEC-038** — a 7C e a 9 são as correções dos itens 2 e 4 daquele achado. **O padrão do R-016 outra vez.**
+- **A Sonda 3 é a pior das três:** ela falha para os dois lados. Sucesso é `0`, falha é qualquer número maior, e os dois casos são "Success" com o mesmo aspecto na tela.
+- **Não impede aplicar; impede declarar verificado.** As três revertem e nenhuma abre superfície.
+- **Não são afetadas:** 7A e 7B (esperam **erro**, que aparece em vermelho) e 10, 10B e 13B (o padrão certo já está nelas: tabela temporária mais `select` como último comando, fora de transação).
+- ⚠️ **Medir antes de mexer:** `begin; select 42 as prova; rollback;`. Se `42` aparecer, o risco cai inteiro. **Reescrever sonda que já funciona é como se fabrica achado na rodada seguinte.**
+- **Task:** **T-013**
 
 ### R-002 — Modelo de `master` inconsistente entre doc, código e enum ⚠️ RECLASSIFICADO
 - **Descoberto:** 26/08/2026 · **Reclassificado:** 26/08/2026, após leitura de `app/api/admin/*`
@@ -90,6 +109,50 @@
 
 ## 🟡 ABERTOS — MÉDIOS
 
+> **R-027 a R-031 nasceram da 2ª auditoria da `0003`**
+> (`docs/relatorios/SEC-2026-08-26-0003-v2.md`, 26/08). Nenhum é vazamento, nenhum bloqueia a
+> aplicação, e **nenhum exige mexer no SQL antes de rodar a migration**. Estão aqui porque cada
+> um custa entre uma frase e três linhas enquanto o arquivo está aberto, e muito mais depois.
+
+### R-027 — O pré-voo 1.2 aborta sobre uma condição que ninguém mediu, e manda consertar por um caminho que não existe (SEC-047)
+- **Descoberto:** 26/08/2026, 2ª auditoria da `0003` (não aplicada)
+- **O quê:** a promoção de `raise warning` para `raise exception` em `storage.buckets` sem RLS **está certa**. O problema é o que sobra: `relrowsecurity` de `storage.buckets` **e** de `storage.objects` não foi medido, então as duas metades do pré-voo 1.2 abortam sobre uma condição que ninguém olhou. E a mensagem manda "ligue pelo painel": o painel tem UI para **policy** de storage, não para `alter table storage.buckets enable row level security` — comando que exige ser dono da tabela (`supabase_storage_admin`), que `postgres` não é.
+- **É risco de cronograma, não de vazamento.** A migration falha fechada. Mas o operador fica sem caminho no meio de uma sessão presencial, e **a T-002 já escorregou uma semana**.
+- **Agravante:** as duas metades moram no **mesmo bloco `do`**. Comentar uma desliga a asserção mais valiosa do arquivo (`storage.objects` sem RLS) junto.
+- **Medição de 10 segundos, antes de agendar:** `select relname, relrowsecurity from pg_class where relnamespace = 'storage'::regnamespace and relname in ('objects','buckets');` **As duas têm que vir `true`.**
+- **Se `buckets` vier `false`:** separar as duas metades em dois blocos `do` e trocar a instrução por "decida com o Elber e registre em `05-DECISOES.md`". Não vira card próprio: está na ordem de aplicação da T-002.
+
+### R-028 — `add column if not exists` pula o CHECK inline em silêncio (SEC-048)
+- **Descoberto:** 26/08/2026, 2ª auditoria da `0003` (não aplicada)
+- **O quê:** `alter table ... add column if not exists documento_hash text constraint ... check (...)` é **uma** instrução. Se a coluna já existir, o Postgres pula tudo, **inclusive o CHECK**. Vale para `documento_hash` e `documento_tamanho`; o `perfil_privado_documento_completo` está protegido, porque é guardado por um bloco `do` que consulta `pg_constraint`.
+- **A assimetria é o achado:** há pré-voo para as colunas de `clinic_profiles`, para o bucket, para as funções e para linhas com documento. **Nenhum para as cinco colunas novas de `perfil_privado`.** Basta alguém ter criado `documento_hash` pelo painel (R-006) e a migration **commita** com o hash virando campo de texto livre, que é exatamente o que o comentário da própria coluna diz querer impedir.
+- **Probabilidade baixíssima** (a coluna foi inventada nesta v2). **O que o torna risco é a categoria:** é a única verificação do arquivo que poderia ter abortado e virou relatório pós-fato, e nesse caminho o conserto é **reversão**, não "rodar de novo". Trocar um aborto por uma reversão é o pior câmbio possível numa migration destrutiva.
+- **Correção:** pré-voo 1.9 de três linhas, mesmo formato do 1.1 com o sinal trocado. Não vira card próprio.
+
+### R-029 — A guarda da SEC-044 congela a linha depois de uma troca de role, e a exceção não diz como sair (SEC-049)
+- **Descoberto:** 26/08/2026, 2ª auditoria da `0003` (não aplicada). **Confirmado no código.**
+- **Onde:** a guarda `recusar_dado_de_estabelecimento_em_pessoa_fisica` da `0003` contra `app/api/admin/set-access/route.ts:19-62`.
+- **O quê:** a guarda recusa escrita em `perfil_privado` com `cnpj`, `razao_social` ou `responsavel_tecnico` não-nulos quando o dono da linha não é `clinic` — **e a escolha de falhar ruidosamente está certa.** O efeito colateral é que ela olha o estado **novo** de três colunas que podem ter sido gravadas legitimamente sob um role **antigo**. O `set-access` deixa um master trocar `clinic` para `vet` sem limpar nada; depois disso **todo UPDATE naquela linha levanta**, inclusive `set telefone = ...` e o passo 8 da rota da T-008, que nem toca nas três colunas.
+- **O sintoma é o mesmo que a SEC-044 quis evitar:** usuário legítimo travado, ticket que ninguém do suporte sabe explicar.
+- **A saída existe e a mensagem não diz qual é:** um UPDATE que zere as três passa, porque aí a guarda sai no primeiro `if`.
+- **Correção:** uma frase na mensagem da exceção, mais a regra de que trocar role de `clinic` obriga a limpar `cnpj`, `razao_social` e `responsavel_tecnico`.
+- ⚠️ **Não existe card de `/api/admin/set-access` hoje.** Este item precisa entrar no **primeiro card que tocar essa rota** — o candidato natural é a reescrita de RBAC e middleware da S3 (ver R-001 e R-002). Enquanto esse card não existir, **este risco é o único lugar onde a regra está escrita.**
+
+### R-030 — O pré-voo 1.7 é tautológico para `carimbar_envio_documento`, e manda comparar o corpo com o texto errado (SEC-050)
+- **Descoberto:** 26/08/2026, 2ª auditoria da `0003` (não aplicada)
+- **O quê:** para `revalidar_ao_mudar_dado_sensivel` a asserção funciona, porque o hash foi medido **e o corpo foi lido linha a linha contra a `0002`** — **é a leitura que prova**, não o hash. Para `carimbar_envio_documento` o procedimento é: rode `md5(prosrc)` agora, cole na constante, rode a migration. **A asserção passa a comparar produção com produção**, com cinco minutos de diferença, e não prova nada sobre adulteração.
+- **Agravante:** o único momento em que o operador vê o corpo real é a mensagem de aborto do `'PREENCHER'`, e ela manda comparar com a **seção 6.b**, que é o corpo **novo**, com a linha do hash. **Produção tem que divergir dela.** O operador ou toma um falso alarme, ou aprende a ignorar a diferença, que é pior.
+- **Cenário:** alguém corrige a função pelo painel em setembro, a `0004` copia a receita em outubro, a 1.7 passa, a 6.b sobrescreve a correção, e a reversão restaura o texto da `0002`. **É a SEC-024 inteira, com uma asserção na frente dizendo que foi conferido.**
+- **Correção:** duas palavras na mensagem, apontando para **`0002_nucleo.sql:453-470`** em vez da seção 6.b, mais a instrução de **ler** o corpo no passo 0, não só colar o hash. Está na ordem de aplicação da T-002.
+
+### R-031 — O contrato da rota de upload não diz com qual cliente o passo 8 grava a linha (SEC-051)
+- **Descoberto:** 26/08/2026, 2ª auditoria da `0003` (não aplicada)
+- **O quê:** o passo 7 da seção 2.b é explícito ("escrever no bucket com `service_role`"); o passo 8 diz "só então gravar a linha" e **não diz com qual cliente**. Com `service_role`, RLS não se aplica, `auth.uid()` é nulo, e o `insert into audit_logs` do trigger de revalidação grava **`actor_id = null`**: a trilha diz que o perfil voltou pra fila e não diz quem mexeu.
+- **É uma regressão que ninguém decidiu.** No desenho antigo, de URL assinada, quem gravava era a sessão do usuário e o `actor_id` saía certo. **A arquitetura nova (DL-051) apagou um dado da trilha por efeito colateral.**
+- **É a SEC-040 pela metade:** o arquivo gastou 18 linhas explicando que "quem abriu o RG do fulano em março?" precisa de resposta, e deixa "quem trocou o documento do fulano em março?" sem resposta, no mesmo contrato, por omissão de uma palavra.
+- **Correção:** fixar no passo 8 que a linha é gravada **com a sessão do usuário**. Já está escrito no card da **T-008**. Só o passo 7 precisa de `service_role`.
+
+
 ### R-023 — Excluir a conta apaga a linha e deixa o documento de identidade no bucket (SEC-039)
 - **Descoberto:** 26/08/2026, auditoria da `0003`
 - **O quê:** `perfil_privado.id` tem `on delete cascade` pra `profiles`, então apagar a conta derruba a linha e o `documento_path`. **O objeto no bucket não é tocado por cascade nenhum** — `storage` é outro serviço. Sem policy, só `service_role` apaga, ou seja: alguém precisa escrever código, e não há card que peça.
@@ -110,6 +173,7 @@
 - **O quê:** são cinco asserções de pré-voo e nenhuma pergunta se já existe bucket `documentos`. Se existir, público, com objetos de uma tentativa manual anterior, a migration o torna privado e **segue sem dizer nada**: o operador termina a sessão sem saber que existia um bucket de documentos exposto, por quanto tempo e com o quê dentro.
 - **Agravante de ordem:** a reconciliação acontece na seção 2 e o `commit` só vem depois da seção 7. Se a guarda da seção 5 ou o DROP levantarem, a transação reverte e **o bucket volta a ser público**, com a única mensagem na tela falando de divergência entre `clinic_profiles` e `perfil_privado`, assunto sem relação.
 - **Correção:** pré-voo 1.6, um bloco `do`, que aborta se o bucket já existir, imprimindo `public`, `file_size_limit` e `allowed_mime_types` atuais. Entra na correção da `0003`, antes da sessão presencial. Não vira card próprio.
+- **26/08, 2ª auditoria — corrigido na v2, e bem. Continua aberto só porque a migration não rodou.** O pré-voo 1.6 existe e imprime também **quantos objetos** há dentro. **A consulta foi rodada em produção e `storage.buckets` veio VAZIO:** o projeto não tem bucket nenhum, então a condição perigosa não existe hoje e o `on conflict` da v1 nunca teria disparado. **O agravante de ordem some por construção:** o `on conflict` saiu, o bucket é **criado** e nunca reconciliado, e reverter a transação **apaga** o bucket, que é o estado seguro. Não existe mais o estado "bucket público preexistente que a reversão devolve ao mundo". **Fecha quando a migration rodar.**
 
 ### R-018 — `clinic_profiles` publica CNPJ, razão social e o nome do responsável técnico para `anon` (SEC-020)
 - **Descoberto:** 26/08/2026, auditoria da `0002` (2ª revisão). **Nunca foi decidido, e a `0002` foi aplicada assim.**
@@ -126,6 +190,29 @@
   `0003`, o ramo `clinic_profiles` do trigger vigia só `nome_fantasia`, então um
   estabelecimento aprovado troca `endereco`, `cep`, `cidade` e `estado` e continua `active`
   (SEC-041). É uma linha no trigger e entra na mesma correção.
+- **26/08, 2ª auditoria — o item 2 fechou; o ITEM 1 fica REGISTRADO AQUI, que é o que faltava.**
+  O ramo `clinic_profiles` do trigger ganhou os quatro campos na `0003` v2 e a Sonda 10B prova
+  isso: **SEC-041 item 2 fechado.** O **item 1 continua aberto e agora está escrito**, porque a
+  `0003` afirma que ele "fica registrado como pergunta em aberto no R-018" e até agora o R-018
+  só registrava o item 2:
+  > ⚠️ **PERGUNTA EM ABERTO, DE PRODUTO, SEM RESPOSTA ESCRITA.** O comentário de
+  > `razao_social` argumenta que **em MEI e firma individual a razão social carrega o nome
+  > civil do dono**, e por isso o campo desceu para `perfil_privado`. **O mesmo argumento se
+  > aplica a `endereco` e a `cep`:** no MEI e no profissional que atende em casa, o endereço
+  > comercial **é** o residencial, e **nada no schema, no formulário ou no consentimento
+  > distingue os dois casos.** A v1 da `0003` usava os dois argumentos em sentidos opostos na
+  > mesma sessão e chamava isso de decisão; a v2 parou de fazer isso e assumiu a pergunta.
+  > **Não bloqueia a migration. Precisa de resposta escrita em `05-DECISOES.md` ANTES do perfil
+  > público da F4/S7**, que é quando o dado de fato aparece numa página.
+- **26/08 — segunda pergunta, do mesmo tipo, num par diferente de colunas (discordância 5 da
+  2ª auditoria).** A `0003` justifica **não** alargar a revalidação de `vet_profiles`
+  (`cidade`, `estado`, `bairro`) dizendo que isso "tiraria da busca todo profissional que
+  corrigir o bairro". **Esse custo é idêntico ao do estabelecimento que corrigir um CEP
+  digitado errado, e foi aceito por escrito duas telas antes**, no comentário sobre o efeito
+  colateral na fila do admin. **O arquivo usa um argumento em dois sentidos.** Não bloqueia,
+  e a decisão de não mexer no ramo do vet está certa. **Precisa de resposta escrita junto com
+  a do item 1 acima:** ou o custo de revalidar endereço é aceitável e vale para os dois, ou não
+  é e não vale para nenhum.
 
 ### R-019 — O plano promete foto de perfil e horários, e não existe nem campo nem coluna para nenhum dos dois
 - **Descoberto:** 26/08/2026, na abertura da S2, conferindo o `01-PLANO.md` §S2 contra o código e o schema

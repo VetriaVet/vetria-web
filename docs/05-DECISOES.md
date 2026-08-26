@@ -206,3 +206,59 @@ autorização; ordem de execução só aparece rodando.
 **Implicações:** o custo foi baixo porque a transação reverteu inteira, e é justamente por
 isso que toda migration é uma transação só. Registrado como R-016 e no contrato dos agentes.
 **Status:** ✅ virou processo
+
+### DL-051 — O documento de validação sobe por rota nossa, e a linha guarda a identidade dos bytes
+**Data:** 26/08/2026 · **Fase/Task:** F3/S2 · T-002 / T-009 / T-012 · **Commit:** decisão escrita na `0003` v2, **ainda não aplicada no banco**
+**Contexto:** o desenho original do bucket `documentos` era URL de upload assinada: o servidor
+emitia o token, o navegador fazia PUT direto no storage-api. A auditoria da `0003` mostrou duas
+consequências que ninguém tinha visto (SEC-033 e SEC-036). **(1) Não existia validação de tipo
+no servidor.** O byte nunca passava pelo Next.js; tudo que dava para validar era uma string de
+`content-type` que o cliente mandara antes e não era obrigado a repetir no PUT. O comentário da
+migration chamava isso de "primeira porta" e implementava a segunda. **(2) A revalidação estava
+amarrada a um texto.** A SEC-023 dispara quando `documento_path` muda; reutilizando o mesmo
+caminho, os bytes mudavam e a linha não mudava: trigger não disparava, `documento_enviado_em`
+ficava parado na conferência do arquivo antigo, e o perfil seguia `active` exibindo um documento
+que ninguém conferiu.
+**Decisão:** o upload passa por um **Route Handler nosso**. `createSignedUploadUrl` não é usada
+em lugar nenhum e **nenhum token de escrita chega ao cliente**. A rota lê os bytes, confere o
+**tipo real pela assinatura mágica dos primeiros bytes** (nunca pelo `content-type` declarado
+nem pela extensão do nome), deriva a extensão do tipo detectado, monta o caminho com o `uuid`
+vindo de `auth.uid()` da sessão, escreve no bucket com `service_role` **sem `upsert`** e grava
+na linha `documento_path`, `documento_hash` (sha256 hex dos mesmos bytes que ela escreveu) e
+`documento_tamanho`, os três num único UPDATE. **Caminho existente é erro, não sobrescrita.**
+As colunas de identidade entram no ramo `perfil_privado` do trigger de revalidação e na
+condição de recarimbo de `carimbar_envio_documento`: **trocar os bytes passa a mover uma coluna
+que o trigger vigia.**
+**Alternativas descartadas:** (a) manter a URL assinada e **aceitar por escrito** que a
+validação é declarativa — defensável, e foi recusada porque o admin abre esse arquivo dentro do
+painel de maior privilégio do sistema; (b) guardar um identificador devolvido pelo storage-api
+em vez do sha256 — mais fraco e mais caro, porque exigiria uma leitura de volta; (c) criar
+policy de Storage para o dono escrever no próprio prefixo, descartada antes (o CHECK valida a
+**string guardada na tabela**, não o objeto no bucket, e com o cliente escolhendo o nome
+haveria duas verdades sobre o mesmo documento).
+**Custo aceito de propósito:** até **10 MiB trafegam pela função** do Next.js a cada envio. É
+aceitável porque é **um arquivo por profissional, uma vez, no onboarding** — não é caminho
+quente do app.
+**Implicações:**
+- **A whitelist de MIME do bucket deixa de ser porta e vira alarme.** Quem declara o
+  `content-type` para o storage-api passamos a ser nós; a defesa contra atacante é a assinatura
+  mágica. A whitelist pega o dia em que alguém mexer na rota e esquecer do bucket.
+- **São quatro listas que mudam juntas, sempre:** `allowed_mime_types` do bucket, a whitelist de
+  extensão do CHECK `perfil_privado_documento_do_dono`, a tabela de assinatura mágica da rota, e
+  o limite de bytes (`file_size_limit` e o CHECK de `documento_tamanho`).
+- **O dono deixa de ler o próprio documento direto do Storage**, inclusive com sessão válida. A
+  regra de autorização muda de lugar, do Postgres para a rota de servidor. Isso não contraria
+  `docs/06-PERMISSOES.md` linha 75; muda onde a regra é aplicada.
+- **R-004 continua fechado, por três barreiras independentes:** SVG não tem assinatura mágica e
+  não entra na tabela do passo 4; `.svg` está fora da whitelist de extensão do CHECK; e o objeto
+  é servido de `*.supabase.co`, origem diferente da do app.
+- **Reverter a `0003` reabre a SEC-033.** Sem `documento_hash`, a linha volta a estar amarrada
+  só ao texto do caminho. Se a rota já estiver no ar, ela tem que ser desligada junto.
+- **Pendência conhecida, ainda NÃO decidida (SEC-051 / R-031):** o contrato não diz com qual
+  cliente o passo 8 grava a linha. Com `service_role`, `auth.uid()` é nulo e o `actor_id` de
+  `audit_logs` sai nulo: a trilha diz que o perfil voltou pra fila e não diz quem mexeu. **A
+  auditoria recomenda a sessão do usuário**, e a recomendação está no card da T-008; **a
+  decisão é do Elber e ainda não foi tomada.** Só o passo 7, a escrita no bucket, precisa de
+  `service_role` e isso está decidido.
+**Status:** 🔵 decidida e escrita, **em andamento**. Vira ✅ quando a `0003` for aplicada
+(T-002) e a rota existir (T-008).
