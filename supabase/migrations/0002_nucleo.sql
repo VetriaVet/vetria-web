@@ -8,7 +8,9 @@
 -- ⚠️  ANTES DE RODAR:
 --   1. BACKUP do banco de produção. Sem isso, não rode.
 --   2. Leia a seção 0 (o que esta migration REMOVE) e a seção 11 (reversão).
---   3. Rode INTEIRA, de uma vez. Ela é uma transação só.
+--   3. Rode INTEIRA, de uma vez. Ela é uma transação só: ou entra tudo, ou
+--      não entra nada.
+--   4. DEPOIS, rode `supabase/verificar-apos-0002.sql`, uma sonda por vez.
 --
 -- Referências: DL-044 a DL-047 · docs/06-PERMISSOES.md · T-001
 -- Escrita em: 26/08/2026
@@ -16,6 +18,27 @@
 -- HISTÓRICO DE REVISÃO
 --   v1  26/08  primeira versão. REPROVADA na auditoria (SEC-2026-08-26):
 --              2 achados 🔴 e 4 🟠. Nunca foi aplicada.
+--   v4  26/08  terceira auditoria: modelo de segurança FECHADO (nenhum caminho
+--              de vazamento restante). Os 3 pendentes eram rede de segurança:
+--              SEC-024  a REVERSÃO restaurava as policies e esquecia
+--                       handle_new_user, que a seção 9 sobrescreve. Depois de
+--                       reverter, a coluna some e a função continua inserindo
+--                       nela: NINGUÉM MAIS CRIA CONTA, nem por email nem por
+--                       Google. Sintoma longe da causa, no meio do incidente.
+--              SEC-023  a revalidação cobria CRMV e CNPJ (o que o público vê) e
+--                       deixava de fora o DOCUMENTO, que é a prova. Agora o
+--                       trigger também cobre perfil_privado, e a data de envio é
+--                       carimbada pelo servidor pra não ser retroagida.
+--              SEC-025  a verificação continuava verde com a busca pública
+--                       quebrada. Virou sonda que assume o papel `anon` de
+--                       verdade, em arquivo separado.
+--              SEC-026  a regex aceitava .svg e .html: o admin abre o documento
+--                       pra validar o CRMV e leva XSS na sessão de maior
+--                       privilégio do sistema. Whitelist de extensão.
+--              SEC-027  a revalidação automática não entrava em audit_logs, e o
+--                       admin recebia o perfil de volta na fila sem saber por
+--                       quê. Reaprovação no automático = revalidação de teatro.
+--
 --   v3  26/08  segunda auditoria: os dois 🔴 confirmados fechados, mas 4 🟠
 --              novos, TRÊS DELES NASCIDOS DAS PRÓPRIAS CORREÇÕES da v2:
 --              SEC-014  o revoke de EXECUTE em perfil_esta_ativo DESLIGARIA a
@@ -257,7 +280,12 @@ create table public.perfil_privado (
   constraint perfil_privado_documento_do_dono
     check (
       documento_path is null
-      or documento_path ~ ('^' || id::text || '/[A-Za-z0-9_-]{1,120}\.[A-Za-z0-9]{1,8}$')
+      -- ⚠️ SEC-026 — extensão por whitelist, não por formato genérico.
+      -- `[A-Za-z0-9]{1,8}` aceitava `.svg` e `.html`. O admin abre o documento
+      -- pra validar o CRMV, e um SVG com script vira XSS disparado dentro do
+      -- painel administrativo, na sessão de quem tem mais poder no sistema.
+      -- Amarra com o R-004 (dangerouslyAllowSVG ligado no next.config).
+      or documento_path ~ ('^' || id::text || '/[A-Za-z0-9_-]{1,120}\.(pdf|jpg|jpeg|png|webp)$')
     )
 );
 
@@ -341,6 +369,12 @@ begin
     mudou := (new.cnpj is distinct from old.cnpj)
           or (new.razao_social is distinct from old.razao_social)
           or (new.nome_fantasia is distinct from old.nome_fantasia);
+  -- ⚠️ SEC-023 — o documento é A PROVA, não só um campo.
+  -- A versão anterior cobria CRMV e CNPJ, que é o que o público vê, e deixava
+  -- de fora justamente o arquivo que sustentou a aprovação. Trocar o documento
+  -- depois de aprovado esvazia a validação inteira.
+  elsif tg_table_name = 'perfil_privado' then
+    mudou := (new.documento_path is distinct from old.documento_path);
   end if;
 
   -- Admin editando (moderação) não devolve pra fila: ele já está olhando.
@@ -350,6 +384,20 @@ begin
         status_motivo = 'Dado de identificação alterado. O perfil voltou para revisão.',
         updated_at = now()
     where id = new.id and status = 'active';
+
+    -- ⚠️ SEC-027 — sem isto, o admin recebe o perfil de volta na fila e não
+    -- sabe POR QUE ele voltou nem o que mudou. Reaprova no automático, e a
+    -- revalidação vira teatro. O trigger tem `old` e `new` na mão: usa.
+    if found then
+      insert into public.audit_logs (actor_id, acao, alvo_tipo, alvo_id, detalhe)
+      values (
+        auth.uid(),
+        'revalidacao_automatica',
+        tg_table_name,
+        new.id,
+        jsonb_build_object('motivo', 'dado de identificacao alterado apos aprovacao')
+      );
+    end if;
   end if;
 
   return new;
@@ -363,6 +411,31 @@ create trigger trg_vet_profiles_revalidar
 create trigger trg_clinic_profiles_revalidar
   after update on public.clinic_profiles
   for each row execute function public.revalidar_ao_mudar_dado_sensivel();
+
+create trigger trg_perfil_privado_revalidar
+  after update on public.perfil_privado
+  for each row execute function public.revalidar_ao_mudar_dado_sensivel();
+
+-- SEC-023 (parte 2): a data de envio é carimbada pelo servidor, nunca aceita do
+-- cliente. Sem isto o dono retroage `documento_enviado_em` e some com o rastro
+-- de que trocou o arquivo.
+create or replace function public.carimbar_envio_documento()
+returns trigger
+language plpgsql set search_path = public
+as $$
+begin
+  if new.documento_path is distinct from old.documento_path then
+    new.documento_enviado_em := case when new.documento_path is null then null else now() end;
+  else
+    new.documento_enviado_em := old.documento_enviado_em;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_perfil_privado_carimbo
+  before update on public.perfil_privado
+  for each row execute function public.carimbar_envio_documento();
 
 create trigger trg_perfil_privado_updated_at
   before update on public.perfil_privado
@@ -827,6 +900,7 @@ commit;
 --   drop function if exists public.admin_definir_status(uuid, public.user_status, text);
 --   drop function if exists public.concluir_onboarding_profissional();
 --   drop function if exists public.revalidar_ao_mudar_dado_sensivel() cascade;
+--   drop function if exists public.carimbar_envio_documento() cascade;
 --
 --   -- 3) tabelas (as policies delas caem junto)
 --   drop table if exists public.audit_logs;
@@ -839,6 +913,35 @@ commit;
 --   -- 4) só agora as colunas, já sem policy dependendo delas
 --   alter table public.profiles drop column if exists status_motivo;
 --   alter table public.profiles drop column if exists status;
+--
+--   -- 4b) ⚠️ SEC-024 — RESTAURAR handle_new_user. NÃO PULE ESTE PASSO.
+--   -- A seção 9 é a ÚNICA do arquivo que SOBRESCREVE um objeto que já existia.
+--   -- Se a coluna `status` sumir e a função continuar inserindo nela, NINGUÉM
+--   -- mais cria conta: nem por email, nem por Google. E o sintoma aparece longe
+--   -- da causa, horas depois, no meio do incidente.
+--   -- Esta é a versão da migration 0001, sem `status`.
+--   create or replace function public.handle_new_user()
+--   returns trigger language plpgsql security definer set search_path = public
+--   as $function$
+--   declare
+--     meta_role text := new.raw_user_meta_data ->> 'role';
+--   begin
+--     insert into public.profiles (id, role, full_name)
+--     values (
+--       new.id,
+--       case
+--         when meta_role in ('tutor', 'vet', 'clinic') then meta_role::user_role
+--         else 'tutor'::user_role
+--       end,
+--       coalesce(
+--         nullif(new.raw_user_meta_data ->> 'full_name', ''),
+--         nullif(new.raw_user_meta_data ->> 'name', '')
+--       )
+--     )
+--     on conflict (id) do nothing;
+--     return new;
+--   end;
+--   $function$;
 --
 --   -- 5) tipos e funções de autorização, por último
 --   drop type     if exists public.contato_canal;
@@ -857,22 +960,16 @@ commit;
 
 
 -- ============================================================================
--- 14. VERIFICAÇÃO PÓS-APLICAÇÃO (rode DEPOIS, e confira cada linha)
+-- 14. VERIFICAÇÃO PÓS-APLICAÇÃO
 -- ============================================================================
--- select
---   -- SEC-014: se qualquer um vier false, a busca pública está quebrada
---   has_function_privilege('anon', 'public.perfil_esta_ativo(uuid,public.user_role)', 'execute') as anon_busca,
---   has_function_privilege('authenticated', 'public.perfil_esta_ativo(uuid,public.user_role)', 'execute') as auth_busca,
---   has_function_privilege('authenticated', 'public.tem_role(public.user_role)', 'execute') as auth_tem_role,
---   has_function_privilege('authenticated', 'public.is_admin()', 'execute') as auth_is_admin;
+-- As sondas de verificação vivem em arquivo separado:
 --
--- -- Distribuição esperada: tutor e admin em 'active'; vet e clinic em 'incomplete'
--- select role, status, onboarding_completed, count(*) from public.profiles
--- group by role, status, onboarding_completed order by role, status;
+--     supabase/verificar-apos-0002.sql
 --
--- -- Toda tabela nova com RLS ativa (todas têm que vir true)
--- select relname, relrowsecurity from pg_class
--- where relnamespace = 'public'::regnamespace and relkind = 'r' order by relname;
+-- Estão fora daqui de propósito: misturar migration com verificação no mesmo
+-- arquivo faz alguém colar tudo de uma vez e rodar as duas coisas juntas.
 --
--- -- As contas continuam de pé: 17 e 17
--- select (select count(*) from auth.users) as auth, (select count(*) from public.profiles) as profiles;
+-- Rode-as DEPOIS de aplicar esta migration, uma por vez. Elas assumem o papel
+-- `anon` de verdade e olham o que ele enxerga, em vez de conferir permissões
+-- no catálogo. A Sonda 2 é a que pega o erro da SEC-014, que desligaria a busca
+-- pública sem aparecer em nenhum teste feito com usuário logado.
