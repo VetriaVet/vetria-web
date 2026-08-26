@@ -208,7 +208,7 @@ isso que toda migration é uma transação só. Registrado como R-016 e no contr
 **Status:** ✅ virou processo
 
 ### DL-051 — O documento de validação sobe por rota nossa, e a linha guarda a identidade dos bytes
-**Data:** 26/08/2026 · **Fase/Task:** F3/S2 · T-002 / T-009 / T-012 · **Commit:** decisão escrita na `0003` v2, **ainda não aplicada no banco**
+**Data:** 26/08/2026 · **Fase/Task:** F3/S2 · T-002 / T-009 / T-012 · **Commit:** `a68251d` — a metade que é banco está aplicada; a rota é a T-008
 **Contexto:** o desenho original do bucket `documentos` era URL de upload assinada: o servidor
 emitia o token, o navegador fazia PUT direto no storage-api. A auditoria da `0003` mostrou duas
 consequências que ninguém tinha visto (SEC-033 e SEC-036). **(1) Não existia validação de tipo

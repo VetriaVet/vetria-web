@@ -79,7 +79,7 @@
 - **Task:** **T-013** (acompanhamento, não é pré-requisito de nada)
 
 ### R-027 — O pré-voo 1.2 aborta sobre uma condição que ninguém mediu, e manda consertar por um caminho que não existe (SEC-047)
-- **Descoberto:** 26/08/2026, 2ª auditoria da `0003` (não aplicada)
+- **Descoberto:** 26/08/2026, 2ª auditoria da `0003`, antes de aplicar
 - **O quê:** a promoção de `raise warning` para `raise exception` em `storage.buckets` sem RLS **está certa**. O problema é o que sobra: `relrowsecurity` de `storage.buckets` **e** de `storage.objects` não foi medido, então as duas metades do pré-voo 1.2 abortam sobre uma condição que ninguém olhou. E a mensagem manda "ligue pelo painel": o painel tem UI para **policy** de storage, não para `alter table storage.buckets enable row level security` — comando que exige ser dono da tabela (`supabase_storage_admin`), que `postgres` não é.
 - **É risco de cronograma, não de vazamento.** A migration falha fechada. Mas o operador fica sem caminho no meio de uma sessão presencial, e **a T-002 já escorregou uma semana**.
 - **Agravante:** as duas metades moram no **mesmo bloco `do`**. Comentar uma desliga a asserção mais valiosa do arquivo (`storage.objects` sem RLS) junto.
@@ -88,7 +88,7 @@
 - **26/08 — medido, e as duas vieram `true`** (Sonda 2). O pré-voo não abortou e a `0003` aplicou. **O achado continua aberto porque o que ele descreve não é a medição, é a mensagem:** ela manda ligar RLS pelo painel, e o painel não faz isso. Quem rodar este arquivo num ambiente novo, ou a `0004` copiando o formato, cai na mesma parede sem saída escrita.
 
 ### R-028 — `add column if not exists` pula o CHECK inline em silêncio (SEC-048)
-- **Descoberto:** 26/08/2026, 2ª auditoria da `0003` (não aplicada)
+- **Descoberto:** 26/08/2026, 2ª auditoria da `0003`, antes de aplicar
 - **O quê:** `alter table ... add column if not exists documento_hash text constraint ... check (...)` é **uma** instrução. Se a coluna já existir, o Postgres pula tudo, **inclusive o CHECK**. Vale para `documento_hash` e `documento_tamanho`; o `perfil_privado_documento_completo` está protegido, porque é guardado por um bloco `do` que consulta `pg_constraint`.
 - **A assimetria é o achado:** há pré-voo para as colunas de `clinic_profiles`, para o bucket, para as funções e para linhas com documento. **Nenhum para as cinco colunas novas de `perfil_privado`.** Basta alguém ter criado `documento_hash` pelo painel (R-006) e a migration **commita** com o hash virando campo de texto livre, que é exatamente o que o comentário da própria coluna diz querer impedir.
 - **Probabilidade baixíssima** (a coluna foi inventada nesta v2). **O que o torna risco é a categoria:** é a única verificação do arquivo que poderia ter abortado e virou relatório pós-fato, e nesse caminho o conserto é **reversão**, não "rodar de novo". Trocar um aborto por uma reversão é o pior câmbio possível numa migration destrutiva.
@@ -96,7 +96,7 @@
 - **26/08 — a `0003` aplicou e os CHECKs estão no banco** (`checks_do_documento` e `check_all_or_nothing` vieram `true` no select de resultado, e a Sonda 10 exercitou os dois). **O achado continua aberto como padrão, não como estado:** `add column if not exists` com CHECK inline segue sendo uma instrução só, e a próxima migration que copiar o formato herda a armadilha.
 
 ### R-029 — A guarda da SEC-044 congela a linha depois de uma troca de role, e a exceção não diz como sair (SEC-049)
-- **Descoberto:** 26/08/2026, 2ª auditoria da `0003` (não aplicada). **Confirmado no código.**
+- **Descoberto:** 26/08/2026, 2ª auditoria da `0003`, antes de aplicar. **Confirmado no código.**
 - **Onde:** a guarda `recusar_dado_de_estabelecimento_em_pessoa_fisica` da `0003` contra `app/api/admin/set-access/route.ts:19-62`.
 - **O quê:** a guarda recusa escrita em `perfil_privado` com `cnpj`, `razao_social` ou `responsavel_tecnico` não-nulos quando o dono da linha não é `clinic` — **e a escolha de falhar ruidosamente está certa.** O efeito colateral é que ela olha o estado **novo** de três colunas que podem ter sido gravadas legitimamente sob um role **antigo**. O `set-access` deixa um master trocar `clinic` para `vet` sem limpar nada; depois disso **todo UPDATE naquela linha levanta**, inclusive `set telefone = ...` e o passo 8 da rota da T-008, que nem toca nas três colunas.
 - **O sintoma é o mesmo que a SEC-044 quis evitar:** usuário legítimo travado, ticket que ninguém do suporte sabe explicar.
@@ -106,7 +106,7 @@
 - ⚠️ **Não existe card de `/api/admin/set-access` hoje.** Este item precisa entrar no **primeiro card que tocar essa rota** — o candidato natural é a reescrita de RBAC e middleware da S3 (ver R-001 e R-002). Enquanto esse card não existir, **este risco é o único lugar onde a regra está escrita.**
 
 ### R-030 — O pré-voo 1.7 é tautológico para `carimbar_envio_documento`, e manda comparar o corpo com o texto errado (SEC-050)
-- **Descoberto:** 26/08/2026, 2ª auditoria da `0003` (não aplicada)
+- **Descoberto:** 26/08/2026, 2ª auditoria da `0003`, antes de aplicar
 - **O quê:** para `revalidar_ao_mudar_dado_sensivel` a asserção funciona, porque o hash foi medido **e o corpo foi lido linha a linha contra a `0002`** — **é a leitura que prova**, não o hash. Para `carimbar_envio_documento` o procedimento é: rode `md5(prosrc)` agora, cole na constante, rode a migration. **A asserção passa a comparar produção com produção**, com cinco minutos de diferença, e não prova nada sobre adulteração.
 - **Agravante:** o único momento em que o operador vê o corpo real é a mensagem de aborto do `'PREENCHER'`, e ela manda comparar com a **seção 6.b**, que é o corpo **novo**, com a linha do hash. **Produção tem que divergir dela.** O operador ou toma um falso alarme, ou aprende a ignorar a diferença, que é pior.
 - **Cenário:** alguém corrige a função pelo painel em setembro, a `0004` copia a receita em outubro, a 1.7 passa, a 6.b sobrescreve a correção, e a reversão restaura o texto da `0002`. **É a SEC-024 inteira, com uma asserção na frente dizendo que foi conferido.**
@@ -114,7 +114,7 @@
 - **26/08 — na sessão da T-002 o corpo foi lido contra `0002_nucleo.sql:453-470`, como o procedimento pede, e a migration aplicou.** Os `md5` **novos** ficaram em `supabase/migrations/README.md`, que é onde o pré-voo da `0004` vai procurar. **O achado continua aberto:** o texto da mensagem dentro da `0003` não foi corrigido, e é ele que a `0004` vai copiar.
 
 ### R-031 — O contrato da rota de upload não diz com qual cliente o passo 8 grava a linha (SEC-051)
-- **Descoberto:** 26/08/2026, 2ª auditoria da `0003` (não aplicada)
+- **Descoberto:** 26/08/2026, 2ª auditoria da `0003`, antes de aplicar
 - **O quê:** o passo 7 da seção 2.b é explícito ("escrever no bucket com `service_role`"); o passo 8 diz "só então gravar a linha" e **não diz com qual cliente**. Com `service_role`, RLS não se aplica, `auth.uid()` é nulo, e o `insert into audit_logs` do trigger de revalidação grava **`actor_id = null`**: a trilha diz que o perfil voltou pra fila e não diz quem mexeu.
 - **É uma regressão que ninguém decidiu.** No desenho antigo, de URL assinada, quem gravava era a sessão do usuário e o `actor_id` saía certo. **A arquitetura nova (DL-051) apagou um dado da trilha por efeito colateral.**
 - **É a SEC-040 pela metade:** o arquivo gastou 18 linhas explicando que "quem abriu o RG do fulano em março?" precisa de resposta, e deixa "quem trocou o documento do fulano em março?" sem resposta, no mesmo contrato, por omissão de uma palavra.

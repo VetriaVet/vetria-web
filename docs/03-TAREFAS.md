@@ -74,6 +74,10 @@ _(vazio)_
 > cards eram os bloqueantes do veredito. A **v2** os fechou e foi **aprovada**
 > (`docs/relatorios/SEC-2026-08-26-0003-v2.md`). Os quatro cards estão em **✅ CONCLUÍDAS**,
 > com o Resultado preenchido.
+>
+> ⚠️ **Os Resultados desses quatro falam de SQL "não aplicado". Isso descreve o dia em que foram
+> escritos:** a `0003` foi aplicada em produção horas depois, em 26/08. O que ficou no banco está
+> no card da **T-002**.
 
 ### T-006 — Onboarding do veterinário passa a persistir
 - **Estado:** ⬜ fila
