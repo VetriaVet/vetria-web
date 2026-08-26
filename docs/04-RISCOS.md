@@ -82,6 +82,21 @@
 - **Mitigação:** aviso no topo do `HANDOFF.md` e do `CLAUDE.md`. Conferir com `/agents` no começo da sessão.
 - **Corrige de vez em:** avaliar cópia em `~/.claude/agents/` na S2, aceitando o custo de manter duas cópias sincronizadas.
 
+### R-014 — Não está definido quem OPERA o painel admin
+- **Descoberto:** 26/08/2026, ao conferir de quem são as 17 contas do banco
+- **O quê:** existem apenas 2 contas de admin (1 master, 1 comum). Os sócios da Vetria não são admin: o Durval está no banco como `vet`. A partir da **F3/S4**, quando a validação de CRMV e CNPJ ficar real, alguém precisa abrir a fila diariamente, conferir documento e aprovar.
+- **Por que importa:** se só o Elber aprova, ele vira o gargalo de toda entrada de profissional na plataforma. É exatamente o que o DL-045 tentou evitar ao separar admin comum de master.
+- **A decidir até a F3/S4:**
+  1. Marília e Durval recebem conta de **admin comum** para aprovar profissionais?
+  2. Se o Durval também quiser **perfil público de veterinário**, precisa de **duas contas com emails diferentes**. `1 usuário = 1 role` é a regra que sustenta o RBAC inteiro (DL-044), e abrir exceção para sócio é abrir para todo mundo.
+- **Não bloqueia a F3/S1.** Bloqueia o uso real da S4.
+
+### R-015 — Token do GitHub em texto puro na URL do remote
+- **Herdado de:** DL-002, quando resolver rápido era o certo
+- **O quê:** o token fica no `.git/config` em texto puro e aparece em qualquer `git remote -v`. Expirou em 26/08/2026 e travou o push.
+- **Por que importa agora:** são 3 meses de commits pela frente, e o `credential.helper` já está configurado como `manager` nesta máquina. Dá pra deixar o remote limpo e autenticar uma vez pelo navegador.
+- **Corrige em:** F3/S2, junto com as outras tarefas de infraestrutura. 🟡
+
 ### R-010 — `.claude/settings.local.json` com ~90 permissões de commit hardcoded
 - Cada mensagem de commit virou uma permissão literal. Não escala e polui. Simplificar pra padrões amplos quando incomodar.
 
