@@ -18,6 +18,10 @@ O banco deixou de ser só `profiles`.
 
 **Próxima task:** `T-003` — Playwright + CI. Não depende do banco.
 
+**S1 entregou 5 de 6:** governança, baseline, migration `0002`, auditoria (4 rodadas) e o
+fix de layout dos onboardings. **Sobrou:** T-002 (bucket de documentos, 🔴 presencial) e
+T-003, que escorregam pra S2.
+
 **Backup pré-migration:** `supabase/backups/` (17 linhas, fora do versionamento).
 
 ---

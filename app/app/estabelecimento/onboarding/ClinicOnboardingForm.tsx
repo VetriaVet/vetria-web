@@ -66,7 +66,7 @@ export default function ClinicOnboardingForm({
   }
 
   return (
-    <div className="grid lg:grid-cols-[320px_1fr] -m-6 sm:-m-8 min-h-[calc(100vh-4rem)]">
+    <div className="grid lg:grid-cols-[320px_1fr] min-h-screen">
       <aside className="bg-principal text-white p-8 flex flex-col">
         <div className="flex items-center gap-2.5 mb-10">
           <Image src="/vetria/logo-vetria-fundo-escuro.svg" alt="Vetria" width={178} height={29} className="h-7 w-auto" />

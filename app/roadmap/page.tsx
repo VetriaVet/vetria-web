@@ -74,10 +74,10 @@ const SPRINTS: Sprint[] = [
     num: "Fase 3 · até 22 de setembro",
     title: "O produto passa a guardar dados",
     status: "doing",
-    goal: "Sair da casca. Tudo o que o profissional preenche passa a ser guardado, e o admin passa a validar de verdade quem entra na plataforma.",
+    goal: "Sair da casca. Tudo o que o profissional preenche passa a ser guardado, e o admin passa a validar de verdade quem entra na plataforma. A base de dados já está de pé desde 26 de agosto: agora as telas passam a escrever nela.",
     items: [
-      { label: "Estrutura de dados dos perfis profissionais", status: "doing" },
-      { label: "Onboarding que guarda o que foi preenchido", status: "todo" },
+      { label: "Estrutura de dados dos perfis profissionais", status: "done" },
+      { label: "Onboarding que guarda o que foi preenchido", status: "doing" },
       { label: "Envio de documento para validação (CRMV, CNPJ)", status: "todo" },
       { label: "Estados do profissional: incompleto, em validação, ativo", status: "todo" },
       { label: "Fila de validação real no painel do admin", status: "todo" },

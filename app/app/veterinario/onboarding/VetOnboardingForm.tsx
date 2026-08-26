@@ -89,7 +89,7 @@ export default function VetOnboardingForm({
   }
 
   return (
-    <div className="grid lg:grid-cols-[320px_1fr] -m-6 sm:-m-8 min-h-[calc(100vh-4rem)]">
+    <div className="grid lg:grid-cols-[320px_1fr] min-h-screen">
       {/* Sidebar de progresso */}
       <aside className="bg-principal text-white p-8 flex flex-col">
         <div className="flex items-center gap-2.5 mb-10">

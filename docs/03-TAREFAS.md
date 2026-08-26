@@ -47,23 +47,6 @@ _(vazio)_
 
 # ⬜ FILA — F3 / S1
 
-### T-005 — Onboarding profissional estoura a largura da tela
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S2
-- **Capacidade:** E2
-- **Nível:** 🟢
-- **Agente dono:** vetria-ui
-- **Depende de:** nada
-- **Por quê:** é a **primeira tela** que todo profissional vê depois de confirmar o email. Logo cortada e barra de rolagem horizontal na primeira impressão, num produto que se vende como "plataforma séria e profissional".
-- **Causa (diagnosticada em 26/08):** `app/app/veterinario/onboarding/VetOnboardingForm.tsx:92` usa `-m-6 sm:-m-8`, margem negativa feita pra furar o padding de um container pai. Esse pai deixou de existir quando os onboardings saíram do route group `(painel)` (DL-025/DL-031): `app/app/layout.tsx` devolve os filhos sem padding para vet e clínica. A margem negativa então joga 2rem pra fora de cada lado e a página fica 4rem mais larga que a viewport. O `min-h-[calc(100vh-4rem)]` tem o mesmo vício: desconta um header que não está ali.
-- **Feito quando:**
-  - [ ] Sem rolagem horizontal em 375, 768 e 1440
-  - [ ] Logo inteira e visível
-  - [ ] Mesma checagem no `ClinicOnboardingForm.tsx`, que é clone e provavelmente tem o mesmo problema
-  - [ ] Varredura por outras margens negativas órfãs no `app/` (`grep -rn "\-m-6\|\-m-8"`)
-- **Não fazer:** não redesenhar a tela. É correção de layout, não refação visual.
-- **Observação:** confirmado em produção pelo Elber em 26/08/2026, logo após o primeiro cadastro real.
-
 ### T-002 — Bucket de documentos no Storage
 - **Estado:** ⬜ fila
 - **Fase / Semana:** F3 / S1
@@ -95,21 +78,6 @@ _(vazio)_
   - [ ] `README.md` explica como rodar teste local
 - **Não fazer:** não escrever teste de tela que ainda é casca. Testa só o que já é real.
 
-### T-004 — Auditoria de segurança inicial (linha de base)
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S1
-- **Capacidade:** transversal (segurança)
-- **Nível:** somente leitura — produz relatório, não toca código
-- **Agente dono:** vetria-seguranca
-- **Depende de:** nada — roda em paralelo
-- **Por quê:** precisamos saber o tamanho do buraco antes de construir em cima. Já há suspeita confirmada em R-001.
-- **Feito quando:**
-  - [ ] `docs/relatorios/SEC-2026-08-XX.md` escrito
-  - [ ] Achados classificados 🔴 / 🟠 / 🟡 com prova (arquivo:linha e como explorar)
-  - [ ] Cada achado 🔴 virou card de task nesta fila
-  - [ ] `04-RISCOS.md` atualizado
-- **Não fazer:** não corrigir nada. Auditor não conserta — auditor reporta.
-
 ---
 
 # ⏸️ BLOQUEADAS
@@ -119,6 +87,14 @@ _(vazio)_
 ---
 
 # ✅ CONCLUÍDAS
+
+### T-005 — Onboarding profissional estoura a largura da tela
+- **Estado:** ✅ concluída em 26/08/2026
+- **Resultado:** removido o `-m-6 sm:-m-8` de `VetOnboardingForm.tsx:92` e `ClinicOnboardingForm.tsx:69`, e o `min-h-[calc(100vh-4rem)]` virou `min-h-screen`. A margem negativa furava o padding de um container pai que deixou de existir quando os onboardings saíram do route group `(painel)`. Varredura confirmou que eram as duas únicas ocorrências no `app/`. Build verde.
+
+### T-004 — Auditoria de segurança inicial (linha de base)
+- **Estado:** ✅ concluída em 26/08/2026
+- **Resultado:** virou auditoria da própria migration `0002`, em **4 rodadas**. Relatório em `docs/relatorios/SEC-2026-08-26.md` (2854 linhas). Achou 2 críticos (responsável entrava na busca como veterinário; base de telefones vazava pela API), 12 altos e vários médios. Alimentou R-011 a R-017 e as decisões DL-049 e DL-050.
 
 ### T-001 — Migration 0002: núcleo de dados
 - **Estado:** ✅ concluída em 26/08/2026
