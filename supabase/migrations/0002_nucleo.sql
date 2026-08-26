@@ -16,7 +16,28 @@
 -- HISTÓRICO DE REVISÃO
 --   v1  26/08  primeira versão. REPROVADA na auditoria (SEC-2026-08-26):
 --              2 achados 🔴 e 4 🟠. Nunca foi aplicada.
---   v2  26/08  corrigida. Principais mudanças:
+--   v3  26/08  segunda auditoria: os dois 🔴 confirmados fechados, mas 4 🟠
+--              novos, TRÊS DELES NASCIDOS DAS PRÓPRIAS CORREÇÕES da v2:
+--              SEC-014  o revoke de EXECUTE em perfil_esta_ativo DESLIGARIA a
+--                       busca pública. Expressão de policy é avaliada como o
+--                       usuário da consulta, e o SECURITY DEFINER só troca o
+--                       contexto DEPOIS da checagem de EXECUTE. Invisível em
+--                       dev, porque o dev está sempre logado. Agora revoga de
+--                       PUBLIC e concede explicitamente a anon/authenticated.
+--              SEC-015  o CHECK do documento ancorava prefixo, não formato:
+--                       `<uuid>/../<vitima>/doc.pdf` passava e o Storage
+--                       normalizava o `..`. Virou regex de formato.
+--              SEC-016  só o slug estava pinado, então um vet aprovado trocava
+--                       o CRMV por PATCH e seguia no ar sem revalidação. Trigger
+--                       devolve pra pending_validation quando dado de
+--                       identificação muda.
+--              SEC-017  o bloco de reversão NÃO RODAVA: dropava colunas ainda
+--                       referenciadas por policy. Reordenado.
+--              Mais: slug bloqueado também no INSERT; audit_logs volta a ser
+--              legível pelo master; reprovar devolve onboarding_completed=false
+--              pra que o reprovado alcance a tela onde o motivo aparece.
+--
+--   v2  26/08  primeira correção. Principais mudanças:
 --              SEC-001  perfil_esta_ativo() e as policies de INSERT/UPDATE
 --                       passam a exigir o ROLE, não só o status. Antes, uma
 --                       conta de responsável (que nasce 'active') inseria uma
@@ -226,8 +247,18 @@ create table public.perfil_privado (
   documento_enviado_em timestamptz,
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now(),
+  -- ⚠️ SEC-015 — regex, não LIKE de prefixo.
+  -- `documento_path like id::text || '/%'` parece cobrir, e não cobre:
+  -- `<meu-uuid>/../<vitima>/doc.pdf` passa, e o Storage normaliza o `..`.
+  -- Um CHECK que parece proteger e não protege é pior que nenhum.
+  -- Aqui: <uuid>/ + um nome sem barra e sem ponto + UM ponto + extensão.
+  -- `..` não passa porque o primeiro caractere depois da barra tem que ser
+  -- alfanumérico, hífen ou sublinhado.
   constraint perfil_privado_documento_do_dono
-    check (documento_path is null or documento_path like id::text || '/%')
+    check (
+      documento_path is null
+      or documento_path ~ ('^' || id::text || '/[A-Za-z0-9_-]{1,120}\.[A-Za-z0-9]{1,8}$')
+    )
 );
 
 -- 4.3 — animais do responsável
@@ -289,6 +320,50 @@ create trigger trg_clinic_profiles_updated_at
   before update on public.clinic_profiles
   for each row execute function public.set_updated_at();
 
+-- ⚠️ SEC-016 — a aprovação vale para o DADO que foi aprovado, não para a conta.
+-- Sem isto, um veterinário aprovado troca o CRMV por um PATCH e continua no ar,
+-- exibindo um registro que ninguém conferiu. A aprovação vira um cheque em
+-- branco vitalício.
+-- Precisa ser DEFINER: quem dispara é o próprio dono, e a policy do 7.2 impede
+-- que ele escreva em `status`.
+create or replace function public.revalidar_ao_mudar_dado_sensivel()
+returns trigger
+language plpgsql security definer set search_path = public
+as $$
+declare
+  mudou boolean := false;
+begin
+  if tg_table_name = 'vet_profiles' then
+    mudou := (new.crmv is distinct from old.crmv)
+          or (new.crmv_uf is distinct from old.crmv_uf)
+          or (new.nome_exibicao is distinct from old.nome_exibicao);
+  elsif tg_table_name = 'clinic_profiles' then
+    mudou := (new.cnpj is distinct from old.cnpj)
+          or (new.razao_social is distinct from old.razao_social)
+          or (new.nome_fantasia is distinct from old.nome_fantasia);
+  end if;
+
+  -- Admin editando (moderação) não devolve pra fila: ele já está olhando.
+  if mudou and not public.is_admin() then
+    update public.profiles
+    set status = 'pending_validation',
+        status_motivo = 'Dado de identificação alterado. O perfil voltou para revisão.',
+        updated_at = now()
+    where id = new.id and status = 'active';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger trg_vet_profiles_revalidar
+  after update on public.vet_profiles
+  for each row execute function public.revalidar_ao_mudar_dado_sensivel();
+
+create trigger trg_clinic_profiles_revalidar
+  after update on public.clinic_profiles
+  for each row execute function public.revalidar_ao_mudar_dado_sensivel();
+
 create trigger trg_perfil_privado_updated_at
   before update on public.perfil_privado
   for each row execute function public.set_updated_at();
@@ -327,7 +402,7 @@ create policy vet_profiles_select_admin on public.vet_profiles
 -- aparecia na busca pública com CRMV inventado.
 create policy vet_profiles_insert_own on public.vet_profiles
   for insert to authenticated
-  with check (id = auth.uid() and public.tem_role('vet'));
+  with check (id = auth.uid() and public.tem_role('vet') and slug is null);
 
 -- UPDATE do dono: não pode trocar o próprio slug (correção SEC-008, squatting
 -- de nome). O slug é definido pelo servidor na F4/S5.
@@ -358,7 +433,7 @@ create policy clinic_profiles_select_admin on public.clinic_profiles
 
 create policy clinic_profiles_insert_own on public.clinic_profiles
   for insert to authenticated
-  with check (id = auth.uid() and public.tem_role('clinic'));
+  with check (id = auth.uid() and public.tem_role('clinic') and slug is null);
 
 create policy clinic_profiles_update_own on public.clinic_profiles
   for update to authenticated
@@ -499,8 +574,17 @@ begin
     raise exception 'status so se aplica a vet e clinic';
   end if;
 
+  -- Reprovar devolve ao onboarding. Sem isto o `onboarding_completed` continua
+  -- true, o roteamento manda o reprovado pro painel, e ele nunca alcança a tela
+  -- onde o `status_motivo` aparece: fica sem saber por que foi reprovado.
   update public.profiles
-  set status = novo_status, status_motivo = motivo, updated_at = now()
+  set status = novo_status,
+      status_motivo = motivo,
+      onboarding_completed = case
+        when novo_status = 'incomplete' then false
+        else onboarding_completed
+      end,
+      updated_at = now()
   where id = target_user_id;
 
   insert into public.audit_logs (actor_id, acao, alvo_tipo, alvo_id, detalhe)
@@ -645,12 +729,26 @@ begin
   end loop;
 end $$;
 
--- SEC-009: perfil_esta_ativo era chamável por anon via RPC, virando oráculo
--- para descobrir se um uuid qualquer é profissional ativo. Ela só precisa ser
--- executável de dentro das policies, e policy roda como quem definiu.
-revoke execute on function public.perfil_esta_ativo(uuid, public.user_role) from anon, public;
-revoke execute on function public.tem_role(public.user_role) from anon, public;
-revoke execute on function public.is_admin() from anon, public;
+-- ⚠️ SEC-014 — LEIA ANTES DE MEXER AQUI.
+-- A tentação é revogar EXECUTE destas funções pra que não sejam chamáveis por
+-- RPC. NÃO FAÇA. Expressão de policy é avaliada COMO O USUÁRIO DA CONSULTA, e
+-- o SECURITY DEFINER troca o contexto DEPOIS da checagem de EXECUTE, não antes.
+-- Revogar de `public` (ou de `anon`) faz a própria policy falhar: a busca
+-- pública para de retornar qualquer coisa.
+--
+-- E o pior: isso é INVISÍVEL em desenvolvimento, porque o dev está sempre
+-- logado. Só apareceria em produção, com o site no ar e o visitante anônimo
+-- vendo busca vazia.
+--
+-- Então: tira o grant automático do PUBLIC e concede explicitamente a quem a
+-- policy precisa. Superfície mínima sem quebrar nada.
+revoke execute on function public.perfil_esta_ativo(uuid, public.user_role) from public;
+revoke execute on function public.tem_role(public.user_role)                from public;
+revoke execute on function public.is_admin()                                from public;
+
+grant execute on function public.perfil_esta_ativo(uuid, public.user_role) to anon, authenticated;
+grant execute on function public.tem_role(public.user_role)                to authenticated;
+grant execute on function public.is_admin()                                to authenticated;
 
 
 -- 11b. GRANTS EXPLÍCITOS (defesa em profundidade)
@@ -663,7 +761,9 @@ revoke insert, update, delete on public.vet_profiles    from anon;
 revoke insert, update, delete on public.clinic_profiles from anon;
 revoke insert, update, delete on public.animais         from anon;
 revoke all                    on public.perfil_privado  from anon;
-revoke all                    on public.audit_logs      from anon, authenticated;
+revoke all                    on public.audit_logs      from anon;
+-- só escrita: o master PRECISA do select, senão a policy dele não tem o que exercer
+revoke insert, update, delete on public.audit_logs      from authenticated;
 revoke insert, update, delete on public.contatos        from anon, authenticated;
 
 
@@ -690,40 +790,19 @@ commit;
 -- ============================================================================
 -- 13. PROCEDIMENTO DE REVERSÃO
 -- ============================================================================
--- Se algo der errado DEPOIS do commit, rode o bloco abaixo. Ele desfaz tudo o
--- que a 0002 criou. NÃO restaura o onboarding_completed dos 6 profissionais:
--- para isso, use o backup. Por isso o backup é obrigatório.
+-- ⚠️ SEC-017 — A ORDEM AQUI IMPORTA E JÁ ESTAVA ERRADA UMA VEZ.
+-- A versão anterior dropava `status` e `status_motivo` enquanto a policy do 7.2
+-- ainda os referenciava: sem CASCADE dava erro, com CASCADE derrubava a policy
+-- e o `alter policy` seguinte falhava. Reversão que não roda é pior que não ter
+-- reversão, porque você só descobre no pior momento possível.
+--
+-- Ordem correta: primeiro devolve as policies ao estado da 0000 (o que solta a
+-- dependência das colunas), depois derruba o resto.
 --
 -- begin;
---   drop function if exists public.admin_definir_status(uuid, public.user_status, text);
---   drop function if exists public.concluir_onboarding_profissional();
---   drop policy   if exists profiles_select_admin on public.profiles;
---   drop table    if exists public.audit_logs;
---   drop table    if exists public.contatos;
---   drop table    if exists public.animais;
---   drop table    if exists public.perfil_privado;
---   drop table    if exists public.clinic_profiles;
---   drop table    if exists public.vet_profiles;
---   alter table   public.profiles drop column if exists status_motivo;
---   alter table   public.profiles drop column if exists status;
---   drop type     if exists public.contato_canal;
---   drop type     if exists public.user_status;
---   drop function if exists public.perfil_esta_ativo(uuid, public.user_role);
---   drop function if exists public.tem_role(public.user_role);
---   drop function if exists public.is_admin();
+--   -- 1) policies primeiro, exatamente como estavam na 0000
+--   drop policy if exists profiles_select_admin on public.profiles;
 --
---   -- recria a policy removida na 7.1, exatamente como estava
---   create policy profiles_update_own_safe on public.profiles
---     for update to authenticated
---     using (id = auth.uid())
---     with check (
---       id = auth.uid()
---       and role        = (select p.role        from public.profiles p where p.id = auth.uid())
---       and admin_level = (select p.admin_level from public.profiles p where p.id = auth.uid())
---       and admin_team  = (select p.admin_team  from public.profiles p where p.id = auth.uid())
---     );
---
---   -- restaura o WITH CHECK original da policy alterada na 7.2
 --   alter policy profiles_update_own_safe_fields on public.profiles
 --     with check (
 --       id = auth.uid()
@@ -734,5 +813,66 @@ commit;
 --           = coalesce((select p2.admin_team from public.profiles p2 where p2.id = auth.uid()), 'none'::admin_team)
 --     );
 --
---   -- as funções removidas na seção 11 estão em 0000_baseline.sql, seções 3.2 e 3.3
+--   create policy profiles_update_own_safe on public.profiles
+--     for update to authenticated
+--     using (id = auth.uid())
+--     with check (
+--       id = auth.uid()
+--       and role        = (select p.role        from public.profiles p where p.id = auth.uid())
+--       and admin_level = (select p.admin_level from public.profiles p where p.id = auth.uid())
+--       and admin_team  = (select p.admin_team  from public.profiles p where p.id = auth.uid())
+--     );
+--
+--   -- 2) funções e triggers
+--   drop function if exists public.admin_definir_status(uuid, public.user_status, text);
+--   drop function if exists public.concluir_onboarding_profissional();
+--   drop function if exists public.revalidar_ao_mudar_dado_sensivel() cascade;
+--
+--   -- 3) tabelas (as policies delas caem junto)
+--   drop table if exists public.audit_logs;
+--   drop table if exists public.contatos;
+--   drop table if exists public.animais;
+--   drop table if exists public.perfil_privado;
+--   drop table if exists public.clinic_profiles;
+--   drop table if exists public.vet_profiles;
+--
+--   -- 4) só agora as colunas, já sem policy dependendo delas
+--   alter table public.profiles drop column if exists status_motivo;
+--   alter table public.profiles drop column if exists status;
+--
+--   -- 5) tipos e funções de autorização, por último
+--   drop type     if exists public.contato_canal;
+--   drop type     if exists public.user_status;
+--   drop function if exists public.perfil_esta_ativo(uuid, public.user_role);
+--   drop function if exists public.tem_role(public.user_role);
+--   drop function if exists public.is_admin();
 -- commit;
+--
+-- Nota: isto NÃO restaura o `onboarding_completed` dos profissionais alterados
+-- na seção 10.2. Para isso, use o backup de `supabase/backups/`. É exatamente
+-- por isso que o backup é obrigatório antes de rodar.
+--
+-- As funções removidas na seção 11 (current_user_role, is_admin_master) estão
+-- em `0000_baseline.sql`, seções 3.2 e 3.3.
+
+
+-- ============================================================================
+-- 14. VERIFICAÇÃO PÓS-APLICAÇÃO (rode DEPOIS, e confira cada linha)
+-- ============================================================================
+-- select
+--   -- SEC-014: se qualquer um vier false, a busca pública está quebrada
+--   has_function_privilege('anon', 'public.perfil_esta_ativo(uuid,public.user_role)', 'execute') as anon_busca,
+--   has_function_privilege('authenticated', 'public.perfil_esta_ativo(uuid,public.user_role)', 'execute') as auth_busca,
+--   has_function_privilege('authenticated', 'public.tem_role(public.user_role)', 'execute') as auth_tem_role,
+--   has_function_privilege('authenticated', 'public.is_admin()', 'execute') as auth_is_admin;
+--
+-- -- Distribuição esperada: tutor e admin em 'active'; vet e clinic em 'incomplete'
+-- select role, status, onboarding_completed, count(*) from public.profiles
+-- group by role, status, onboarding_completed order by role, status;
+--
+-- -- Toda tabela nova com RLS ativa (todas têm que vir true)
+-- select relname, relrowsecurity from pg_class
+-- where relnamespace = 'public'::regnamespace and relkind = 'r' order by relname;
+--
+-- -- As contas continuam de pé: 17 e 17
+-- select (select count(*) from auth.users) as auth, (select count(*) from public.profiles) as profiles;
