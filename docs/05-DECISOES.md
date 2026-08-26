@@ -260,5 +260,108 @@ quente do app.
   auditoria recomenda a sessão do usuário**, e a recomendação está no card da T-008; **a
   decisão é do Elber e ainda não foi tomada.** Só o passo 7, a escrita no bucket, precisa de
   `service_role` e isso está decidido.
-**Status:** 🔵 decidida e escrita, **em andamento**. Vira ✅ quando a `0003` for aplicada
-(T-002) e a rota existir (T-008).
+**26/08 — a metade que é banco está aplicada.** A `0003` rodou em produção (commit `a68251d`)
+e a Sonda 10 mediu, na linha do `documento_hash`, que trocar os bytes de um documento aprovado
+devolve o perfil para `pending_validation`, enquanto mexer no telefone não. A Sonda 11 confirmou
+pelo catálogo que `carimbo_segue_o_hash` e `revalidacao_segue_o_hash` estão no corpo que está
+rodando, não só no arquivo. **A metade que é rota continua não existindo**, e com ela continuam
+em aberto a assinatura mágica, o caminho gerado no servidor e a pendência do passo 8.
+**Status:** 🔵 decidida e escrita, **metade aplicada**. Vira ✅ quando a rota existir (T-008).
+
+---
+
+### DL-052 — 10 MiB e quatro MIME para o documento de validação, e as quatro listas mudam juntas
+**Data:** 26/08/2026 · **Fase/Task:** F3/S2 · T-002 · **Commit:** `a68251d` (aplicada em produção)
+**Contexto:** o bucket `documentos` precisava de teto de tamanho e de whitelist de tipo antes de
+existir, porque depois que houver documento de gente real dentro qualquer mudança nas duas listas
+vira migração de arquivo. O arquivo que sobe é foto de RG, CNH ou comprovante de CRMV, tirada por
+celular ou escaneada em PDF.
+**Decisão:** o bucket nasceu **privado**, com `file_size_limit = 10485760` (10 MiB) e
+`allowed_mime_types = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']`. Foto de
+documento de celular fica entre 2 e 6 MB e PDF de CRMV escaneado raramente passa de 3 MB: 10 MiB
+cobre com folga e ainda barra vídeo e arquivo de despejo. Medido em produção (Sonda 1):
+`public = false`, 10 MiB, os quatro MIME, zero objeto dentro.
+**Alternativa descartada:** limite maior. O custo dele não é armazenamento: é que **até 10 MiB
+trafegam pela função** do Next.js a cada envio (DL-051), e esse é o teto aceito por escrito.
+⚠️ **Consequência que a T-008 herda:** `image/heic`, formato nativo da câmera do iPhone, **não está
+na lista**. O envio é recusado, e a mensagem na tela precisa dizer isso em português.
+**Implicações — são QUATRO listas, e elas mudam juntas, sempre:**
+1. `allowed_mime_types` do bucket;
+2. a whitelist de **extensão** do CHECK `perfil_privado_documento_do_dono` (`pdf|jpg|jpeg|png|webp`),
+   que veio da `0002`;
+3. a **tabela de assinatura mágica** da rota da T-008 (`%PDF-`, `FF D8 FF`,
+   `89 50 4E 47 0D 0A 1A 0A`, `RIFF`…`WEBP`);
+4. o limite de bytes, que aparece duas vezes: `file_size_limit` do bucket e o CHECK de
+   `perfil_privado.documento_tamanho`.
+Se as quatro divergirem, o arquivo sobe e a linha é recusada, ou o contrário, que é pior.
+**`image/svg+xml` e `text/html` estão fora das quatro**, e é assim que o R-004 continua fechado.
+**Status:** ✅ aplicada
+
+---
+
+### DL-053 — CNPJ, razão social e responsável técnico são privados; endereço e CEP continuam públicos, e essa parte não está decidida
+**Data:** 26/08/2026 · **Fase/Task:** F3/S2 · T-002 (SEC-020 / R-018) · **Commit:** `a68251d`
+**Contexto:** a policy `clinic_profiles_select_publico` liberava a **linha inteira** de todo
+estabelecimento `active`. RLS é row-level: liberar a linha libera todas as colunas dela, e o
+PostgREST deixa o cliente escolher quais quer (é o DL-049 outra vez, no outro par de tabelas).
+Junto com o que é vitrine iam `cnpj`, `razao_social` e `responsavel_tecnico` — e
+`responsavel_tecnico` é **nome de pessoa física**. Nunca tinha sido decidido, e a `0002` foi
+aplicada assim. Não explodiu porque não existe estabelecimento `active` no banco.
+**Decisão:** os três desceram para `perfil_privado`, que não tem policy nenhuma para `anon`.
+`nome_fantasia`, `endereco`, `cep`, `cidade`, `estado`, `sobre`, `servicos`, `site` e `slug`
+continuam públicos, agora **por `comment on column` que diz por quê**, e não por omissão.
+**A escolha foi remover a coluna, não escondê-la:** medido em produção, `anon` pedindo `cnpj` a
+`clinic_profiles` recebe `42703: column "cnpj" does not exist`, e em `perfil_privado` recebe
+`42501: permission denied`. **Duas portas, motivos independentes.** A busca pública não quebrou
+(Sonda 9), que era o custo que a SEC-014 quase cobrou na `0002`.
+**Alternativas descartadas:** (a) declarar as três como vitrine, defensável para CNPJ de empresa
+e indefensável para o nome do responsável técnico; (b) privilégio por coluna (`GRANT SELECT (col)`),
+descartado pela mesma razão do DL-049: depende de alguém lembrar do `GRANT` a cada coluna nova.
+**⚠️ O QUE NÃO FOI DECIDIDO, e precisa ser antes da F4/S7:** o argumento que desceu `razao_social`
+foi que **em MEI e firma individual a razão social carrega o nome civil do dono**. **O mesmo
+argumento se aplica a `endereco` e a `cep`:** no MEI e em quem atende em casa, o endereço comercial
+**é** o residencial, e nada no schema, no formulário ou no consentimento distingue os dois casos.
+Os dois campos ficaram públicos **por ora**, com a pergunta escrita no `comment on column` de cada
+um. **A mesma pergunta tem uma segunda metade:** `vet_profiles.cidade` **não** devolve o perfil para
+a fila e `clinic_profiles.cidade` devolve (assimetria medida na Sonda 10B, deliberada e visível na
+tela). Ou o custo de revalidar endereço é aceitável e vale para os dois, ou não é e não vale para
+nenhum. **Está no R-032, com prazo: antes do perfil público da F4/S7.**
+**Implicações:** a T-007 grava os três em `perfil_privado`, nunca em `clinic_profiles`. Nenhuma tela
+pública pode exibi-los. Mudar qualquer um dos três, mais `endereco`, `cep`, `cidade` e `estado`,
+devolve o perfil para `pending_validation` (Sondas 10 e 10B). Uma guarda impede conta que não é `clinic`
+de gravar os três (Sonda 13B), e o efeito colateral dela em troca de role está no R-029.
+**Status:** ✅ aplicada, com uma pergunta de produto em aberto registrada no R-032
+
+---
+
+### DL-054 — `storage.objects` não tem policy nenhuma: a única superfície do projeto com tamanho zero
+**Data:** 26/08/2026 · **Fase/Task:** F3/S2 · T-002 / T-010 · **Commit:** `a68251d`
+**Contexto:** o card da T-002 pedia a policy óbvia: "o dono lê e escreve dentro do próprio prefixo
+`<uuid>/`". Escrever isso esbarrava numa coisa que a auditoria da `0002` já tinha registrado: o
+CHECK `perfil_privado_documento_do_dono` valida **a string guardada na tabela**, não o objeto que
+está no bucket. Com o cliente escolhendo o nome do arquivo, existiriam duas verdades sobre o mesmo
+documento — a chave real no bucket e o texto na coluna — e o CHECK viraria teatro, aprovando um
+caminho que não é o do arquivo.
+**Decisão:** o bucket `documentos` não tem **nenhuma** policy em `storage.objects`. Quem alcança o
+bucket é o servidor, com `service_role`, e só ele: escrita por `upload(path, bytes)` dentro da rota
+(DL-051), leitura por `createSignedUrl(path, expiresIn)`. **Sem policy não há bug de policy.**
+**O modelo foi medido, não suposto:** `rolbypassrls` é `true` em `service_role` e `postgres` e
+`false` em `anon` e `authenticated` (Sonda 4); RLS está ligada em `storage.objects` e
+`storage.buckets` e a lista de policies é nula (Sonda 2); `anon` conta zero objetos (Sonda 3). Com
+RLS ligada e nenhuma policy que os alcance, `anon` e `authenticated` recebem zero linha em leitura
+e exceção em escrita.
+**Alternativas descartadas:** policy por prefixo do dono, pela razão acima; e URL de upload assinada,
+descartada no DL-051, o que tornou o modelo literal — **nenhum token de escrita chega ao cliente**.
+**Implicações:**
+- **O dono não lê o próprio documento direto do Storage**, nem com sessão válida. A regra de
+  autorização mudou de lugar, do Postgres para a rota de servidor. Isso não contraria
+  `docs/06-PERMISSOES.md` linha 75; muda onde a regra é aplicada.
+- **O pré-voo de toda migration de storage aborta com qualquer policy em `storage.objects`**, sem
+  filtrar por nome de bucket: policy sem filtro de `bucket_id` alcança todos os buckets e é
+  exatamente a forma que os templates do painel do Supabase geram.
+- ⚠️ **A regra muda quando o segundo bucket nascer.** Foto de perfil é pública e é F4/S7 (R-019):
+  a partir dela, "zero policy em `storage.objects`" deixa de ser verdade e vira **"nenhuma policy
+  sem filtro de `bucket_id`"**. Os dois lugares que afirmam o contrário — o pré-voo 1.3 da `0003` e
+  a Sonda 2 — mudam juntos, no mesmo dia, e isso está anotado nos dois arquivos.
+**Status:** ✅ aplicada
+

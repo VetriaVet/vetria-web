@@ -5,14 +5,15 @@
 >
 > **Semana atual:** **S2 aberta em 26/08** · **Anterior:** S1 ✅ fechada em 26/08 (5 de 6) · **Fase:** F3
 >
-> **Ordem de execução da S2:** **T-002** (🔴 presencial, **agendar já** — a `0003` v2 está
-> aprovada e só espera a sessão) → T-006 → T-007 → T-008.
-> **T-013 é medição de dez segundos e vem antes da T-002.**
+> **Ordem de execução da S2:** **T-006 → T-007 → T-008.**
 > **T-003 corre em paralelo do primeiro dia**, porque `vetria-qa` não disputa arquivo com ninguém.
+> **T-013 vira acompanhamento:** as sondas já foram rodadas e o veredito saiu, então ela deixa
+> de ser pré-requisito de qualquer coisa e vira ajuste do arquivo de verificação.
 >
-> ✅ **A `0003` v2 foi APROVADA pela auditoria em 26/08**, com dois pré-checks de dez segundos.
-> Relatório: `docs/relatorios/SEC-2026-08-26-0003-v2.md` (SEC-046 a SEC-051).
-> **T-009 a T-012 fecharam.** O único card novo é a **T-013** (SEC-046).
+> ✅ **A `0003` foi APLICADA EM PRODUÇÃO em 26/08/2026** e verificada por 18 sondas, todas
+> verdes. **A T-002 fechou.** Com isso **a T-008 deixou de estar bloqueada** e a T-007 deixou
+> de estar impedida: as três colunas de identificação já vivem em `perfil_privado`.
+> **T-009 a T-012 fecharam junto**, na v2 da migration.
 
 ---
 
@@ -56,77 +57,16 @@ _(vazio)_
 
 # ⬜ FILA — F3 / S2
 
-> **Semana aberta em 26/08/2026 pelo `vetria-maestro`.** 5 cards, na ordem de execução abaixo.
-> **Mais 4 em 26/08, vindos da auditoria da `0003`** (T-009 a T-012) — **os quatro fecharam no
-> mesmo dia**, com a `0003` v2. **Mais 1 da segunda rodada** (T-013, SEC-046). **6 na fila.**
+> **Semana aberta em 26/08/2026 pelo `vetria-maestro`.** 5 cards. **Mais 4 em 26/08, vindos da
+> auditoria da `0003`** (T-009 a T-012), **os quatro fechados no mesmo dia**. **Mais 1 da
+> segunda rodada** (T-013, SEC-046).
+> **Com a `0003` aplicada e a T-002 fechada, sobram 5 na fila: T-006 → T-007 → T-008, com
+> T-003 em paralelo e T-013 como acompanhamento.**
 >
 > **O que mudou em relação ao `01-PLANO.md` §S2, e por quê:**
-> - **T-002 e T-003 escorregaram da S1** e abrem a S2. A T-002 continua 🔴: **sem sessão presencial com o Elber ela não anda, e a T-008 não existe sem ela.**
+> - **T-002 e T-003 escorregaram da S1** e abriram a S2. **A T-002 fechou em 26/08**, com a `0003` aplicada em produção; a T-003 continua na fila.
 > - **Onboarding do responsável saiu da S2 e vai pra S3**, junto com os editores de perfil. Motivo: os itens 1 a 4 do Definition of Done da F3 são todos do caminho do **profissional**; o responsável não tem nenhum item de DoD. Com uma 🔴 herdada da semana anterior dentro da fila, a S2 protege o caminho crítico primeiro.
 > - **Foto de perfil (vet) e horários (estabelecimento) não entram na S2.** O plano prometeu os dois, mas não existe nem campo no formulário nem coluna no banco para nenhum deles, e criar coluna é migration (🔴). Ver **R-019**. Nenhum dos dois está no `00-ESCOPO.md` §2, então não é corte de escopo contratado.
-
-### T-002 — Bucket de documentos no Storage
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S2 _(escorregou da S1)_
-- **Capacidade:** E1
-- **Nível:** 🔴 presencial — **precisa de sessão presencial com o Elber, agende**
-- **Agente dono:** vetria-backend + Elber
-- **Depende de:** T-001 ✅
-- **Por quê:** validação de CRMV é manual pelo admin (V1) e precisa do documento em algum lugar seguro. Enquanto não existir bucket, a T-008 não existe e o item 3 do DoD da F3 (admin aprova) não tem o que olhar.
-- **Feito quando:**
-  - [ ] Bucket `documentos` criado, **privado**
-  - [ ] **Sem policy alguma** em `storage.objects`. O acesso é mediado pelo servidor (`service_role`), e a autorização por dono/admin vive na rota da T-008. ⚠️ **Este critério foi reescrito em 26/08.** Ele pedia "policy: o dono lê e escreve no próprio prefixo `<uuid>/`", e essa linha foi **superada pela decisão de zero policy** tomada na sessão da própria T-002. Nunca poderia ser marcada com honestidade depois disso: não existe policy pra conferir
-  - [ ] **Provado que zero policy é zero** (SEC-034): `select policyname, cmd, roles, qual, with_check from pg_policies where schemaname='storage' and tablename='objects';` tem que vir **vazio**, e o pré-voo da migration tem que abortar em qualquer linha, não só nas que citam a string `documentos`
-  - [ ] Acesso por URL assinada com expiração curta, nunca por URL pública
-  - [ ] Limite de tamanho e whitelist de MIME (`pdf`, `jpg`, `jpeg`, `png`, `webp`) definidos e registrados em `05-DECISOES.md`
-  - [ ] **Regra do nome do arquivo documentada** (SEC-028): o nome é **gerado pelo servidor**, minúsculo, sem acento e sem espaço, no formato que o CHECK de `perfil_privado.documento_path` exige: `^<uuid>/[A-Za-z0-9_-]{1,120}\.(pdf|jpg|jpeg|png|webp)$`. Hoje isso não está escrito em lugar nenhum, e quem for fazer a T-008 vai errar sem saber por quê
-  - [ ] Confirmado no banco que o trigger `trg_perfil_privado_carimbo` cobre INSERT e UPDATE (correção SEC-028 da v5)
-- **Aproveite a sessão aberta (custo marginal quase zero):** decidir a **SEC-020 / R-018** — `clinic_profiles` publica `cnpj`, `razao_social`, `responsavel_tecnico`, `endereco` e `cep` para `anon` em toda linha `active`. Ou essas colunas são vitrine por decisão registrada, ou descem para `perfil_privado`, e descer é migration. **Decidir agora evita uma terceira sessão presencial antes da F4.**
-- **Não fazer:** não subir documento nenhum (isso é a T-008). Não criar bucket público de foto de perfil (R-019, fora da S2). Não mexer em RLS de tabela nesta sessão além do que a SEC-020 exigir, e só se houver decisão.
-- **Resultado (parcial — 26/08/2026, `vetria-backend`): SQL ESCRITO, NADA APLICADO.**
-  - Entregues, **sem commit**: `supabase/migrations/0003_storage_documentos.sql` e `supabase/verificar-apos-0003.sql` (14 sondas). O `supabase/backup-antes-da-0003.sql` já existia.
-  - **Decisões do Elber nesta sessão, embutidas no arquivo:** (a) o bucket não tem policy nenhuma em `storage.objects` — só `service_role` alcança, e o caminho é gerado no servidor por URL assinada; (b) 10 MiB e quatro MIME; (c) `razao_social`, `cnpj` e `responsavel_tecnico` descem para `perfil_privado`, e `endereco`/`cep`/`cidade`/`estado` **continuam públicos**, agora por `comment on column`, não por omissão. Fecha SEC-020 e R-018.
-  - **Consequência que a T-008 herda:** o dono deixa de ler o próprio documento direto do Storage. A autorização vira rota de servidor. Está escrita na seção 2.b da migration.
-  - **⚠️ O card da T-007 ficou errado:** ele manda gravar `razao_social`, `cnpj` e `responsavel_tecnico` em `clinic_profiles`. Depois da 0003 os três vivem em `perfil_privado`. **Corrigir o card antes de a T-007 começar.**
-  - **Falta:** corrigir os bloqueantes da auditoria → sessão presencial com o Elber → aplicar → rodar as sondas → registrar DL no `05-DECISOES.md` (limite/MIME e SEC-020) → anotar a data no `migrations/README.md`. Enquanto isso, a T-008 continua ⏸️.
-- **Resultado (auditoria — 26/08/2026, `vetria-seguranca`): 🔴 REPROVADA para aplicação.**
-  - Relatório: **`docs/relatorios/SEC-2026-08-26-0003.md`**. 13 achados, **SEC-033 a SEC-045**: quatro 🟠, nove 🟡, nenhum 🔴. Base: commit `2138fe1`.
-  - **Reprova estreita, e o motivo importa: não é o SQL de dado que está errado.** A ordem de execução, a cópia, a varredura de dependência e a reversão foram percorridas contra o schema real e estão corretas. A reversão restaura a função linha a linha, ou seja **a armadilha da SEC-024 não se repetiu**. O DROP é seguro por três caminhos independentes, um deles verificado no código: **nenhum arquivo `.ts`/`.tsx` lê `razao_social`, `cnpj` ou `responsavel_tecnico` de `clinic_profiles`**.
-  - **O que reprova são salvaguardas que não fazem o que o comentário diz que fazem** — o padrão do R-016, o mesmo que reprovou a `0002` duas vezes.
-  - **Os quatro bloqueantes, em ordem:** (1) **SEC-034**, o pré-voo tem que exigir zero policy em `storage.objects` sem filtrar por string, e a Sonda 2 para de se desqualificar; (2) **SEC-035**, a Sonda 10 devolve result set em vez de `raise notice`, e o `raise warning` do pré-voo 1.2 vira `raise exception`; (3) **SEC-033 e SEC-036**, decisão de arquitetura de upload registrada em `05-DECISOES.md` **antes de o bucket existir**; (4) **SEC-045**, pré-voo que aborte se o bucket já existir em vez de reconciliar em silêncio.
-  - **Entram junto, custam quase nada:** SEC-041 (`endereco`, `cep`, `cidade` e `estado` no ramo `clinic_profiles` do trigger), SEC-037 (asserção de `md5(prosrc)` e a 1.5 varrendo todos os schemas), `notify pgrst, 'reload schema';` no fim da migration, e SEC-040 (registrar em `audit_logs` quando o admin abre documento de terceiro — uma linha no card da T-008).
-  - **⚠️ Duas consultas de 10 segundos, no dashboard, ANTES da sessão presencial.** Elas decidem se dois dos quatro bloqueantes existem: `select policyname, cmd, roles, qual, with_check from pg_policies where schemaname='storage' and tablename='objects';` (tem que vir vazio) e `do $$ begin raise notice 'teste de notice'; end $$;` (o texto tem que aparecer no editor).
-  - **Achados que viraram card:** T-009 (SEC-033), T-010 (SEC-034), T-011 (SEC-035), T-012 (SEC-036). **Viraram risco:** R-020 a R-025.
-  - **A `0003` não precisa ser reescrita.** Tudo cabe no arquivo que existe: duas linhas de asserção, um bloco `do`, uma sonda reformulada e duas decisões escritas.
-- **Resultado (2ª auditoria, da v2 — 26/08/2026, `vetria-seguranca`): ✅ APROVADA para aplicação, com dois pré-checks de dez segundos.**
-  - Relatório: **`docs/relatorios/SEC-2026-08-26-0003-v2.md`**. **6 achados novos, SEC-046 a SEC-051: um 🟠, cinco 🟡, nenhum 🔴.** Base: commit `7ce2518`. A migration continua **não aplicada**.
-  - **Os quatro bloqueantes da v1 estão fechados com prova.** A v2 acrescentou **785 linhas** (810 → 1598) e o arquivo de verificação foi de 14 para **18 sondas** (934 linhas), **sem introduzir um único erro de SQL**. **Nada piorou** em relação à v1.
-  - **Nenhum dos seis achados novos exige mexer no SQL antes de aplicar, e nenhum é vazamento.**
-  - **As seis medições de produção que sustentam o veredito** (colhidas entre as duas rodadas): `pg_policies` em `storage.objects` **vazio**; `storage.buckets` **vazio**; `rolbypassrls` = `service_role` true, `postgres` true, `anon` false, `authenticated` false; `md5(prosrc)` de `revalidar_ao_mudar_dado_sensivel` = `035f8c64c139f2b6e1865341b4995fb7` **com o corpo lido linha a linha contra a `0002`**; o teste de NOTICE **não imprimiu o texto** (SEC-035 confirmada); QUERY 0 do backup com todas as tabelas em 0 e **18 contas / 18 profiles**.
-  - **O 🟠 é a T-013** (SEC-046): três sondas (3, 7C e 9) terminam em `rollback` **depois** do `select` que carrega o veredito. Não impede aplicar; **impede declarar verificado**.
-  - **Os cinco 🟡 viraram R-027 a R-031** e estão anotados nos cards que os herdam: SEC-049 (guarda da SEC-044 trava a linha depois de troca de role) e SEC-051 (o passo 8 da rota tem que gravar com a **sessão do usuário**, senão `actor_id` sai nulo em `audit_logs`) foram levados para os cards que tocam `/api/admin/set-access` e para a **T-008**.
-  - **Uma discordância do autor foi julgada a favor dele e contra o auditor:** derivar o hash do pré-voo 1.7 **de produção** e não do repo está certo; a remediação escrita na SEC-037 estava mal formulada. O que sobra é a SEC-050, e é outra coisa.
-  - ⚠️ **ORDEM DE APLICAÇÃO — siga esta, nesta sequência:**
-    1. **As três consultas de dez segundos**, antes de agendar: (a) `begin; select 42 as prova; rollback;` (decide a SEC-046 / T-013); (b) `select relname, relrowsecurity from pg_class where relnamespace = 'storage'::regnamespace and relname in ('objects','buckets');` — **as duas têm que vir `true`** (decide a SEC-047 e evita perder a sessão); (c) `select role, count(*) from public.profiles group by role;` — **sem conta `clinic` E conta `vet`, cinco sondas se declaram inválidas** e a verificação não prova nada.
-    2. `select md5(prosrc) from pg_proc where proname = 'carimbar_envio_documento';` — **e LER o corpo contra `0002_nucleo.sql:453-470`**, não contra a seção 6.b da `0003` (SEC-050). Colar o hash na constante do pré-voo 1.7.
-    3. **`supabase/backup-antes-da-0003.sql` inteiro**, exportando os CSV.
-    4. **Colar a migration de uma vez** e **ler a tabela de onze colunas** que ela devolve depois do `commit`: **toda coluna `true`**, `copia_linhas = 0`. **Anotar a linha inteira neste card** — os dois `md5` novos são o que a `0004` vai precisar no pré-voo dela.
-    5. **Só então as sondas**, uma por vez, **começando pela 4**.
-
-### T-013 — Medir se o editor renderiza `select` que não é o último comando, e só então mexer nas três sondas
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S2
-- **Capacidade:** E1
-- **Nível:** 🟢 pra medir (é um `select` de leitura, em rollback) · 🟡 se a correção das sondas for necessária
-- **Agente dono:** vetria-backend
-- **Depende de:** nada. **Vem antes da T-002.**
-- **Por quê:** SEC-046. As sondas 3, 7C e 9 do `verificar-apos-0003.sql` terminam em `rollback;` **depois** do `select` que carrega o veredito. O próprio arquivo declara, em `:49-50`, que "o editor do Supabase mostra só o resultado da última query" — e usa esse modelo para justificar o select pós-`commit` da migration. Sob o mesmo modelo, o último comando dessas três é `rollback`, que não devolve linha, e o veredito some. **É a SEC-035 com o canal trocado, e nasceu dentro da correção da SEC-038.** A Sonda 3 é a pior das três: sucesso é `0`, falha é qualquer número maior, e os dois casos são "Success" com o mesmo aspecto.
-- **Feito quando:**
-  - [ ] Rodado no dashboard e o resultado colado neste card: `begin; select 42 as prova; rollback;`
-  - [ ] **Se `42` aparecer:** o achado cai inteiro. Muda **uma frase** do cabeçalho do arquivo de verificação, dizendo que `select` dentro de transação revertida aparece sim. Fim do card
-  - [ ] **Se `42` não aparecer:** as sondas 3, 7C e 9 adotam o padrão que as 10, 10B e 13B já usam (tabela temporária + `select` como último comando, fora de transação), com a troca de papel saindo por `perform set_config('role','anon',true)` em vez de `set local role`
-- **Não fazer:** ⚠️ **não mexer nas três sondas antes de medir.** Reescrever sonda que já funciona é como se fabrica achado na rodada seguinte (R-016). Não tocar nas 7A e 7B: elas esperam **erro** como sucesso, e erro aparece em vermelho. Não tocar nas 10, 10B e 13B: o padrão delas está certo.
-- **Resultado:** _(preencher)_
 
 > ### ✅ T-009 a T-012 nasceram da auditoria da `0003` e **fecharam em 26/08**
 >
@@ -159,9 +99,9 @@ _(vazio)_
 - **Capacidade:** E2
 - **Nível:** 🟡
 - **Agente dono:** vetria-backend
-- **Depende de:** **T-002 aplicada** (as três colunas de identificação só existem em `perfil_privado` depois da `0003`) e T-006 — **e do handoff dela, não só do commit.** O formulário do estabelecimento é clone do de veterinário (foi assim que o R-017 nasceu duplicado); clonar antes de a T-006 ser revisada duplica o defeito junto
+- **Depende de:** **T-002 ✅** (as três colunas de identificação só existem em `perfil_privado` depois da `0003`, aplicada em 26/08) e T-006 — **e do handoff dela, não só do commit.** O formulário do estabelecimento é clone do de veterinário (foi assim que o R-017 nasceu duplicado); clonar antes de a T-006 ser revisada duplica o defeito junto
 - **Por quê:** mesmo buraco da T-006, no outro painel. Sem isso, metade dos profissionais que a Vetria vende não chega na fila de validação.
-- **⚠️ Este card foi corrigido em 26/08.** Ele mandava gravar `razao_social`, `cnpj` e `responsavel_tecnico` em `clinic_profiles`. **Depois da `0003` esses três vivem em `perfil_privado`**, e o insert antigo falharia com `column "cnpj" of relation "clinic_profiles" does not exist`. **Enquanto a `0003` não for aplicada, esta task não começa:** escrever pro schema novo antes de ele existir quebra igual, só que na outra direção.
+- **⚠️ Este card foi corrigido em 26/08.** Ele mandava gravar `razao_social`, `cnpj` e `responsavel_tecnico` em `clinic_profiles`. **Depois da `0003` esses três vivem em `perfil_privado`.** O impedimento acabou: a migration rodou no mesmo dia, e a Sonda 7A mediu em produção que `anon` selecionando `cnpj` de `clinic_profiles` recebe `42703: column "cnpj" does not exist`. **A coluna não existe mais**, então escrever pro schema antigo agora é que quebra.
 - **Feito quando:**
   - [ ] Server Action grava em `clinic_profiles` **só o que é público**: `nome_fantasia`, `endereco`, `cep`, `cidade`, `estado`, `sobre`, `servicos`, `site`
   - [ ] **`razao_social`, `cnpj` e `responsavel_tecnico` vão pra `perfil_privado`**, na linha do próprio `auth.uid()` (`0003`, SEC-020 / R-018). Nunca em tabela de leitura pública
@@ -170,15 +110,15 @@ _(vazio)_
   - [ ] Conclusão pela mesma RPC `concluir_onboarding_profissional()`
   - [ ] Prova de persistência igual à da T-006, com conta de estabelecimento nova
   - [ ] Mesmo tratamento de erro e mesma releitura de `status`
-- **Não fazer:** horários não entram (não existe campo no formulário nem coluna na tabela, ver R-019). Não exibir CNPJ, razão social ou nome do responsável técnico em nada público enquanto a SEC-020 / R-018 não tiver decisão registrada. Não construir perfil público (F4/S7).
+- **Não fazer:** horários não entram (não existe campo no formulário nem coluna na tabela, ver R-019). Não exibir CNPJ, razão social ou nome do responsável técnico em nada público: os três são privados por decisão registrada (DL-053) e não estão mais em tabela de leitura pública. Não construir perfil público (F4/S7).
 
 ### T-008 — Upload do documento de validação
-- **Estado:** ⏸️ bloqueada por T-002
+- **Estado:** ⬜ fila _(desbloqueada em 26/08: o bucket `documentos` existe em produção)_
 - **Fase / Semana:** F3 / S2
 - **Capacidade:** E1
 - **Nível:** 🟡
 - **Agente dono:** vetria-backend
-- **Depende de:** **T-002** (sem bucket não há upload) e T-006
+- **Depende de:** **T-002 ✅** (o bucket existe desde 26/08, privado, 10 MiB, quatro MIME, **vazio**) e T-006
 - **Por quê:** o passo 4 do onboarding pede o documento do CRMV e hoje só mostra um aviso. Sem documento no Storage, o admin da S4 não tem o que abrir e o item 3 do DoD da F3 não fecha.
 - **Feito quando:**
   - [ ] Upload passa **pelo servidor**, não do navegador direto pro bucket
@@ -213,23 +153,83 @@ _(vazio)_
   - [ ] **Se a T-006 fechar dentro da semana:** segundo teste cobrindo cadastro de vet → onboarding preenchido → sair e voltar → o dado está lá (item 1 do DoD da F3)
 - **Não fazer:** não escrever teste de tela que ainda é casca. Testa só o que já é real. Não criar usuário de teste em produção sem combinar como ele é limpo depois.
 
+### T-013 — Medir se o editor renderiza `select` que não é o último comando, e só então mexer nas três sondas
+- **Estado:** ⬜ fila
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** E1
+- **Nível:** 🟢 pra medir (é um `select` de leitura, em rollback) · 🟡 se a correção das sondas for necessária
+- **Agente dono:** vetria-backend
+- **Depende de:** nada. ⚠️ **Deixou de ser pré-requisito da T-002 em 26/08:** a migration foi aplicada e as 18 sondas foram rodadas **com o veredito lido na tela**, uma a uma. Isso não invalida o achado — invalida a urgência. O card vira **acompanhamento**: conserta o arquivo de verificação para a próxima vez que alguém o rodar (reversão da `0003`, ambiente novo, ou a `0004` copiando o padrão)
+- **Por quê:** SEC-046. As sondas 3, 7C e 9 do `verificar-apos-0003.sql` terminam em `rollback;` **depois** do `select` que carrega o veredito. O próprio arquivo declara, em `:49-50`, que "o editor do Supabase mostra só o resultado da última query" — e usa esse modelo para justificar o select pós-`commit` da migration. Sob o mesmo modelo, o último comando dessas três é `rollback`, que não devolve linha, e o veredito some. **É a SEC-035 com o canal trocado, e nasceu dentro da correção da SEC-038.** A Sonda 3 é a pior das três: sucesso é `0`, falha é qualquer número maior, e os dois casos são "Success" com o mesmo aspecto.
+- **Feito quando:**
+  - [ ] Rodado no dashboard e o resultado colado neste card: `begin; select 42 as prova; rollback;`
+  - [ ] **Se `42` aparecer:** o achado cai inteiro. Muda **uma frase** do cabeçalho do arquivo de verificação, dizendo que `select` dentro de transação revertida aparece sim. Fim do card
+  - [ ] **Se `42` não aparecer:** as sondas 3, 7C e 9 adotam o padrão que as 10, 10B e 13B já usam (tabela temporária + `select` como último comando, fora de transação), com a troca de papel saindo por `perform set_config('role','anon',true)` em vez de `set local role`
+- **Não fazer:** ⚠️ **não mexer nas três sondas antes de medir.** Reescrever sonda que já funciona é como se fabrica achado na rodada seguinte (R-016). Não tocar nas 7A e 7B: elas esperam **erro** como sucesso, e erro aparece em vermelho. Não tocar nas 10, 10B e 13B: o padrão delas está certo.
+- **Resultado:** _(preencher)_
+
 ---
 
 # ⏸️ BLOQUEADAS
 
-- **T-008 — Upload do documento de validação.** Bloqueada por **T-002**, que é 🔴 e depende
-  de sessão presencial com o Elber. O card fica acima, na fila da S2. Se a T-002 não
-  acontecer nesta semana, a T-008 escorrega para a S3 e leva junto o item 3 do DoD da F3.
-  **Desde 26/08 a cadeia ficou mais longa:** a T-002 depende de T-009 a T-012, que são os
-  bloqueantes da auditoria da `0003`. Duas delas são uma linha; as outras duas são decisão do
-  Elber e podem ser tomadas na mesma sessão.
-- **T-007 — Onboarding do estabelecimento.** Não está formalmente ⏸️, mas **não pode começar
-  antes de a `0003` estar aplicada**: os três campos de identificação só existem em
-  `perfil_privado` depois dela.
+_(vazia desde 26/08/2026.)_
+
+A T-008 e a T-007 estavam paradas atrás da **T-002**, que era 🔴 e exigia sessão presencial.
+A `0003` foi aplicada em produção em 26/08 e as duas foram liberadas no mesmo dia. **A S2 não
+tem mais nenhum card 🔴 e nenhum card esperando o Elber.**
 
 ---
 
 # ✅ CONCLUÍDAS
+
+### T-002 — Bucket de documentos no Storage
+- **Estado:** ✅ **concluída em 26/08/2026** — `0003_storage_documentos.sql` **aplicada em produção**
+- **Fase / Semana:** F3 / S2 _(escorregou da S1)_
+- **Capacidade:** E1
+- **Nível:** 🔴 presencial — foi aplicada em sessão com o Elber, como a regra exige
+- **Agente dono:** vetria-backend + Elber
+- **Depende de:** T-001 ✅ · T-009 a T-012 ✅
+- **Por quê:** validação de CRMV é manual pelo admin (V1) e precisa do documento em algum lugar seguro. Sem bucket não havia T-008, e o item 3 do DoD da F3 (admin aprova) não tinha o que olhar.
+- **Feito quando:**
+  - [x] Bucket `documentos` criado, **privado** — Sonda 1: `public = false`, 10 MiB, os quatro MIME, **0 objetos dentro**
+  - [x] **Sem policy alguma** em `storage.objects` — Sonda 2: RLS ligada em `storage.objects` e `storage.buckets`, **zero policy**, lista de policies nula. ⚠️ **Este critério foi reescrito em 26/08.** Ele pedia "policy: o dono lê e escreve no próprio prefixo `<uuid>/`", e essa linha foi **superada pela decisão de zero policy** tomada na sessão da própria T-002 (DL-054)
+  - [x] **Provado que zero policy é zero** (SEC-034) — Sonda 2 mais **Sonda 4**: `rolbypassrls` é `true` em `service_role` e `postgres`, `false` em `anon` e `authenticated`. O modelo é medido, não suposto. Sonda 3: `anon` conta 0 objetos no bucket
+  - [ ] Acesso por URL assinada com expiração curta, nunca por URL pública — **não é verificável nesta task e passa inteiro pra T-008.** O bucket está vazio e não existe rota que emita URL. O que a T-002 entregou é a condição que torna isso possível: nenhum caminho alternativo de leitura existe
+  - [x] Limite de tamanho e whitelist de MIME definidos e registrados em `05-DECISOES.md` — **DL-052**
+  - [x] **Regra do nome do arquivo documentada** (SEC-028) — seção 2.b passo 5 da `0003`: o nome é **gerado pelo servidor**, a extensão é derivada do tipo real detectado, e o formato é o que o CHECK exige, `^<uuid>/[A-Za-z0-9_-]{1,120}\.(pdf|jpg|jpeg|png|webp)$`
+  - [x] Confirmado no banco que o trigger de carimbo está no lugar — Sonda 12: os **quatro** triggers em `perfil_privado`, incluindo o `trg_perfil_privado_dado_de_estabelecimento` novo, e RLS ligada nas sete tabelas do `public`. Sonda 11: `carimbo_segue_o_hash` = `true`, ou seja o corpo que está rodando é o que recarimba quando o hash muda
+- **Aproveite a sessão aberta:** decidir a **SEC-020 / R-018**. ✅ **Decidido e aplicado.** Ver Resultado 4 e DL-053.
+- **Não fazer:** não subir documento nenhum (T-008); não criar bucket público de foto de perfil (R-019). ✅ Nenhum dos dois foi feito: o bucket saiu da sessão com **zero objeto** dentro.
+- **Resultado (1 — 26/08/2026, `vetria-backend`): SQL escrito, nada aplicado ainda.**
+  - Entregues: `supabase/migrations/0003_storage_documentos.sql` e `supabase/verificar-apos-0003.sql`. O `supabase/backup-antes-da-0003.sql` já existia.
+  - **Decisões do Elber nesta sessão, embutidas no arquivo:** (a) o bucket não tem policy nenhuma em `storage.objects`; (b) 10 MiB e quatro MIME; (c) `razao_social`, `cnpj` e `responsavel_tecnico` descem para `perfil_privado`, e `endereco`, `cep`, `cidade` e `estado` continuam públicos, agora por `comment on column` e não por omissão.
+  - **Consequência que a T-008 herda:** o dono deixa de ler o próprio documento direto do Storage. A autorização vira rota de servidor (seção 2.b).
+- **Resultado (2 — auditoria da v1, 26/08/2026, `vetria-seguranca`): 🔴 REPROVADA para aplicação.**
+  - Relatório: `docs/relatorios/SEC-2026-08-26-0003.md`. **13 achados, SEC-033 a SEC-045**: quatro 🟠, nove 🟡, nenhum 🔴. Commit de docs: `7c44c08`.
+  - **Reprova estreita, e o motivo importa: não era o SQL de dado.** Ordem de execução, cópia, varredura de dependência e reversão foram percorridas contra o schema real e estavam corretas. O que reprovou foram **salvaguardas que não faziam o que o comentário dizia** — o padrão do R-016, o mesmo que reprovou a `0002` duas vezes.
+  - **Os quatro bloqueantes viraram card:** T-009 (SEC-033), T-010 (SEC-034), T-011 (SEC-035), T-012 (SEC-036). **Viraram risco:** R-020 a R-025.
+- **Resultado (3 — auditoria da v2, 26/08/2026, `vetria-seguranca`): ✅ APROVADA para aplicação.**
+  - Relatório: `docs/relatorios/SEC-2026-08-26-0003-v2.md`. **6 achados novos, SEC-046 a SEC-051**: um 🟠, cinco 🟡, nenhum 🔴. Commit de docs: `84fcd46`.
+  - **Os quatro bloqueantes fecharam com prova.** A v2 acrescentou 785 linhas (810 → 1598) e o arquivo de verificação foi de 14 para **18 sondas**, sem introduzir um único erro de SQL. O 🟠 virou a **T-013**; os cinco 🟡 viraram **R-027 a R-031**.
+- **Resultado (4 — APLICAÇÃO EM PRODUÇÃO, 26/08/2026, sessão presencial com o Elber): ✅ NO BANCO, verificada por 18 sondas.**
+  - **Commits:** `a68251d` versiona os três `.sql` que estavam só no disco de uma máquina (a migration, o backup e o arquivo de verificação): até esse commit, produção tinha um schema que o repositório não descrevia, que é o **R-006**. Mais `7c44c08` e `84fcd46` (as duas auditorias) e o commit de docs desta rodada, que registra a aplicação e traz DL-052 a DL-054.
+  - **Select de resultado da própria migration (seção 9.c), as onze colunas:** `bucket_privado`, `bucket_10mib`, `bucket_mime_ok`, `zero_policy_no_storage`, `colunas_sairam_do_publico`, `colunas_chegaram_no_privado`, `checks_do_documento`, `check_all_or_nothing` e `quatro_triggers_no_privado` **todas `true`**, e **`copia_linhas = 0`**.
+  - **O que passou a existir no banco:** bucket privado `documentos` (10 MiB; `application/pdf`, `image/jpeg`, `image/png`, `image/webp`; **zero policy**); `razao_social`, `cnpj` e `responsavel_tecnico` **fora** de `clinic_profiles` e **dentro** de `perfil_privado`; `documento_hash` (sha256) e `documento_tamanho` com CHECK all-or-nothing; `responsavel_tecnico`, `endereco`, `cep`, `cidade` e `estado` na revalidação; e a guarda que impede conta não-`clinic` de gravar dado de estabelecimento.
+  - **⚠️ Os dois `md5(prosrc)` novos, que são o que o pré-voo da `0004` vai precisar** (também em `supabase/migrations/README.md`, que é onde a próxima migration procura):
+    - `revalidar_ao_mudar_dado_sensivel` → `4f6d1130f05888eb9b47e7cc4a2ef538`
+    - `carimbar_envio_documento` → `5b3f7ca858e6c31d0436afc100d401c4`
+    - Valores **de antes** da `0003`, só referência histórica: `035f8c64c139f2b6e1865341b4995fb7` e `ec641daea0efa102859b787d364a98ad`.
+  - **As 18 sondas, todas verdes. O que merece ficar registrado:**
+    - **7A e 7B: o dado está atrás de duas portas independentes, e por motivos diferentes.** `anon` selecionando `cnpj` de `clinic_profiles` recebe **`42703: column "cnpj" does not exist`** — não é permissão negada, a coluna **não existe mais**: a SEC-020 foi fechada na raiz, não escondida. `anon` em `perfil_privado` recebe **`42501: permission denied`**.
+    - **7C é o ator plausível que a `0002` não tinha como medir:** conta logada lê a própria linha (1), lê **zero** linhas de outra conta, e o `auth.uid()` lido bate com a conta que espiava — o claim plantado funcionou, então a sonda não mediu porta soldada.
+    - **Sonda 9: a busca pública não quebrou.** `anon` vê o estabelecimento quando `active` (1) e para de ver quando ele volta para a fila (0). Era o que a SEC-014 quase derrubou na `0002`.
+    - **Sonda 10, sete linhas OK, e a linha do `documento_hash` é a SEC-033 fechada na prática:** `cnpj`, `razao_social`, `responsavel_tecnico`, `documento_hash` e `documento_tamanho` devolvem o perfil para `pending_validation`; `telefone` e `email_contato` não. **Trocar os bytes de um documento aprovado agora derruba o perfil, o que ontem não acontecia.**
+    - **Sonda 10B, doze linhas OK**, ramos do vet e do clinic intactos. ⚠️ **A linha 5 (`vet_profiles.cidade` continua `active`) é a assimetria deliberada:** o estabelecimento que muda de cidade volta para a fila, o veterinário não. Está na tela de propósito e **continua sendo pergunta em aberto** (R-018, DL-053).
+    - **Sonda 13B, três linhas OK:** conta `vet` gravando `cnpj` levanta exceção; conta `clinic` grava normal; conta `vet` grava telefone normal. **A SEC-044 fechada sem pegar caminho legítimo junto.**
+    - **Sonda 11:** `carimbo_segue_o_hash`, `revalidacao_segue_o_hash`, `responsavel_tecnico_vigiado` e `endereco_vigiado` todos `true`. O catálogo confirma que as condições estão no corpo que está rodando, não só no arquivo.
+    - **Sonda 8, nada se perdeu:** `clinic_profiles 0` · `perfil_privado 0` · `com_dado_migrado 0` · `com_documento 0` · `com_hash 0` · `contas_auth 18` · `profiles 18`, com `com_hash` igual a `com_documento`.
+  - **O que a aplicação NÃO resolveu, e continua aberto:** a **SEC-041 item 1** (em MEI e em quem atende em casa, `endereco` e `cep` são o endereço residencial, e nada no schema, no formulário ou no consentimento distingue os dois casos) e a **assimetria do `vet_profiles`**. As duas são pergunta de produto, sem resposta escrita, e vencem **antes do perfil público da F4/S7**. Seguem no R-018 e no DL-053. SEC-039, SEC-042, SEC-047 e SEC-049 a SEC-051 continuam como estavam.
+  - **Decisões registradas:** **DL-052** (10 MiB, whitelist de MIME e as quatro listas que mudam juntas), **DL-053** (o que é privado e o que é vitrine em `clinic_profiles`) e **DL-054** (zero policy em `storage.objects`). O **DL-051 continua 🔵**: a metade dele que é banco está aplicada, a metade que é rota é a T-008.
 
 ### T-009 — Amarrar a linha do banco ao objeto que está no bucket
 - **Estado:** ✅ concluída em 26/08/2026
@@ -303,7 +303,6 @@ _(vazio)_
   **✅ FECHADO em 26/08 pela 2ª auditoria: SEC-036 encerrada.** O julgamento acrescentou uma precisão que passa a valer: com o upload pela nossa rota, **a whitelist do bucket deixa de ser porta e vira alarme** sobre o nosso próprio código, porque quem declara o `content-type` passamos a ser nós. A defesa contra atacante é a assinatura mágica. **R-004 continua fechado por três barreiras independentes:** SVG não tem assinatura mágica e não entra na tabela do passo 4; `.svg` está fora da whitelist de extensão do CHECK; e o objeto é servido de `*.supabase.co`, origem diferente da do app.
   **O DL que faltava foi registrado: DL-051.**
   **Achado novo herdado pela T-008: SEC-051 / R-031** — o passo 8 não diz com qual cliente grava a linha, e com `service_role` o `actor_id` de `audit_logs` sai nulo.
-
 
 ### T-005 — Onboarding profissional estoura a largura da tela
 - **Estado:** ✅ concluída em 26/08/2026
