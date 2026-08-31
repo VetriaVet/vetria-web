@@ -120,6 +120,14 @@
 - **É a SEC-040 pela metade:** o arquivo gastou 18 linhas explicando que "quem abriu o RG do fulano em março?" precisa de resposta, e deixa "quem trocou o documento do fulano em março?" sem resposta, no mesmo contrato, por omissão de uma palavra.
 - **Correção:** fixar no passo 8 que a linha é gravada **com a sessão do usuário**. Já está escrito no card da **T-008**. Só o passo 7 precisa de `service_role`.
 - **26/08 — a `0003` aplicou com o contrato da seção 2.b como estava.** A decisão é do Elber e **ainda não foi tomada**. Ela vence quando a T-008 começar, e é a única pendência do DL-051 que não é código.
+- ✅ **31/08 — DECIDIDO: a linha é gravada com a SESSÃO DO USUÁRIO.** Só o passo 7 (escrever
+  no bucket) usa `service_role`. Com isso `auth.uid()` sai preenchido e o `insert into
+  audit_logs` do trigger de revalidação grava **quem** trocou o documento, que era o dado que a
+  arquitetura nova do DL-051 tinha apagado por efeito colateral. Registrado em **DL-055**.
+  **A correção do texto da seção 2.b da `0003` ainda não foi feita** — o arquivo continua sem
+  dizer com qual cliente o passo 8 grava, e é ele que a `0004` vai copiar. **Este risco só
+  fecha quando o passo 8 estiver escrito no arquivo**, não quando a decisão foi tomada.
+  A decisão entra no card da **T-008** como critério.
 
 ### R-023 — Excluir a conta apaga a linha e deixa o documento de identidade no bucket (SEC-039)
 - **Descoberto:** 26/08/2026, auditoria da `0003`
@@ -145,6 +153,49 @@
 - **A pergunta, em uma frase:** ou o custo de revalidar endereço é aceitável e vale para os dois, ou não é e não vale para nenhum. E, antes disso: endereço de quem atende em casa é vitrine ou é dado pessoal?
 - **Prazo:** resposta escrita em `05-DECISOES.md` **antes do perfil público da F4/S7**, que é quando o dado de fato aparece numa página. 🟡
 - **Registrado em:** DL-053 e nos `comment on column` de `clinic_profiles.endereco` e `clinic_profiles.cep`.
+
+### R-033 — O teste de persistência do onboarding precisa de conta nova a cada rodada, e não há lugar limpo pra criá-la
+- **Descoberto:** 28/08/2026, escrevendo a T-003.
+- **O quê:** o 2º teste que o card da T-003 pede — **cadastro de vet → onboarding preenchido → sair e voltar → o dado está lá** — é a única prova automatizada do **item 1 do DoD da F3**. Ele precisa de **conta `vet` nova a cada rodada**, porque `concluir_onboarding_profissional()` só sai de `incomplete` uma vez: rodando duas vezes na mesma conta, a segunda mede outra coisa. E o próprio card da T-003 proíbe **criar usuário de teste em produção sem combinar como ele é limpo depois**.
+- **As duas saídas, e por que nenhuma é óbvia:**
+  - **(a) a suíte cria e apaga a conta com `service_role`.** Barato de montar e resolve hoje. Mas coloca **dentro do CI a chave que ignora a RLS inteira** — exatamente o que o `ci.yml` diz, por escrito, que nunca vai acontecer. Workflow comprometido com ela na mão lê a base de todo mundo, e o GitHub Actions roda em PR de fora do repositório.
+  - **(b) um projeto Supabase separado, só pra teste.** É a resposta certa a longo prazo e a única que deixa o teste rodar sem chegar perto de dado real. Custa setup e passa a ter **um segundo schema pra manter em sincronia com as migrations** — e o R-006 (produção com schema que o repo não descreve) acabou de ser fechado com esforço.
+- **Enquanto não decide:** o teste **não foi escrito**, e isso está dito no card da T-003, no Resultado, ponto 4. **Não há teste falso no lugar dele.** A prova do item 1 do DoD continua sendo **manual**, feita à mão na T-006.
+- **Por que isso vence antes do que parece:** a T-007 clona a T-006 no estabelecimento e a T-008 escreve arquivo em bucket. **As três são exatamente o tipo de mudança que E2E pega e revisão humana não**, e nenhuma delas vai ter cobertura enquanto isto estiver aberto.
+- **Prazo:** resposta antes do fim da F3, que é quando o item 5 do DoD ("testes automáticos dos fluxos críticos") é cobrado. 🟡
+
+### R-034 — A auditoria da T-006 existe só nos comentários do código, e dois achados não têm dono
+- **Descoberto:** 31/08/2026, ao reabrir o projeto e conferir a árvore de trabalho contra os docs.
+- **O quê:** `app/app/veterinario/onboarding/actions.ts` e `page.tsx` dizem, com todas as
+  letras, que foram corrigidos contra **SEC-052, SEC-054, SEC-056, SEC-057 e SEC-058**. Os cinco
+  números **não existiam em lugar nenhum do repositório**: nem em `docs/relatorios/`, nem aqui,
+  nem em `05-DECISOES.md`. A auditoria aconteceu na sessão de 28/08 e **o relatório nunca foi
+  escrito em disco**; a sessão terminou com o código na árvore, sem commit, e o raciocínio dos
+  achados morreu com ela.
+- **O que foi feito em 31/08:** `docs/relatorios/SEC-2026-08-28-T006.md`, **reconstruído a
+  partir dos comentários do código**, arquivo e linha por achado. O cabeçalho dele diz que é
+  reconstrução, e não auditoria.
+- ⚠️ **O que a reconstrução NÃO alcança, e é o risco de verdade:**
+  - **SEC-053 e SEC-055 não aparecem em lugar nenhum.** A numeração vai de 052 a 058 e só cinco
+    foram citados. Ou foram achados de outro arquivo corrigidos sem comentário, ou foram
+    descartados na própria auditoria e a numeração ficou com o buraco, **ou são reais e não
+    foram corrigidos**. A terceira é improvável e não é descartável.
+  - **O relatório prova o que foi corrigido, não que a lista está completa.** Ele foi extraído
+    do que o autor do código escreveu sobre o próprio código, que é exatamente o ponto cego que
+    uma auditoria existe para cobrir.
+- **Por que isso vence rápido:** **a T-007 clona o `actions.ts` da T-006** e a T-008 escreve
+  arquivo em bucket a partir do mesmo padrão. Clonar um arquivo cuja revisão não tem registro
+  independente é como o R-017 nasceu duplicado.
+- **A regra que isso quebrou, e que é a mais barata de reparar:** `AGENTES.md` §"Como os achados
+  circulam" manda todo achado ir para `docs/relatorios/` **e** para este arquivo. **Nenhum dos
+  dois aconteceu**, e o motivo foi que a task terminou sem commit. **Task sem handoff escrito
+  não está concluída** já estava no `CLAUDE.md`; o que faltava era alguém aplicar a regra ao
+  fim da sessão, não ao fim da task.
+- **Correção:** `vetria-seguranca` revisa `app/app/veterinario/onboarding/` **contra a matriz de
+  `06-PERMISSOES.md`**, e não contra os comentários — de preferência **antes da T-007 começar**,
+  porque é ela que herda o arquivo. Se a revisão nova não achar nada além dos cinco, o buraco
+  do 053/055 fica fechado por cobertura, e não por memória.
+- **Prazo:** antes da T-007. 🟡
 
 ### R-019 — O plano promete foto de perfil e horários, e não existe nem campo nem coluna para nenhum dos dois
 - **Descoberto:** 26/08/2026, na abertura da S2, conferindo o `01-PLANO.md` §S2 contra o código e o schema

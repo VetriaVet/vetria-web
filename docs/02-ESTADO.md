@@ -3,7 +3,7 @@
 > **Este é o primeiro arquivo que qualquer sessão ou agente lê.**
 > Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
 >
-> **Última atualização:** 26/08/2026 (`0003` aplicada em produção) · **Fase:** F3 (S2 aberta) · **Commit base:** `a68251d`
+> **Última atualização:** 31/08/2026 (T-003 e T-006 commitadas em branch) · **Fase:** F3 (S2) · **Commit base:** `445cfde`, branch `f3-s2/onboarding-vet-e-ci`
 
 ---
 
@@ -11,8 +11,25 @@
 
 **Fase:** F3 — Núcleo de dados · **Semana:** 2 de 13 · **Entrega:** 25/11/2026
 
-**Em execução:** nada. **5 cards na fila** em `03-TAREFAS.md`. **A S2 não tem mais nenhum card
-🔴 e nenhum card esperando o Elber.**
+**Em execução:** nada. **T-003 e T-006 estão escritas, verdes e commitadas** na branch
+`f3-s2/onboarding-vet-e-ci` (`82f59bb` e `445cfde`), **e nenhuma das duas fechou.**
+
+⚠️ **A S2 continua sem card 🔴, mas voltou a ter coisa esperando o Elber** — quatro gestos, e
+três deles são de celular:
+1. **A prova de persistência da T-006**, na preview da Vercel desta branch. É o último item de
+   DoD aberto do card e é **manual** (R-033). Precisa de uma conta `vet` nova, porque
+   `concluir_onboarding_profissional()` só sai de `incomplete` uma vez.
+2. **Os 4 secrets do GitHub**, sem os quais os 2 testes de login da T-003 nunca saem de "pulado".
+3. **`begin; select 42 as prova; rollback;`** no SQL Editor, que fecha a T-013 sozinha.
+4. **Fazer o merge desta branch**, porque **produção ainda roda o código antigo do onboarding.**
+
+⚠️ **O que se descobriu em 31/08, e vale mais que o código:** a auditoria da T-006 **existia só
+nos comentários do código**. Cinco achados (SEC-052, 054, 056, 057, 058) estavam corrigidos e
+comentados no `actions.ts`, e **nenhum dos cinco existia em `docs/relatorios/`, em `04-RISCOS.md`
+ou em qualquer outro arquivo** — a sessão de 28/08 terminou sem commit e o relatório morreu com
+ela. O relatório foi **reconstruído a partir do código**
+(`relatorios/SEC-2026-08-28-T006.md`), e a reconstrução não alcança tudo: **SEC-053 e SEC-055
+continuam sem dono.** Virou o **R-034**, e ele **vence antes da T-007**, que clona esse arquivo.
 
 **A `0003` foi aplicada em produção em 26/08 e verificada por 18 sondas, todas verdes** (commit
 `a68251d`; o select de onze colunas da própria migration veio todo `true`, `copia_linhas = 0`).
@@ -26,7 +43,9 @@ aprovado devolve o perfil para a fila, o que ontem não acontecia. Duas auditori
 reprovada, a v2 aprovada. Decisões em **DL-051 a DL-054**; os `md5` das funções, que a `0004`
 vai precisar, em `supabase/migrations/README.md`.
 
-**O trabalho da semana:** matar a casca dos onboardings profissionais. Hoje o "Concluir" do
+**O trabalho da semana:** matar a casca dos onboardings profissionais. ⚠️ **A metade do
+veterinário já está escrita (T-006), mas só na branch: EM PRODUÇÃO o "Concluir" continua
+descartando tudo.** Hoje, no ar, o "Concluir" do
 veterinário e o do estabelecimento só marcam `onboarding_completed = true` e **descartam tudo que
 a pessoa digitou**. Ninguém entra na fila de validação, porque `status` continua `incomplete`. As
 tabelas, a RLS e `concluir_onboarding_profissional()` existem desde a `0002`: falta o código
@@ -62,7 +81,7 @@ na fila. **Saiu da S2:** onboarding do responsável vai pra S3; foto e horários
 | **Banco** | ✅ Núcleo (`0002`) + storage e privacidade (`0003`), as duas aplicadas em 26/08. `profiles.status`, `vet_profiles`, `clinic_profiles`, `perfil_privado`, `animais`, `contatos`, `audit_logs`, com RLS codificando a matriz. Identificação do estabelecimento (`cnpj`, `razao_social`, `responsavel_tecnico`) e identidade dos bytes do documento (`documento_hash`, `documento_tamanho`) vivem em `perfil_privado`. **Tabelas vazias:** as telas ainda não escrevem nelas (F3/S2). |
 | **Storage** | 🟡 Bucket privado `documentos` existe (10 MiB; pdf/jpeg/png/webp; **zero policy**, só `service_role` alcança). **Está vazio:** falta a rota que sobe o arquivo (T-008). |
 | **Emails transacionais** | 🟡 3 do Supabase ativos; 3 do app versionados e desligados (esperam a F3). |
-| **Testes** | ❌ Não existem. Playwright + CI entram na F3/S2. |
+| **Testes** | 🟡 **Commitados em 31/08** (`82f59bb`, em branch). Playwright + workflow de CI (T-003): **13 testes verdes** cobrindo as portas trancadas do `middleware.ts`, as telas públicas, o `noindex` do `/roadmap` e a regra de copy do DL-038. **2 testes de login pulam** até os secrets do GitHub existirem. ⚠️ **Lint no CI ainda não bloqueia** (T-014), e **a persistência do onboarding ainda não tem teste** (R-033). |
 
 ---
 
@@ -70,7 +89,8 @@ na fila. **Saiu da S2:** onboarding do responsável vai pra S3; foto e horários
 
 Todas essas telas estão no ar, bonitas e navegáveis, mas **não persistem nada**:
 
-- Onboarding de veterinário e de estabelecimento (multi-step) → F3/S2
+- Onboarding de **estabelecimento** (multi-step) → F3/S2 (T-007)
+- Onboarding de **veterinário** → ⚠️ **resolvido na branch (T-006), ainda casca em produção até o merge**
 - Onboarding do responsável (coleta cidade e um animal, e descarta os dois) → F3/S3
 - Editores de perfil das 3 personas → F3/S3
 - `/admin/validacoes`, `/admin/moderacao`, `/admin/conteudo` → F3/S4
@@ -99,7 +119,7 @@ Todas essas telas estão no ar, bonitas e navegáveis, mas **não persistem nada
 | Fonte | Inter, única (DL-032) | Serif foi tentada e revertida |
 | Auth + DB + Storage | Supabase | Resend como SMTP; ícones `lucide-react` |
 | Hospedagem | Vercel, deploy em push na `main` | |
-| Testes | Playwright + GitHub Actions | **a instalar — F3/S2** |
+| Testes | Playwright + GitHub Actions | 🟡 commitados em 31/08 em branch, aguardando os 4 secrets (T-003) |
 | Pagamento | Stripe | **fora do escopo dos 3 meses** |
 
 ---
