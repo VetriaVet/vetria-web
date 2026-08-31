@@ -162,6 +162,74 @@ tem mais nenhum card 🔴 e nenhum card esperando o Elber.**
 
 # ✅ CONCLUÍDAS
 
+### T-015 — Tirar o stack trace das rotas de admin e conferir sessão antes do corpo
+- **Estado:** ✅ **CONCLUÍDA em 31/08/2026.** Card aberto e fechado no mesmo dia, direto do R-037.
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** transversal obrigatória **Segurança** (`00-ESCOPO.md` §2), ancorada em **E5**
+- **Nível:** 🟡 — toca `/api/*`, que é 🟡 por regra
+- **Agente dono:** vetria-backend
+- **Depende de:** T-014, que é onde o achado nasceu
+- **Por quê:** **R-037.** As duas rotas de admin devolviam `{ error, stack }` no `catch` final. Nas
+  duas, o `try` abre na linha 17, a autenticação é na 30/36 e a autorização na 48/56 — então tudo
+  que estourasse antes da checagem de sessão saía como stack trace para quem chamou. No
+  `set-access` a primeira linha dentro do `try` era `await req.json()`: **um POST com JSON
+  malformado, sem cookie nenhum, devolvia 500 com o stack.** Sem conta, sem ser admin, na rota que
+  troca o role de qualquer usuário do sistema.
+- **Feito quando:**
+  - [x] `stack` **sai** da resposta das duas rotas. O rastro vai pro `console.error` do servidor,
+    que é onde sempre devia ter estado
+  - [x] O `req.json()` do `set-access` **passa para depois da autorização**. Quem não é `master`
+    não chega perto do parser
+  - [x] JSON inválido vira **400 do cliente**, não 500 de servidor, por um `try` estreito em volta
+    só do parse — não atravessa mais o `catch` geral
+  - [x] O corpo é lido com estreitamento por `typeof`, sem `any` e sem mudar o contrato:
+    `admin_level: new_admin_level ?? "admin"` continua caindo em `"admin"` quando o campo não vem
+  - [x] `npm run lint` continua em 0, `npm run build` verde, 13 testes E2E passando
+- **Não fazer:** não reescrever a lógica de RBAC destas rotas — isso é a S3 (R-001, R-002), e o
+  **R-029** já está esperando lá. Não mexer no `debug: { userId, email, admin_level }` que a
+  `profiles` devolve: é o dado **do próprio chamador**, não de terceiro, e tirar aquilo é limpeza
+  de rota, não segurança.
+- **Resultado:**
+
+  ## HANDOFF — vetria-backend — T-015 — 31/08/2026
+
+  **Fiz:** dois arquivos.
+  - **`app/api/admin/set-access/route.ts`** — a ordem do `try` foi invertida: **sessão →
+    autorização → corpo**. O `await req.json()` saiu da linha 18 e foi para depois do
+    `admin_level !== "master"`, dentro de um `try` estreito que devolve **400** em JSON inválido.
+    O corpo passou a ser lido por `typeof` campo a campo (`CorpoSetAccess`), sem `any`. O `catch`
+    geral virou `console.error(...)` mais `{ error: "server error" }`.
+  - **`app/api/admin/profiles/route.ts`** — mesmo tratamento no `catch`. É GET e não tem
+    `req.json()`, então não tinha o gatilho fácil; mas o `try` também abre antes da sessão.
+
+  **O contrato não mudou para quem usa a tela.** `admin_level: new_admin_level ?? "admin"`
+  continua se comportando igual, porque o campo ausente virou `null` em vez de `undefined` e os
+  dois caem no mesmo lado do `??`.
+
+  **O que mudou para quem ataca:** POST sem cookie com corpo quebrado devolvia **500 com stack
+  trace**; agora devolve **401**. O parser nem roda.
+
+  **Não fiz:** não toquei no RBAC destas rotas (S3) nem no `debug` da `profiles`, pelas razões do
+  "Não fazer".
+
+  **Descobri:** nada novo além do que o R-037 já dizia. Vale registrar o caminho, porque ele se
+  repete: **o achado estava escondido atrás de um `any`.** `{ stack: e?.stack }` com `e: any` não
+  chama atenção de ninguém; a mesma linha com `unknown` obriga a olhar o que sai. **A T-014 não
+  achou isso apesar de ser uma task de tipo — achou por ser uma task de tipo.**
+
+  **Estado agora:** as três rotas de API do projeto devolvem mensagem e mais nada em erro de
+  servidor. **R-037 fechado.**
+
+  **Bloqueios:** nenhum.
+
+  **Próximo passo óbvio:** o merge do PR #1. Depois dele, **R-034** (revisão independente do
+  `actions.ts`) antes da **T-007**.
+
+  **Docs que atualizei:** `03-TAREFAS.md` (este card), `04-RISCOS.md` (R-037 fechado),
+  `02-ESTADO.md`.
+
+  **Commits:** _(este)_
+
 ### T-014 — Zerar o lint e tornar o passo bloqueante no CI
 - **Estado:** ✅ **CONCLUÍDA em 31/08/2026.** `npm run lint` sai com **0 erro e 0 aviso**, e o passo do CI passou a bloquear.
 - **Fase / Semana:** F3 / S2

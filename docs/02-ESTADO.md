@@ -17,12 +17,12 @@ preview, com `select` real: `status` virou `pending_validation`, os 13 campos gr
 apareceu). **A T-003 está verde no CI** (execução #2, 1m20s) e só não fechou porque falta
 confirmar se os 2 testes de login rodaram ou continuaram pulados.
 
-⚠️ **A T-014 fechou em 31/08:** os 17 problemas de lint foram zerados e o passo passou a
-bloquear no CI. Ela produziu o **R-037**, que é o achado mais sério em aberto hoje: as duas rotas
-de admin devolvem **stack trace do servidor**, e a de POST faz isso **sem autenticação nenhuma**
-(o `try` abre antes da checagem de sessão, e a primeira linha dentro dele é `req.json()`). Não é
-credencial nem furo de RLS, mas é reconhecimento de graça na rota de maior privilégio. **Não foi
-consertado de propósito:** o card da T-014 é de tipo, não de comportamento.
+✅ **T-014 e T-015 fecharam em 31/08.** A T-014 zerou os 17 problemas de lint e o passo passou a
+bloquear no CI (provado na execução #4: `Annotations` caiu de "10 errors, 3 warnings" para
+"1 warning and 1 notice"). Ela **achou** o **R-037** — as duas rotas de admin devolviam stack
+trace do servidor, e a de POST fazia isso **sem autenticação nenhuma** — e a **T-015 fechou o
+R-037 no mesmo dia**: o `stack` saiu das respostas e foi pro log, e o `req.json()` do `set-access`
+passou para depois da autorização. **O mesmo POST que devolvia 500 com stack agora devolve 401.**
 
 ⚠️ **Sobrou uma coisa esperando o Elber: o MERGE.** **Produção ainda roda o código antigo do
 onboarding**, que descarta os 4 passos. Enquanto o PR #1 não entrar na `main`, o item 1 do DoD da
@@ -61,8 +61,8 @@ a pessoa digitou**. Ninguém entra na fila de validação, porque `status` conti
 tabelas, a RLS e `concluir_onboarding_profissional()` existem desde a `0002`: falta o código
 chamar.
 
-**Ordem da S2:** ~~T-006~~ ✅ → **T-007 → T-008**. ~~T-013~~ ✅ ~~T-014~~ ✅. **T-003 verde,
-falta confirmar os 2 testes de login.** **Sobra na fila: T-007 e T-008.**
+**Ordem da S2:** ~~T-006~~ ✅ → **T-007 → T-008**. ~~T-013~~ ✅ ~~T-014~~ ✅ ~~T-015~~ ✅.
+**T-003 verde, falta confirmar os 2 testes de login.** **Sobra na fila: T-007 e T-008.**
 ⚠️ **A T-007 não deve começar antes do R-034** (revisão independente do `actions.ts` que ela vai
 clonar) e herda o **R-036** (perfil aprovado sem canal de contato e sem coerência cidade/UF).
 
@@ -87,7 +87,7 @@ T-003 em 31/08 (falta só confirmar os 2 testes de login). **Saiu da S2:** onboa
 | **Domínio e email** | ✅ Real. `vetriabrasil.com.br` na Vercel; Resend verificado; envio de `contato@vetriabrasil.com.br` (DL-039/040). |
 | **RBAC** | 🟡 Parcial. Roteia por role e `requirePainel` guarda as páginas de painel — mas o `middleware.ts` não isola painel por role. **Ver R-001.** Matriz alvo definida em `docs/06-PERMISSOES.md` (DL-044 a DL-047). |
 | **Telas** | ✅ ~45 telas no design system v2 (Inter + tokens `@theme` do Tailwind v4), estados honestos, sem dado fake. |
-| **Admin** | 🟡 Painel dark completo; RBAC de usuários é real; validações/moderação/conteúdo são casca. |
+| **Admin** | 🟡 Painel dark completo; RBAC de usuários é real; validações/moderação/conteúdo são casca. As 3 rotas de `/api/*` devolvem só mensagem em erro de servidor (T-015, R-037 fechado). |
 | **Banco** | ✅ Núcleo (`0002`) + storage e privacidade (`0003`), as duas aplicadas em 26/08. `profiles.status`, `vet_profiles`, `clinic_profiles`, `perfil_privado`, `animais`, `contatos`, `audit_logs`, com RLS codificando a matriz. Identificação do estabelecimento (`cnpj`, `razao_social`, `responsavel_tecnico`) e identidade dos bytes do documento (`documento_hash`, `documento_tamanho`) vivem em `perfil_privado`. **`vet_profiles` e `perfil_privado` deixaram de estar vazias em 31/08**, na prova da T-006 (1 linha, conta de teste). As demais continuam vazias. |
 | **Storage** | 🟡 Bucket privado `documentos` existe (10 MiB; pdf/jpeg/png/webp; **zero policy**, só `service_role` alcança). **Está vazio:** falta a rota que sobe o arquivo (T-008). |
 | **Emails transacionais** | 🟡 3 do Supabase ativos; 3 do app versionados e desligados (esperam a F3). |

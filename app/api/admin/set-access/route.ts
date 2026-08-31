@@ -13,15 +13,28 @@ function supabaseAdmin() {
   return createClient(URL, SERVICE, { auth: { persistSession: false } });
 }
 
+// T-015 / R-037 — o corpo que esta rota aceita. Espelha o `SetAccessPayload`
+// de `app/admin/AdminPanel.tsx`, que é quem chama.
+type CorpoSetAccess = {
+  target_user_id?: unknown;
+  new_role?: unknown;
+  new_admin_level?: unknown;
+  new_admin_team?: unknown;
+};
+
 export async function POST(req: Request) {
   try {
-    const payload = await req.json();
-    const { target_user_id, new_role, new_admin_level, new_admin_team } = payload ?? {};
-
-    if (!target_user_id || !new_role) {
-      return NextResponse.json({ error: "invalid payload" }, { status: 400 });
-    }
-
+    // ⚠️ T-015 / R-037 — A ORDEM DESTE BLOCO É A CORREÇÃO. NÃO REORDENE.
+    //
+    // Antes, a primeira linha dentro do `try` era `await req.json()`, e o
+    // `catch` do fim devolvia o `stack` do servidor. Como a sessão só era
+    // conferida 18 linhas abaixo, um POST com JSON malformado e SEM COOKIE
+    // NENHUM caía no `catch` e recebia o stack trace de volta: caminho absoluto
+    // dos arquivos no runtime, estrutura de módulos e versão de framework, na
+    // rota que troca role de qualquer conta do sistema.
+    //
+    // Agora: sessão, autorização, e só então o corpo. Quem não é `master` nunca
+    // chega perto do parser, e o `catch` não devolve mais `stack`.
     const cookieStore = await cookies();
     const supabase = createServerClient(URL, ANON, {
       cookies: {
@@ -47,6 +60,28 @@ export async function POST(req: Request) {
 
     if (me?.admin_level !== "master") {
       return NextResponse.json({ error: "not authorized" }, { status: 403 });
+    }
+
+    // Só agora o corpo. O `try` interno é estreito de propósito: JSON inválido
+    // é erro do cliente (400), não falha de servidor, e não tem por que
+    // atravessar o `catch` geral lá embaixo.
+    let corpo: CorpoSetAccess;
+    try {
+      corpo = ((await req.json()) ?? {}) as CorpoSetAccess;
+    } catch {
+      return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+    }
+
+    const target_user_id =
+      typeof corpo.target_user_id === "string" ? corpo.target_user_id : null;
+    const new_role = typeof corpo.new_role === "string" ? corpo.new_role : null;
+    const new_admin_level =
+      typeof corpo.new_admin_level === "string" ? corpo.new_admin_level : null;
+    const new_admin_team =
+      typeof corpo.new_admin_team === "string" ? corpo.new_admin_team : null;
+
+    if (!target_user_id || !new_role) {
+      return NextResponse.json({ error: "invalid payload" }, { status: 400 });
     }
 
     const admin = supabaseAdmin();
@@ -86,14 +121,11 @@ const { error } = await admin
 
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
-    // T-014 — `unknown` obriga a estreitar antes de ler `.message`/`.stack`.
-    // ⚠️ O CORPO DESTA RESPOSTA NÃO MUDOU, e isso é de propósito: o card da
-    // T-014 é de tipo, não de comportamento. O `stack` continua saindo daqui
-    // para o cliente, e isso é o R-037 — leia antes de copiar este bloco.
-    const erro = e instanceof Error ? e : null;
-    return NextResponse.json(
-      { error: erro?.message ?? "server error", stack: erro?.stack ?? null },
-      { status: 500 }
-    );
+    // T-015 / R-037 — o `stack` SAIU da resposta. Ele ia para o navegador de
+    // quem chamou e entregava caminho de arquivo e estrutura interna.
+    // O rastro não se perdeu: ele foi para o log do servidor, que é onde
+    // sempre devia ter estado. Mesmo formato de `set-role`, que já era o certo.
+    console.error("[api/admin/set-access] erro nao tratado", e);
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

@@ -60,47 +60,6 @@
 
 ## 🟡 ABERTOS — MÉDIOS
 
-### R-037 — As rotas de admin devolvem stack trace do servidor, e a de POST faz isso SEM AUTENTICAÇÃO
-- **Descoberto:** 31/08/2026, dentro da T-014, lendo as linhas que os `any` escondiam.
-- **Onde:** `app/api/admin/set-access/route.ts` e `app/api/admin/profiles/route.ts`, no `catch`
-  final das duas: `{ error: ..., stack: erro?.stack ?? null }`.
-- **O quê, e a ordem é o achado:** nas duas rotas o `try` abre na **linha 17**, a autenticação
-  acontece na **30/36** e a autorização (`admin_level !== 'master'`) na **48/56**. **Tudo que
-  estoura antes da linha 36 cai no mesmo `catch` e sai como stack trace para quem chamou** — e
-  nesse ponto ninguém verificou sessão nenhuma.
-- **No `set-access` isso é trivialmente alcançável:** a linha 18 é `const payload = await
-  req.json()`. **Um POST com corpo JSON malformado, sem cookie nenhum, devolve 500 com o stack.**
-  Não precisa de conta, quanto mais de conta admin.
-- **O que vaza:** caminho absoluto dos arquivos no runtime da Vercel, estrutura interna de
-  módulos e versões de framework. **Não vaza credencial e não fura RLS.** É reconhecimento, não
-  invasão — mas é reconhecimento da rota de maior privilégio do sistema, entregue de graça.
-- **No `profiles` é a mesma forma com gatilho mais difícil:** é GET e não tem `req.json()`, então
-  depende de `cookies()` ou `getUser()` estourarem.
-- ✅ **O modelo certo já existe no próprio repositório:** `app/api/onboarding/set-role/route.ts`
-  devolve `{ error: mensagem }` e mais nada.
-- **Por que a T-014 NÃO consertou:** o card dela diz, por escrito, "não aproveitar a passagem pra
-  refatorar as rotas de admin: a task é de tipo, não de comportamento", e a regra 8 do
-  `AGENTES.md` manda parar e perguntar em vez de empurrar com a barriga. **As duas rotas foram
-  tipadas e o corpo da resposta ficou byte a byte igual**, com o R-037 citado em comentário nas
-  duas.
-- **Correção, em duas partes:** (1) tirar `stack` das duas respostas; (2) **mover o `req.json()`
-  para depois da autorização**, ou fechar o `try` só em volta do que precisa — hoje o bloco
-  protege código que roda antes de qualquer verificação.
-- ⚠️ **Não existe card destas rotas hoje.** O candidato natural é a reescrita de RBAC e middleware
-  da **S3** (R-001, R-002), que é a mesma porta onde o **R-029** já está esperando. Enquanto esse
-  card não existir, **este risco é o único lugar onde a regra está escrita.**
-- **Prazo:** S3. 🟡
-
-
-> **R-026 a R-031 nasceram da 2ª auditoria da `0003`**
-> (`docs/relatorios/SEC-2026-08-26-0003-v2.md`, 26/08). Nenhum é vazamento e nenhum bloqueou a
-> aplicação, que aconteceu no mesmo dia. **Nenhum deles é sobre o estado do banco: os seis são
-> sobre o ARQUIVO**, e é por isso que continuam abertos depois de a migration ter rodado verde.
-> ✅ **O R-026 fechou em 31/08** (medição feita, `42` apareceu) e **o R-031 foi decidido em 31/08**
-> (DL-055), mas só fecha quando o texto do passo 8 entrar na `0003`. **Restam quatro do grupo.**
-> Cada um registra abaixo o que a aplicação mediu, e por que o achado sobrevive à medição.
-> **O que eles protegem é a `0004`**, que vai copiar este arquivo como modelo.
-
 ### R-027 — O pré-voo 1.2 aborta sobre uma condição que ninguém mediu, e manda consertar por um caminho que não existe (SEC-047)
 - **Descoberto:** 26/08/2026, 2ª auditoria da `0003`, antes de aplicar
 - **O quê:** a promoção de `raise warning` para `raise exception` em `storage.buckets` sem RLS **está certa**. O problema é o que sobra: `relrowsecurity` de `storage.buckets` **e** de `storage.objects` não foi medido, então as duas metades do pré-voo 1.2 abortam sobre uma condição que ninguém olhou. E a mensagem manda "ligue pelo painel": o painel tem UI para **policy** de storage, não para `alter table storage.buckets enable row level security` — comando que exige ser dono da tabela (`supabase_storage_admin`), que `postgres` não é.
@@ -345,6 +304,25 @@
 ---
 
 ## ✅ FECHADOS
+
+- **R-037** — as duas rotas de admin devolviam `{ error, stack }` no `catch` final, e nas duas o
+  `try` abria **antes** da checagem de sessão. No `set-access` a primeira linha dentro dele era
+  `await req.json()`: **um POST com JSON malformado e sem cookie nenhum recebia 500 com o stack
+  trace do servidor** — caminho absoluto dos arquivos no runtime, estrutura de módulos e versão de
+  framework, na rota que troca o role de qualquer conta.
+  **31/08 — FECHADO na T-015, no mesmo dia em que nasceu.** O `stack` saiu das duas respostas e foi
+  para o `console.error` do servidor; o `req.json()` do `set-access` passou para **depois** da
+  autorização, dentro de um `try` estreito que devolve **400** em JSON inválido. **O mesmo POST
+  agora devolve 401 e o parser nem roda.** As três rotas de API do projeto passaram a devolver
+  mensagem e mais nada em erro de servidor, que é o formato que a `set-role` já tinha.
+  ⚠️ **O que ficou de fora, de propósito, e continua valendo:** o RBAC destas rotas é da **S3**
+  (R-001, R-002), onde o **R-029** já espera; e o `debug: { userId, email, admin_level }` que a
+  `profiles` devolve **não foi tocado** — é dado do próprio chamador, não de terceiro, então é
+  limpeza de rota e não segurança.
+  **A lição é sobre como ele apareceu:** o achado estava **escondido atrás de um `any`**.
+  `{ stack: e?.stack }` com `e: any` não chama atenção de ninguém; a mesma linha com `unknown`
+  obriga a olhar o que sai. A T-014 não achou isso apesar de ser uma task de tipo — **achou por
+  ser uma task de tipo.**
 
 - **R-026** — as sondas 3, 7C e 9 entregavam o veredito por um `select` seguido de `rollback;`, e
   o arquivo declarava que "o editor mostra só o resultado da última query" (SEC-046).
