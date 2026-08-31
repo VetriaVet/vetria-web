@@ -47,6 +47,16 @@ Leia docs/02-ESTADO.md, rode git log --oneline -15 e git status, e me diga se a 
 A task T-NNN ficou 🔵 em execução. Leia o card em docs/03-TAREFAS.md, confira no git o que já entrou, e continue daquele ponto sem refazer o que já está feito.
 ```
 
+**Quando a sessão anterior terminou com trabalho em branch e PR aberto:**
+```
+Leia docs/02-ESTADO.md. Rode git status, git branch -vv e git log --oneline origin/main..HEAD. Me diga o que está na branch e ainda não está na main, e o que isso significa pro que está no ar hoje. Não comece task nova antes disso.
+```
+> ⚠️ **Esta é a armadilha mais cara deste projeto, e ela já aconteceu duas vezes.**
+> Trabalho que existe no disco e não existe no `origin` **não existe pra mais ninguém** — e a doc
+> passa a descrever um produto que os usuários não têm. Foi assim que o R-006 "fechou" duas vezes,
+> e foi assim que a auditoria da T-006 se perdeu (R-034). **Confira o `origin` antes de acreditar
+> em qualquer "✅" da documentação.**
+
 ---
 
 ## EM 30 SEGUNDOS
@@ -56,8 +66,12 @@ estabelecimentos. Estilo Doctoralia, foco 100% veterinário.
 Responsáveis entram de graça pra resolver um problema. Profissionais pagam pra serem
 encontrados.
 
-**Onde estamos:** o app está no ar em `vetriabrasil.com.br`, com login real e ~45 telas
-prontas. Mas quase nada persiste dado ainda. As próximas 13 semanas existem pra mudar isso.
+**Onde estamos:** o app está no ar em `vetriabrasil.com.br`, com login real e ~45 telas prontas.
+As 13 semanas existem pra fazer essas telas guardarem dado de verdade.
+
+> ⚠️ **Este arquivo é PROTOCOLO, não estado.** Ele diz como entrar; ele não diz onde o projeto
+> está hoje. Para isso existe **`docs/02-ESTADO.md`**, e é ele que se atualiza toda semana.
+> Se os dois discordarem, o `02-ESTADO.md` ganha — e este aqui está desatualizado.
 
 **Prazo:** 25/11/2026. Escopo **fechado** e congelado.
 
@@ -156,7 +170,9 @@ seis semanas ninguém vai lembrar, e o custo de reconstruir contexto é uma sess
 Next.js 16 (App Router) · React 19 · Tailwind v4 (`@theme inline` em `app/globals.css`,
 **sem `tailwind.config`**) · Inter única · `lucide-react` · Supabase (Auth + Postgres +
 Storage) · Resend como SMTP do Supabase · Vercel (deploy em push na `main`) ·
-Playwright + GitHub Actions (a instalar na S1).
+Playwright + GitHub Actions
+(instalados na F3/S2, T-003: `npm run test:e2e`, e o CI roda build + lint + E2E em push na `main`
+e em todo pull request — os três passos bloqueiam).
 
 ## CONVENÇÃO DE COMMIT
 

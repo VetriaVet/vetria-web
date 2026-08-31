@@ -1,0 +1,92 @@
+# CI da Vetria — T-003. Ver docs/03-TAREFAS.md e R-003.
+#
+# Roda em push na `main` e em todo pull request. Faz o que a regra do projeto
+# já exigia de quem commitava à mão ("build verde antes de qualquer push"),
+# só que sem depender de ninguém lembrar.
+#
+# ⚠️ SEGREDOS — o que entra aqui e o que NUNCA entra:
+#   ENTRA  NEXT_PUBLIC_SUPABASE_URL       público por desenho (viaja no bundle)
+#   ENTRA  NEXT_PUBLIC_SUPABASE_ANON_KEY  público por desenho (protegido por RLS)
+#   ENTRA  E2E_VET_EMAIL / E2E_VET_SENHA  conta de teste, criada à mão, role vet
+#   NUNCA  SUPABASE_SERVICE_ROLE_KEY      ignora RLS inteira. Workflow
+#          comprometido com ela na mão lê a base de todo mundo. Se algum dia
+#          um teste "precisar" dela, o teste está errado, não o workflow.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: build + lint + e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      E2E_VET_EMAIL: ${{ secrets.E2E_VET_EMAIL }}
+      E2E_VET_SENHA: ${{ secrets.E2E_VET_SENHA }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # Guarda contra o pior modo de falha deste workflow: rodar sem as duas
+      # chaves públicas e ficar verde à toa. Sem elas o `middleware.ts` estoura
+      # em toda rota e a suíte inteira falharia com 500 — melhor parar aqui,
+      # com o motivo escrito, do que depurar 500 no relatório do Playwright.
+      - name: Conferir que as chaves públicas do Supabase existem
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "::error::Faltam os secrets NEXT_PUBLIC_SUPABASE_URL e/ou NEXT_PUBLIC_SUPABASE_ANON_KEY."
+            echo "::error::Crie os dois em Settings > Secrets and variables > Actions. Ver README, secao Testes."
+            exit 1
+          fi
+          echo "Chaves públicas presentes."
+
+      - name: Build
+        run: npm run build
+
+      # ✅ T-014 (31/08/2026) — este passo PASSOU A BLOQUEAR.
+      # Nasceu com `continue-on-error: true` porque havia 14 erros e 3 avisos
+      # anteriores, todos em arquivo de produção, e CI que nasce vermelho
+      # ninguém olha depois. Os 17 foram zerados e a linha saiu.
+      #
+      # ⚠️ Quem for tentado a devolver o `continue-on-error` num dia de pressa:
+      # o custo dele não é o erro que passa, é que o passo vira decoração e
+      # ninguém mais lê a saída. Conserte o lint ou remova o passo, não o
+      # transforme em enfeite.
+      - name: Lint
+        run: npm run lint
+
+      - name: Instalar o Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Testes E2E
+        run: npx playwright test
+        env:
+          CI: "true"
+
+      - name: Guardar o relatório quando algo falha
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

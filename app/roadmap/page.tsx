@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Check, Clock, ChevronRight, Info, Crown, type LucideIcon } from "lucide-react";
+import { Check, Clock, ChevronRight, Info, Crown } from "lucide-react";
 
 // Roadmap vivo da Vetria — rota isolada (não linkada na navegação; acessível
 // por link direto). noindex pra não ser indexada. É a janela dos donos pro
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const ATUALIZADO = "26 de agosto de 2026";
+const ATUALIZADO = "31 de agosto de 2026";
 const ENTREGA = "25 de novembro de 2026";
 
 type Status = "done" | "doing" | "todo" | "later";
@@ -74,16 +74,16 @@ const SPRINTS: Sprint[] = [
     num: "Fase 3 · até 22 de setembro",
     title: "O produto passa a guardar dados",
     status: "doing",
-    goal: "Sair da casca. Tudo o que o profissional preenche passa a ser guardado, e o admin passa a validar de verdade quem entra na plataforma. A base de dados já está de pé desde 26 de agosto: agora as telas passam a escrever nela.",
+    goal: "Sair da casca. Tudo o que o profissional preenche passa a ser guardado, e o admin passa a validar de verdade quem entra na plataforma. A base de dados e o cofre dos documentos estão de pé desde 26 de agosto. Em 31 de agosto o onboarding do veterinário passou a guardar de verdade o que a pessoa preenche, e ela entra na fila de validação. Falta o mesmo no estabelecimento, o envio do documento, e a fila do admin.",
     items: [
       { label: "Estrutura de dados dos perfis profissionais", status: "done" },
-      { label: "Onboarding que guarda o que foi preenchido", status: "doing" },
+      { label: "Onboarding que guarda o que foi preenchido (veterinário pronto)", status: "doing" },
       { label: "Envio de documento para validação (CRMV, CNPJ)", status: "todo" },
       { label: "Estados do profissional: incompleto, em validação, ativo", status: "todo" },
       { label: "Fila de validação real no painel do admin", status: "todo" },
       { label: "Aprovação e reprovação com aviso por email", status: "todo" },
       { label: "Isolamento reforçado entre os painéis", status: "todo" },
-      { label: "Testes automáticos dos fluxos críticos", status: "todo" },
+      { label: "Testes automáticos dos fluxos críticos", status: "doing" },
     ],
     result:
       "O profissional se cadastra, preenche o perfil, envia o documento e é aprovado por uma pessoa. A partir daqui a plataforma tem dados reais.",

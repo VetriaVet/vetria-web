@@ -42,9 +42,11 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    // T-014 — esta rota já não devolvia `stack`, e é o modelo certo:
+    // mensagem e mais nada. Ver R-037 para as duas de admin, que devolvem.
     return NextResponse.json(
-      { error: e?.message ?? "server error" },
+      { error: e instanceof Error ? e.message : "server error" },
       { status: 500 }
     );
   }

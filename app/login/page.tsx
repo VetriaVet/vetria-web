@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/browser";
 
 type Mode = "login" | "signup";
@@ -79,7 +80,7 @@ export default function LoginPage() {
 
       <section className="flex flex-col justify-center px-6 py-12">
         <div className="mx-auto w-full max-w-[420px] flex flex-col">
-          <a
+          <Link
             href="/"
             className="inline-flex items-center gap-2.5 mb-12 no-underline"
           >
@@ -91,7 +92,7 @@ export default function LoginPage() {
               className="h-7 w-auto"
               priority
             />
-          </a>
+          </Link>
 
           <h1 className="font-bold text-[28px] leading-tight tracking-tight text-titulo mb-2">
             {isSignup ? "Crie sua conta." : "É bom te ver de novo."}

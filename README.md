@@ -20,6 +20,63 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Testes (E2E com Playwright)
+
+Rede de segurança dos fluxos críticos. Ver o card **T-003** em `docs/03-TAREFAS.md`.
+
+### Rodar local
+
+```bash
+npm run test:e2e           # roda a suíte inteira (constrói e sobe o servidor sozinho)
+npm run test:e2e:ui        # modo interativo, bom pra escrever teste novo
+npm run test:e2e:report    # abre o último relatório HTML
+```
+
+Não precisa subir o servidor antes: o Playwright roda `npm run build && npm run start`
+sozinho. Se você já tiver um `npm run dev` na porta 3000, ele reaproveita.
+
+Para apontar a suíte pra outro alvo (uma URL de preview da Vercel, por exemplo):
+
+```bash
+E2E_BASE_URL=https://minha-preview.vercel.app npm run test:e2e
+```
+
+### As duas camadas
+
+| Arquivo | Precisa de credencial? | O que cobre |
+|---|---|---|
+| `tests/e2e/publico.spec.ts` | não | portas trancadas do `middleware.ts`, telas públicas, `noindex` do `/roadmap`, regra de copy do DL-038 |
+| `tests/e2e/login.spec.ts` | **sim** | login real com sessão real, roteamento por role, isolamento entre painéis |
+
+Sem as credenciais, os testes da segunda camada aparecem como **skipped com o motivo
+escrito** — nunca como suíte verde. Passar e pular são coisas diferentes.
+
+### Variáveis de ambiente
+
+Local elas vêm do `.env.local`, que **não é versionado**. No CI vêm de
+**secret do GitHub** (`Settings > Secrets and variables > Actions`).
+
+| Variável | Obrigatória | Observação |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | sim | pública por desenho, viaja no bundle |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | sim | pública por desenho, protegida por RLS |
+| `E2E_VET_EMAIL` | só pra 2ª camada | conta de teste com role `vet` |
+| `E2E_VET_SENHA` | só pra 2ª camada | |
+
+> ⚠️ **`SUPABASE_SERVICE_ROLE_KEY` nunca entra no CI nem em teste.** Ela ignora a RLS
+> inteira. Se um teste parecer precisar dela, o teste está errado.
+
+> ⚠️ **A conta de teste é criada uma vez, à mão, e reutilizada.** A suíte não cria conta
+> em produção: conta órfã vira dado pessoal sem dono na hora da exportação e exclusão da F6.
+
+### CI
+
+`.github/workflows/ci.yml` roda **build + lint + E2E** em push na `main` e em todo pull
+request.
+
+Os três passos **bloqueiam**: build, lint e E2E. O lint passou a bloquear em 31/08 (T-014),
+quando os 14 erros e 3 avisos herdados foram zerados.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

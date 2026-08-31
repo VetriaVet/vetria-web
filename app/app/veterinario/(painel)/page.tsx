@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
-import { EmptyState, GhostRow, Skeleton } from "@/components/ui/EmptyState";
+import { EmptyState, Skeleton } from "@/components/ui/EmptyState";
 import {
   ArrowRight,
   Eye,

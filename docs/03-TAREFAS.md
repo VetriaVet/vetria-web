@@ -79,31 +79,13 @@ _(vazio)_
 > escritos:** a `0003` foi aplicada em produção horas depois, em 26/08. O que ficou no banco está
 > no card da **T-002**.
 
-### T-006 — Onboarding do veterinário passa a persistir
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S2
-- **Capacidade:** E2
-- **Nível:** 🟡
-- **Agente dono:** vetria-backend
-- **Depende de:** T-001 ✅ (não depende da T-002)
-- **Por quê:** hoje o botão "Concluir" de `app/app/veterinario/onboarding/page.tsx` só faz `update profiles set onboarding_completed = true` e **joga fora tudo que o profissional digitou nos 4 passos**. Ninguém entra na fila de validação, porque `status` continua `incomplete`. É o item 1 do DoD da F3 e é a espinha da semana: a T-007 é o mesmo padrão aplicado de novo.
-- **Feito quando:**
-  - [ ] Server Action grava em `vet_profiles` (`nome_exibicao`, `titulo`, `crmv`, `crmv_uf`, `especialidades`, `experiencia`, `bio`, `cidade`, `estado`, `bairro`, `atende_presencial`, `atende_domiciliar`, `atende_teleorientacao`) na linha do próprio `auth.uid()`
-  - [ ] **WhatsApp vai para `perfil_privado`, nunca para `vet_profiles`** (SEC-002). Telefone em tabela de leitura pública entrega a base inteira pela API anônima
-  - [ ] A conclusão chama `concluir_onboarding_profissional()` por RPC. O `status` vira `pending_validation` **no servidor**. O cliente não escreve `status` em hipótese nenhuma: a policy levanta exceção, e é assim que tem que ser
-  - [ ] **Prova de persistência:** cadastro novo de vet → preencher os 4 passos → sair, deslogar, voltar → os dados estão no banco (conferir com `select` real, não pela tela)
-  - [ ] Erro do banco vira mensagem legível na tela. Hoje o caminho de erro é `redirect("...?error=1")` e a tela não mostra nada
-  - [ ] Nenhum `redirect()` dentro de `try/catch` (DL-016)
-  - [ ] Se o perfil já estiver `active`, a Action **relê `profiles.status` depois de salvar**: o trigger de revalidação (SEC-016/023) devolve o perfil para `pending_validation` quando CRMV ou documento mudam, e a resposta do update **não diz nada sobre isso**. Sem a releitura, a tela mente para um profissional que acabou de sair do ar
-- **Não fazer:** não escrever `slug` (é pinado pela RLS e a regra só nasce na F4/S5). Não fazer upload de arquivo (T-008). Não tocar em `middleware.ts` nem no portão de status (S3). Não mexer no formulário do estabelecimento (T-007). Não inventar campo que a tabela não tem.
-
 ### T-007 — Onboarding do estabelecimento passa a persistir
 - **Estado:** ⬜ fila
 - **Fase / Semana:** F3 / S2
 - **Capacidade:** E2
 - **Nível:** 🟡
 - **Agente dono:** vetria-backend
-- **Depende de:** **T-002 ✅** (as três colunas de identificação só existem em `perfil_privado` depois da `0003`, aplicada em 26/08) e T-006 — **e do handoff dela, não só do commit.** O formulário do estabelecimento é clone do de veterinário (foi assim que o R-017 nasceu duplicado); clonar antes de a T-006 ser revisada duplica o defeito junto
+- **Depende de:** **T-002 ✅** (as três colunas de identificação só existem em `perfil_privado` depois da `0003`, aplicada em 26/08) e T-006 — **e do handoff dela, não só do commit.** O formulário do estabelecimento é clone do de veterinário (foi assim que o R-017 nasceu duplicado); clonar antes de a T-006 ser revisada duplica o defeito junto. ⚠️ **31/08 — e agora depende também do R-034:** a auditoria da T-006 existia só nos comentários do código e foi **reconstruída**, não refeita. **SEC-053 e SEC-055 continuam sem dono.** Clonar este arquivo antes de uma revisão independente é literalmente o mecanismo do R-017, com a agravante de que desta vez sabemos que o registro está incompleto
 - **Por quê:** mesmo buraco da T-006, no outro painel. Sem isso, metade dos profissionais que a Vetria vende não chega na fila de validação.
 - **⚠️ Este card foi corrigido em 26/08.** Ele mandava gravar `razao_social`, `cnpj` e `responsavel_tecnico` em `clinic_profiles`. **Depois da `0003` esses três vivem em `perfil_privado`.** O impedimento acabou: a migration rodou no mesmo dia, e a Sonda 7A mediu em produção que `anon` selecionando `cnpj` de `clinic_profiles` recebe `42703: column "cnpj" does not exist`. **A coluna não existe mais**, então escrever pro schema antigo agora é que quebra.
 - **Feito quando:**
@@ -135,13 +117,13 @@ _(vazio)_
   - ✅ **SEC-036 decidida em 26/08 (T-012): o upload passa por Route Handler nosso.** Nada de `createSignedUploadUrl`, nenhum token de escrita no cliente. O critério de MIME acima passa a ser entregável, e ele é por **assinatura mágica dos primeiros bytes**, nunca pelo `content-type` declarado nem pela extensão do nome: `%PDF-` / `FF D8 FF` / `89 50 4E 47 0D 0A 1A 0A` / `RIFF`…`WEBP`. A extensão do caminho é derivada do tipo detectado. O contrato completo, oito passos, está na seção 2.b da `0003`: leia antes de escrever a rota.
   - [ ] **A rota grava `documento_path`, `documento_hash` (sha256 hex dos bytes que ela mesma escreveu) e `documento_tamanho` num único UPDATE** (SEC-033 / T-009). O CHECK `perfil_privado_documento_completo` recusa dois de três, e é de propósito: documento sem identidade dos bytes não é estado válido.
   - [ ] **A rota nunca reemite URL de upload pra caminho que já existe** (SEC-033 / T-009). Trocar os bytes sem trocar a string deixa um perfil aprovado exibindo documento que ninguém conferiu
-  - [ ] ⚠️ **O passo 8 grava a linha com a SESSÃO DO USUÁRIO, não com `service_role`** (SEC-051 / R-031, 2ª auditoria de 26/08). **Recomendação da auditoria; confirmar com o Elber na sessão da T-002, porque muda o contrato da seção 2.b.** O contrato da seção 2.b diz "escrever no bucket com `service_role`" no passo 7 e **não diz nada** no passo 8. Com `service_role`, `auth.uid()` é nulo e o `insert into audit_logs` do trigger de revalidação grava **`actor_id = null`**: a trilha diz que o perfil voltou pra fila e não diz quem mexeu. **O desenho antigo, de URL assinada, gravava com a sessão do usuário e o `actor_id` saía certo — a arquitetura nova apagou um dado da trilha sem ninguém decidir isso.** Com a sessão, o `actor_id` sai certo e a policy `perfil_privado_update_own` vira segunda porta de graça. **Só o passo 7 (o bucket) precisa de `service_role`.** ⚠️ Não confundir com a gravação de `documento_visualizado` do item acima: **aquela** sai por `service_role`, porque `authenticated` não tem INSERT em `audit_logs`
+  - [ ] ⚠️ **O passo 8 grava a linha com a SESSÃO DO USUÁRIO, não com `service_role`** (SEC-051 / R-031, 2ª auditoria de 26/08). ✅ **DECIDIDO PELO ELBER EM 31/08 — DL-055. Deixou de ser recomendação e virou critério.** Duas consequências que entram nesta task junto: **(1)** a linha passa a ser escrita **sob RLS**, então a rota tem que **falhar ruidosamente** se a policy do dono não alcançar — nunca cair para `service_role` como plano B; **(2)** ⚠️ **esbarra no R-029**: a guarda `recusar_dado_de_estabelecimento_em_pessoa_fisica` levanta em **todo** UPDATE da linha de quem trocou de `clinic` para `vet` sem limpar as três colunas, **inclusive neste passo 8, que nem toca nelas** — o caminho legítimo do upload quebra para essa conta e a mensagem não diz como sair. **A correção do R-029 (uma frase na exceção) entra aqui.** ⚠️ **O R-031 não fecha com a decisão:** ele só fecha quando o texto do passo 8, dentro da `0003`, disser isto, porque é esse arquivo que a `0004` vai copiar. O contrato da seção 2.b diz "escrever no bucket com `service_role`" no passo 7 e **não diz nada** no passo 8. Com `service_role`, `auth.uid()` é nulo e o `insert into audit_logs` do trigger de revalidação grava **`actor_id = null`**: a trilha diz que o perfil voltou pra fila e não diz quem mexeu. **O desenho antigo, de URL assinada, gravava com a sessão do usuário e o `actor_id` saía certo — a arquitetura nova apagou um dado da trilha sem ninguém decidir isso.** Com a sessão, o `actor_id` sai certo e a policy `perfil_privado_update_own` vira segunda porta de graça. **Só o passo 7 (o bucket) precisa de `service_role`.** ⚠️ Não confundir com a gravação de `documento_visualizado` do item acima: **aquela** sai por `service_role`, porque `authenticated` não tem INSERT em `audit_logs`
   - [ ] **Registrar em `audit_logs` (`acao = 'documento_visualizado'`, `alvo_id` = dono do documento) antes de devolver a URL assinada** (SEC-040). ⚠️ Grave com `service_role`: a `0002` revogou INSERT em `audit_logs` de `authenticated` (seção 11b), então gravar com a sessão do admin devolve `permission denied` e a trilha some junto com o erro. Os quatro passos da seção 2.b da `0003` são sessão, autorização, URL curta e nunca aceitar caminho do cliente. Falta o quinto: a leitura do documento de identidade de terceiro é o acesso mais sensível do sistema e é o único fora da trilha automática
   - [ ] **Anotar no card da exclusão de dados da F6** que apagar conta tem que apagar o objeto do bucket (SEC-039 / R-023). O `on delete cascade` derruba a linha e deixa o arquivo órfão, pra sempre. A convenção de caminho `<uuid>/` que esta task fixa é o que torna a varredura possível depois
 - **Não fazer:** não construir a tela de leitura do documento pelo admin (S4). Não usar `next/image` em nada vindo de usuário (R-004). Não aceitar arquivo checando só a extensão.
 
 ### T-003 — Instalar Playwright + CI
-- **Estado:** ⬜ fila
+- **Estado:** 🟡 **escrita, verde e COMMITADA em 31/08 (`82f59bb`, branch `f3-s2/onboarding-vet-e-ci`). Aguarda os 4 secrets do Elber** para os 2 testes de login saírem de "pulado"
 - **Fase / Semana:** F3 / S2 _(escorregou da S1)_
 - **Capacidade:** transversal obrigatória **Testes** (`00-ESCOPO.md` §2), ancorada em **E2** — o primeiro fluxo de produto coberto é o onboarding profissional, e o item 5 do DoD da F3 exige E2E em CI
 - **Nível:** 🟡
@@ -149,28 +131,22 @@ _(vazio)_
 - **Depende de:** nada. **Roda em paralelo** com a T-006 e a T-007, porque `vetria-qa` escreve só em `tests/` e não disputa arquivo com ninguém
 - **Por quê:** são 12 semanas de mudança em código que já está em produção. Sem rede de segurança, regressão vira descoberta do cliente. E a S2 é exatamente a semana em que o banco entra por baixo de telas que já estão no ar (R-003).
 - **Feito quando:**
-  - [ ] Playwright instalado, `npm run test:e2e` funcionando
-  - [ ] Workflow do GitHub Actions rodando build + lint + E2E em push na `main`
-  - [ ] Primeiro teste real: login com credencial de teste → chega no painel certo
-  - [ ] Usuários de teste **não** vêm de `.env` commitado — vêm de secret do GitHub
-  - [ ] `README.md` explica como rodar teste local
-  - [ ] **Se a T-006 fechar dentro da semana:** segundo teste cobrindo cadastro de vet → onboarding preenchido → sair e voltar → o dado está lá (item 1 do DoD da F3)
+  - [x] Playwright instalado, `npm run test:e2e` funcionando — `@playwright/test@1.62.1`, Chromium, `playwright.config.ts` na raiz. **13 testes verdes em 39,4s**, 2 pulados por falta de credencial
+  - [x] Workflow do GitHub Actions rodando build + lint + E2E em push na `main` — `.github/workflows/ci.yml`, também em todo pull request e em `workflow_dispatch`. ⚠️ **O passo de lint NÃO bloqueia ainda:** ver T-014
+  - [ ] Primeiro teste real: login com credencial de teste → chega no painel certo — **escrito** (`tests/e2e/login.spec.ts`, 2 testes), **pulando** até os secrets existirem. Só fecha quando rodar verde de verdade
+  - [x] Usuários de teste **não** vêm de `.env` commitado — vêm de secret do GitHub, lidos por `tests/apoio/credenciais.ts`. `.env*` já estava no `.gitignore`; o novo `/test-results/`, `/playwright-report/` e `/blob-report/` entraram junto, porque **trace e screenshot de tela logada são dado pessoal**
+  - [x] `README.md` explica como rodar teste local — seção **Testes (E2E com Playwright)**, com as duas camadas, as quatro variáveis e o aviso de que a `SUPABASE_SERVICE_ROLE_KEY` nunca entra em CI nem em teste
+  - [ ] **Se a T-006 fechar dentro da semana:** segundo teste cobrindo cadastro de vet → onboarding preenchido → sair e voltar → o dado está lá (item 1 do DoD da F3) — **não escrito de propósito.** Ver Resultado, ponto 4
 - **Não fazer:** não escrever teste de tela que ainda é casca. Testa só o que já é real. Não criar usuário de teste em produção sem combinar como ele é limpo depois.
+- **Resultado (28/08/2026, `vetria-qa`): a rede existe, está verde, e falta 1 gesto do Elber.**
+  - **8 arquivos.** Novos: `playwright.config.ts`, `tests/apoio/credenciais.ts`, `tests/e2e/publico.spec.ts`, `tests/e2e/login.spec.ts`, `.github/workflows/ci.yml`. Tocados: `package.json` (3 scripts + `@playwright/test` em `devDependencies`), `.gitignore`, `README.md`. **Nenhum arquivo de produção foi tocado**, como a regra de `vetria-qa` exige.
+  - **1. `npm run build` continua verde** e o `npm run lint` continua com os **mesmos 17 problemas de antes** (14 erros, 3 avisos): a task não introduziu dívida nova, e nada em `tests/` ou no `playwright.config.ts` acusa.
+  - **2. A suíte roda contra o build de produção, não contra o `next dev`.** O `dev` não reproduz Server Action minificada, nem cache, nem o comportamento real do middleware — e é exatamente aí que a T-006 e a T-007 vão viver. O `webServer` do Playwright constrói e sobe sozinho; no CI, só sobe, porque o build é passo anterior.
+  - **3. O teste mais valioso não é o de login, é o das portas trancadas.** Seis rotas de `/app` e `/admin` provam que visitante sem sessão cai no `/login`. Isso é o `middleware.ts`, que o **R-001** registra como **ainda não isolando painel por role**: o que ele já faz passa a ter prova antes de alguém mexer nele pra consertar o R-001. Junto vieram duas guardas de regra do projeto que se perdem calado num refactor: o **`noindex` do `/roadmap`** (DL-039) e a **ausência de travessão** no texto visível da home (DL-038).
+  - **4. ⚠️ O 2º teste (persistência do onboarding) NÃO foi escrito, e a razão é uma pergunta em aberto, não falta de tempo.** Ele precisa de **conta `vet` nova a cada rodada**, e o próprio card proíbe criar conta de teste em produção sem combinar como ela é limpa depois. As duas saídas são decisão do Elber e nenhuma é óbvia: (a) a suite cria e apaga a conta com `service_role`, o que **coloca a chave que ignora RLS inteira dentro do CI** e é exatamente o que este arquivo de workflow diz que nunca vai acontecer; ou (b) um projeto Supabase separado só pra teste, que custa tempo de setup e passa a ter schema pra manter em sincronia. **Virou R-033.**
+  - **5. Falta 1 gesto, e ele é de celular:** criar 4 secrets em `Settings > Secrets and variables > Actions` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `E2E_VET_EMAIL`, `E2E_VET_SENHA`) e ter uma conta `vet` de teste. **Sem os 2 primeiros o workflow para com erro escrito** (há um passo de conferência só pra isso), em vez de ficar verde à toa com 500 em toda rota. Sem os 2 últimos, os testes de login aparecem **pulados com o motivo escrito** — nunca verdes.
+  - **6. Nasceu a T-014**, do passo de lint que hoje não bloqueia.
 
-### T-013 — Medir se o editor renderiza `select` que não é o último comando, e só então mexer nas três sondas
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S2
-- **Capacidade:** E1
-- **Nível:** 🟢 pra medir (é um `select` de leitura, em rollback) · 🟡 se a correção das sondas for necessária
-- **Agente dono:** vetria-backend
-- **Depende de:** nada. ⚠️ **Deixou de ser pré-requisito da T-002 em 26/08:** a migration foi aplicada e as 18 sondas foram rodadas **com o veredito lido na tela**, uma a uma. Isso não invalida o achado — invalida a urgência. O card vira **acompanhamento**: conserta o arquivo de verificação para a próxima vez que alguém o rodar (reversão da `0003`, ambiente novo, ou a `0004` copiando o padrão)
-- **Por quê:** SEC-046. As sondas 3, 7C e 9 do `verificar-apos-0003.sql` terminam em `rollback;` **depois** do `select` que carrega o veredito. O próprio arquivo declara, em `:49-50`, que "o editor do Supabase mostra só o resultado da última query" — e usa esse modelo para justificar o select pós-`commit` da migration. Sob o mesmo modelo, o último comando dessas três é `rollback`, que não devolve linha, e o veredito some. **É a SEC-035 com o canal trocado, e nasceu dentro da correção da SEC-038.** A Sonda 3 é a pior das três: sucesso é `0`, falha é qualquer número maior, e os dois casos são "Success" com o mesmo aspecto.
-- **Feito quando:**
-  - [ ] Rodado no dashboard e o resultado colado neste card: `begin; select 42 as prova; rollback;`
-  - [ ] **Se `42` aparecer:** o achado cai inteiro. Muda **uma frase** do cabeçalho do arquivo de verificação, dizendo que `select` dentro de transação revertida aparece sim. Fim do card
-  - [ ] **Se `42` não aparecer:** as sondas 3, 7C e 9 adotam o padrão que as 10, 10B e 13B já usam (tabela temporária + `select` como último comando, fora de transação), com a troca de papel saindo por `perform set_config('role','anon',true)` em vez de `set local role`
-- **Não fazer:** ⚠️ **não mexer nas três sondas antes de medir.** Reescrever sonda que já funciona é como se fabrica achado na rodada seguinte (R-016). Não tocar nas 7A e 7B: elas esperam **erro** como sucesso, e erro aparece em vermelho. Não tocar nas 10, 10B e 13B: o padrão delas está certo.
-- **Resultado:** _(preencher)_
 
 ---
 
@@ -185,6 +161,299 @@ tem mais nenhum card 🔴 e nenhum card esperando o Elber.**
 ---
 
 # ✅ CONCLUÍDAS
+
+### T-015 — Tirar o stack trace das rotas de admin e conferir sessão antes do corpo
+- **Estado:** ✅ **CONCLUÍDA em 31/08/2026.** Card aberto e fechado no mesmo dia, direto do R-037.
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** transversal obrigatória **Segurança** (`00-ESCOPO.md` §2), ancorada em **E5**
+- **Nível:** 🟡 — toca `/api/*`, que é 🟡 por regra
+- **Agente dono:** vetria-backend
+- **Depende de:** T-014, que é onde o achado nasceu
+- **Por quê:** **R-037.** As duas rotas de admin devolviam `{ error, stack }` no `catch` final. Nas
+  duas, o `try` abre na linha 17, a autenticação é na 30/36 e a autorização na 48/56 — então tudo
+  que estourasse antes da checagem de sessão saía como stack trace para quem chamou. No
+  `set-access` a primeira linha dentro do `try` era `await req.json()`: **um POST com JSON
+  malformado, sem cookie nenhum, devolvia 500 com o stack.** Sem conta, sem ser admin, na rota que
+  troca o role de qualquer usuário do sistema.
+- **Feito quando:**
+  - [x] `stack` **sai** da resposta das duas rotas. O rastro vai pro `console.error` do servidor,
+    que é onde sempre devia ter estado
+  - [x] O `req.json()` do `set-access` **passa para depois da autorização**. Quem não é `master`
+    não chega perto do parser
+  - [x] JSON inválido vira **400 do cliente**, não 500 de servidor, por um `try` estreito em volta
+    só do parse — não atravessa mais o `catch` geral
+  - [x] O corpo é lido com estreitamento por `typeof`, sem `any` e sem mudar o contrato:
+    `admin_level: new_admin_level ?? "admin"` continua caindo em `"admin"` quando o campo não vem
+  - [x] `npm run lint` continua em 0, `npm run build` verde, 13 testes E2E passando
+- **Não fazer:** não reescrever a lógica de RBAC destas rotas — isso é a S3 (R-001, R-002), e o
+  **R-029** já está esperando lá. Não mexer no `debug: { userId, email, admin_level }` que a
+  `profiles` devolve: é o dado **do próprio chamador**, não de terceiro, e tirar aquilo é limpeza
+  de rota, não segurança.
+- **Resultado:**
+
+  ## HANDOFF — vetria-backend — T-015 — 31/08/2026
+
+  **Fiz:** dois arquivos.
+  - **`app/api/admin/set-access/route.ts`** — a ordem do `try` foi invertida: **sessão →
+    autorização → corpo**. O `await req.json()` saiu da linha 18 e foi para depois do
+    `admin_level !== "master"`, dentro de um `try` estreito que devolve **400** em JSON inválido.
+    O corpo passou a ser lido por `typeof` campo a campo (`CorpoSetAccess`), sem `any`. O `catch`
+    geral virou `console.error(...)` mais `{ error: "server error" }`.
+  - **`app/api/admin/profiles/route.ts`** — mesmo tratamento no `catch`. É GET e não tem
+    `req.json()`, então não tinha o gatilho fácil; mas o `try` também abre antes da sessão.
+
+  **O contrato não mudou para quem usa a tela.** `admin_level: new_admin_level ?? "admin"`
+  continua se comportando igual, porque o campo ausente virou `null` em vez de `undefined` e os
+  dois caem no mesmo lado do `??`.
+
+  **O que mudou para quem ataca:** POST sem cookie com corpo quebrado devolvia **500 com stack
+  trace**; agora devolve **401**. O parser nem roda.
+
+  **Não fiz:** não toquei no RBAC destas rotas (S3) nem no `debug` da `profiles`, pelas razões do
+  "Não fazer".
+
+  **Descobri:** nada novo além do que o R-037 já dizia. Vale registrar o caminho, porque ele se
+  repete: **o achado estava escondido atrás de um `any`.** `{ stack: e?.stack }` com `e: any` não
+  chama atenção de ninguém; a mesma linha com `unknown` obriga a olhar o que sai. **A T-014 não
+  achou isso apesar de ser uma task de tipo — achou por ser uma task de tipo.**
+
+  **Estado agora:** as três rotas de API do projeto devolvem mensagem e mais nada em erro de
+  servidor. **R-037 fechado.**
+
+  **Bloqueios:** nenhum.
+
+  **Próximo passo óbvio:** o merge do PR #1. Depois dele, **R-034** (revisão independente do
+  `actions.ts`) antes da **T-007**.
+
+  **Docs que atualizei:** `03-TAREFAS.md` (este card), `04-RISCOS.md` (R-037 fechado),
+  `02-ESTADO.md`.
+
+  **Commits:** _(este)_
+
+### T-014 — Zerar o lint e tornar o passo bloqueante no CI
+- **Estado:** ✅ **CONCLUÍDA em 31/08/2026.** `npm run lint` sai com **0 erro e 0 aviso**, e o passo do CI passou a bloquear.
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** transversal obrigatória **Testes** (`00-ESCOPO.md` §2)
+- **Nível:** 🟡 — toca `middleware.ts` e rotas de `/api/*`, que são 🟡 por regra
+- **Agente dono:** vetria-backend _(não é `vetria-qa`: os 14 erros estão todos em arquivo de produção, e `vetria-qa` escreve só em `tests/`)_
+- **Depende de:** T-003 (o workflow precisa existir pra ter o que destravar)
+- **Por quê:** o `.github/workflows/ci.yml` roda `npm run lint` com **`continue-on-error: true`**. Enquanto essa linha existir, **lint não é rede de segurança nenhuma no CI**: ele reporta e segue. A linha foi escrita assim de propósito, porque CI que nasce vermelho ninguém olha depois — mas ela é dívida com data, não desenho.
+- **O que está acusando hoje (14 erros, 3 avisos, todos anteriores à T-003):**
+  - `@typescript-eslint/no-explicit-any` — **9 erros**: `app/admin/AdminPanel.tsx` (3), `app/api/admin/set-access/route.ts` (4), `app/api/admin/profiles/route.ts` (1), `app/api/onboarding/set-role/route.ts` (1). ⚠️ **Sete deles estão em rota de API de admin**, que é a superfície de maior privilégio do sistema: `any` ali é onde o tipo para de ajudar exatamente onde ele mais valeria
+  - `react-hooks/immutability` e mais um `any` — **2 erros** em `app/onboarding/OnboardingClient.tsx:56` (`window.location.href = "/app"`)
+  - `@next/next/no-html-link-for-pages` — **1 erro** em `app/login/page.tsx:82` (`<a href="/">` no logo, devia ser `<Link>`)
+  - `prefer-const` — **1 erro** em `middleware.ts:5`
+  - `Parsing error: Maximum call stack size exceeded` — **1 erro** em `vetria-proto/assets/lucide.min.js`. ⚠️ **Este é falso trabalho:** a pasta está no `.gitignore` e **não existe no CI**, então o erro só aparece na máquina do Elber. O conserto é acrescentar `vetria-proto/**` ao `globalIgnores` do `eslint.config.mjs` — e vale fazer primeiro, porque é uma linha e limpa o ruído de quem for atacar os outros 13
+  - 3 avisos de variável não usada (`LucideIcon`, `GhostRow`) e uma diretiva `eslint-disable` inútil
+- **Feito quando:**
+  - [x] `npm run lint` sai com **0 erro** — e com **0 aviso** também, que o card não pedia
+  - [x] O passo `Lint` perdeu o `continue-on-error: true` e o comentário de dívida. No lugar ficou o motivo de nunca devolvê-lo
+  - [x] O aviso da seção **CI** do `README.md` saiu
+  - [x] `npm run build` continua verde, e **os 13 testes E2E continuam passando** (a troca de `<a>` por `<Link>` mexeu numa tela que 2 testes visitam)
+- **Não fazer:** não silenciar erro com `eslint-disable` linha a linha — isso troca uma dívida visível por uma invisível. Trocar `any` por tipo de verdade, e onde o tipo for mesmo desconhecido, `unknown` com estreitamento. Não aproveitar a passagem pra refatorar as rotas de admin: a task é de tipo, não de comportamento.
+- **Resultado:**
+
+  ## HANDOFF — vetria-backend — T-014 — 31/08/2026
+
+  **Fiz:** 17 problemas viraram 0, em 10 arquivos.
+  - **`eslint.config.mjs`** — `vetria-proto/**` entrou no `globalIgnores`. Era 1 dos 14 erros e
+    **falso trabalho**: a pasta está no `.gitignore` e não existe no CI, então o
+    `Parsing error: Maximum call stack size exceeded` do `lucide.min.js` só aparecia na máquina
+    do Elber, escondendo os 13 reais no meio do ruído. Foi o primeiro a sair, de propósito.
+  - **Os 9 `any`** viraram tipo de verdade, nenhum `eslint-disable`:
+    `AdminPanel.tsx` ganhou `SetAccessPayload` (os campos têm que casar com o destructuring de
+    `set-access/route.ts:19` — errar um nome ali não falha em lugar nenhum, o servidor lê
+    `undefined` e escreve o que não devia) e um `mensagemDoErro()` que estreita `unknown`;
+    os `catch (e: any)` das três rotas viraram `catch (e: unknown)` com `e instanceof Error`.
+  - **Os três `(error as any).details/hint/code`** de `set-access` **simplesmente saíram**: o
+    `error` do Supabase já é `PostgrestError` e **já declara as três**. O cast não contornava
+    tipo faltando, apagava tipo existente.
+  - **`login/page.tsx:82`** — `<a href="/">` virou `<Link>`, com o import.
+  - **`middleware.ts:5`** — `let` virou `const`.
+  - **`OnboardingClient.tsx:56`** — `window.location.href = "/app"` virou
+    `window.location.assign("/app")`. A regra `react-hooks/immutability` acusa a **atribuição**;
+    `assign()` tem efeito idêntico, inclusive a recarga completa, que aqui é o que se quer.
+  - **3 avisos:** `LucideIcon` e `GhostRow` não usados saíram dos imports, e a diretiva
+    `eslint-disable-next-line react-hooks/exhaustive-deps` do `AdminPanel` saiu porque **não
+    silenciava nada** — diretiva inútil ensina que existe uma exceção aprovada onde não existe.
+  - **`ci.yml`** — o passo virou `- name: Lint` sem `continue-on-error`. **`README.md`** perdeu o
+    aviso.
+
+  **Não fiz, e é o item mais importante deste handoff:** ⚠️ **não mexi no corpo das respostas das
+  rotas de admin, e elas devolvem stack trace do servidor.** Ver **R-037**. O card proíbe
+  ("a task é de tipo, não de comportamento") e a regra 8 do `AGENTES.md` manda parar e perguntar.
+  As duas rotas foram tipadas com o corpo **byte a byte igual**, e o R-037 está citado em
+  comentário dentro das duas.
+
+  **Descobri:** os `any` **escondiam** o achado. `{ error: e?.message, stack: e?.stack }` com
+  `e: any` não chama atenção de ninguém; a mesma linha com `unknown` obriga a olhar o que sai.
+  **O `try` das duas rotas abre na linha 17, a autenticação é na 30/36 e a autorização na 48/56.**
+  No `set-access` a linha 18 é `await req.json()`: **um POST com JSON malformado, sem cookie
+  nenhum, devolve 500 com o stack.** Não é vazamento de credencial nem furo de RLS — é
+  reconhecimento gratuito da rota de maior privilégio do sistema.
+
+  **Estado agora:** lint é rede de segurança de verdade no CI. Erro novo derruba o pipeline.
+
+  **Bloqueios:** nenhum. **Não conferido ainda:** se os 2 testes de login rodaram verdes no CI ou
+  continuaram pulados — localmente pulam, porque a máquina não tem os secrets.
+
+  **Próximo passo óbvio:** decidir o R-037. É deleção de duas linhas mais mover o `req.json()`;
+  o caro é escolher onde ele mora, porque não existe card destas rotas e a S3 é a porta natural.
+
+  **Docs que atualizei:** `03-TAREFAS.md` (este card), `04-RISCOS.md` (R-037), `02-ESTADO.md`.
+
+  **Commits:** _(este)_
+
+### T-006 — Onboarding do veterinário passa a persistir
+- **Estado:** ✅ **CONCLUÍDA em 31/08/2026.** Prova de persistência feita na preview pelo Elber, com `select` real. Todos os 7 critérios fechados.
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** E2
+- **Nível:** 🟡
+- **Agente dono:** vetria-backend
+- **Depende de:** T-001 ✅ (não depende da T-002)
+- **Por quê:** hoje o botão "Concluir" de `app/app/veterinario/onboarding/page.tsx` só faz `update profiles set onboarding_completed = true` e **joga fora tudo que o profissional digitou nos 4 passos**. Ninguém entra na fila de validação, porque `status` continua `incomplete`. É o item 1 do DoD da F3 e é a espinha da semana: a T-007 é o mesmo padrão aplicado de novo.
+- **Feito quando:**
+  - [x] Server Action grava em `vet_profiles` (`nome_exibicao`, `titulo`, `crmv`, `crmv_uf`, `especialidades`, `experiencia`, `bio`, `cidade`, `estado`, `bairro`, `atende_presencial`, `atende_domiciliar`, `atende_teleorientacao`) na linha do próprio `auth.uid()`
+  - [x] **WhatsApp vai para `perfil_privado`, nunca para `vet_profiles`** (SEC-002). Telefone em tabela de leitura pública entrega a base inteira pela API anônima
+  - [x] A conclusão chama `concluir_onboarding_profissional()` por RPC. O `status` vira `pending_validation` **no servidor**. O cliente não escreve `status` em hipótese nenhuma: a policy levanta exceção, e é assim que tem que ser
+  - [x] **Prova de persistência FEITA em 31/08**, na preview `vetria-web-n5un-git-f3-s2-...`, com a conta `contatolojalemon@gmail.com`. **`status` = `pending_validation`**, os 13 campos gravados, `whatsapp` em `perfil_privado`, `slug` nulo. Resultado completo no Resultado abaixo
+  - [x] Erro do banco vira mensagem legível na tela. Hoje o caminho de erro é `redirect("...?error=1")` e a tela não mostra nada
+  - [x] Nenhum `redirect()` dentro de `try/catch` (DL-016)
+  - [x] Se o perfil já estiver `active`, a Action **relê `profiles.status` depois de salvar**: o trigger de revalidação (SEC-016/023) devolve o perfil para `pending_validation` quando CRMV ou documento mudam, e a resposta do update **não diz nada sobre isso**. Sem a releitura, a tela mente para um profissional que acabou de sair do ar
+- **Não fazer:** não escrever `slug` (é pinado pela RLS e a regra só nasce na F4/S5). Não fazer upload de arquivo (T-008). Não tocar em `middleware.ts` nem no portão de status (S3). Não mexer no formulário do estabelecimento (T-007). Não inventar campo que a tabela não tem.
+- **Resultado:**
+
+  ## HANDOFF — vetria-backend — T-006 — 28/08/2026 _(escrito em 31/08, ver "Descobri")_
+
+  **Fiz:** a Server Action `salvarOnboardingVet` (`app/app/veterinario/onboarding/actions.ts`,
+  378 linhas, nova) grava os 13 campos públicos em `vet_profiles` por `upsert` com
+  `.select().single()` (DL-011: sem isso, gravação que não alcança linha nenhuma volta sem erro
+  e a tela manda a pessoa pra fila como se tivesse dado certo), o WhatsApp em `perfil_privado`
+  (SEC-002), chama `concluir_onboarding_profissional()` por RPC só se ainda estiver
+  `incomplete`, e **relê `profiles.status`** antes de decidir o destino (`actions.ts:355-377`).
+  `campos.ts` (novo) centraliza listas, limites e tipos. `page.tsx` passou a abrir o formulário
+  preenchido com o que já está no banco — sem isso, quem voltasse pra corrigir uma linha salvaria
+  o formulário vazio por cima do resto. `VetOnboardingForm.tsx` passou a mostrar erro do banco em
+  tela.
+
+  **Não fiz:** **a prova de persistência**, que é o último item de DoD aberto e é manual. Ver
+  Bloqueios. Não escrevi `slug`, `status`, as três colunas de estabelecimento nem as do
+  documento — cada uma por um motivo diferente, listados em `actions.ts:29-42` e na tabela do
+  relatório.
+
+  **Estado agora:** o onboarding do veterinário **deixou de ser casca** — mas só na branch
+  `f3-s2/onboarding-vet-e-ci`. **Produção continua rodando o código antigo, que descarta o que a
+  pessoa digita.** `npm run build` verde. Lint sem dívida nova.
+
+  **Descobri (e é o achado desta task, não do código):** **a auditoria desta task existia só nos
+  comentários do código.** O `actions.ts` cita SEC-052, 054, 056, 057 e 058, e os cinco números
+  não existiam em nenhum outro arquivo do repositório. A sessão de 28/08 terminou com tudo na
+  árvore de trabalho, sem commit, e o relatório nunca foi escrito. Em 31/08 ele foi
+  **reconstruído a partir do código** em `docs/relatorios/SEC-2026-08-28-T006.md`. ⚠️ **SEC-053 e
+  SEC-055 não foram recuperados** e não aparecem em lugar nenhum. Virou o **R-034**.
+
+  **Bloqueios:**
+  1. **A prova de persistência precisa da preview da Vercel desta branch** e de uma conta `vet`
+     nova, porque `concluir_onboarding_profissional()` só sai de `incomplete` uma vez.
+  2. **Não há teste automatizado deste caminho** (R-033), então a prova é manual, com `select`
+     rodado à mão.
+
+  **Próximo passo óbvio:** a prova de persistência na preview. **Depois dela**, e não antes,
+  `vetria-seguranca` revisa este arquivo contra a matriz de `06-PERMISSOES.md` (R-034) — porque
+  **a T-007 clona este `actions.ts`**, e foi assim que o R-017 nasceu duplicado.
+
+  **Docs que atualizei:** `02-ESTADO.md`, `03-TAREFAS.md` (este card e o da T-008),
+  `04-RISCOS.md` (R-031 decidido, R-034 novo), `05-DECISOES.md` (DL-055),
+  `relatorios/SEC-2026-08-28-T006.md` (novo).
+
+  **Commits:** `445cfde` (código) · `82f59bb` (T-003, em paralelo) · `b5728ad` e `68dd2bb` (docs).
+
+  ---
+
+  ## ADENDO — 31/08/2026: a prova de persistência passou
+
+  **Como foi feita:** a confirmação de email do Supabase é montada a partir do **Site URL** do
+  projeto, então ela **sempre** joga a pessoa em produção, não na preview. Por isso o caminho não
+  foi "cadastrar na preview": foi **cadastrar e confirmar em produção, depois LOGAR na preview** e
+  preencher o onboarding lá. Login não passa por email, então a preview aceita a sessão
+  normalmente. **Fica registrado porque a T-007 vai precisar do mesmo caminho.**
+
+  **De quebra, o bug ficou documentado antes de ser corrigido.** A mesma conta passou pelo
+  onboarding em **produção** primeiro, e o `select` mostrou `onboarding_completed = true`,
+  `status = incomplete`, **zero linha em `vet_profiles` e zero em `perfil_privado`** — que é
+  exatamente o que o código antigo faz (`22cc5cc`: um `update profiles set onboarding_completed =
+  true` e mais nada). Depois, o mesmo cadastro na preview:
+
+  | Campo | Medido | Veredito |
+  |---|---|---|
+  | `status` | `pending_validation` | ✅ a RPC rodou no servidor |
+  | `nome_exibicao`, `crmv`, `crmv_uf` | `Elder Lucas`, `GO-0155`, `AL` | ✅ |
+  | `especialidades` | `["Clínica geral"]` | ✅ array, dentro da whitelist |
+  | `experiencia`, `cidade`, `estado`, `bairro` | `1a3`, `Goiânia`, `AP`, `Residencial Itaipu` | ✅ |
+  | `atende_presencial` / `teleorientacao` | `true` / `true` | ✅ |
+  | `whatsapp` | preenchido, **em `perfil_privado`** | ✅ SEC-002 |
+  | `slug` | `null` | ✅ pinado pela RLS |
+  | `titulo`, `bio` | `null` | ✅ opcionais, não preenchidos |
+  | `cnpj`, `razao_social`, `responsavel_tecnico` | `null` | ✅ **por construção**: se não fossem, a guarda da SEC-044 teria levantado e o save teria falhado |
+
+  **As duas guardas de entrada foram exercitadas à mão e as duas seguraram:** concluir sem
+  nenhuma forma de atendimento é barrado, e concluir sem CRMV é barrado, os dois com alerta em
+  vermelho na tela.
+
+  ⚠️ **O que a prova revelou de novo, e não é elogio:** o formulário aceita perfil **sem nenhum
+  canal de contato** e aceita **cidade e UF que não combinam** (`Goiânia` com `AP` passou). Os
+  dois produzem um profissional aprovado que o produto não consegue entregar. **Virou o R-036** —
+  não é regressão desta task, é buraco que ela deixou visível.
+
+### T-013 — Medir se o editor renderiza `select` que não é o último comando, e só então mexer nas três sondas
+- **Estado:** ✅ **concluída em 31/08/2026** — medida rodada pelo Elber, `42` apareceu, achado derrubado
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** E1
+- **Nível:** 🟢 pra medir (é um `select` de leitura, em rollback) · 🟡 se a correção das sondas for necessária
+- **Agente dono:** vetria-backend
+- **Depende de:** nada. ⚠️ **Deixou de ser pré-requisito da T-002 em 26/08:** a migration foi aplicada e as 18 sondas foram rodadas **com o veredito lido na tela**, uma a uma. Isso não invalida o achado — invalida a urgência. O card vira **acompanhamento**: conserta o arquivo de verificação para a próxima vez que alguém o rodar (reversão da `0003`, ambiente novo, ou a `0004` copiando o padrão)
+- **Por quê:** SEC-046. As sondas 3, 7C e 9 do `verificar-apos-0003.sql` terminam em `rollback;` **depois** do `select` que carrega o veredito. O próprio arquivo declara, em `:49-50`, que "o editor do Supabase mostra só o resultado da última query" — e usa esse modelo para justificar o select pós-`commit` da migration. Sob o mesmo modelo, o último comando dessas três é `rollback`, que não devolve linha, e o veredito some. **É a SEC-035 com o canal trocado, e nasceu dentro da correção da SEC-038.** A Sonda 3 é a pior das três: sucesso é `0`, falha é qualquer número maior, e os dois casos são "Success" com o mesmo aspecto.
+- **Feito quando:**
+  - [x] Rodado no dashboard em **31/08/2026**. **`42` APARECEU** — o SQL Editor devolveu uma tabela com a coluna `prova` e o valor `42`
+  - [x] **`42` apareceu, então o achado caiu inteiro.** Muda **uma frase** do cabeçalho do arquivo de verificação, dizendo que `select` dentro de transação revertida aparece sim. Fim do card
+  - [x] ~~**Se `42` não aparecer:**~~ **não se aplica.** as sondas 3, 7C e 9 adotam o padrão que as 10, 10B e 13B já usam (tabela temporária + `select` como último comando, fora de transação), com a troca de papel saindo por `perform set_config('role','anon',true)` em vez de `set local role`
+- **Não fazer:** ⚠️ **não mexer nas três sondas antes de medir.** Reescrever sonda que já funciona é como se fabrica achado na rodada seguinte (R-016). Não tocar nas 7A e 7B: elas esperam **erro** como sucesso, e erro aparece em vermelho. Não tocar nas 10, 10B e 13B: o padrão delas está certo.
+- **Resultado:**
+
+  ## HANDOFF — vetria-backend — T-013 — 31/08/2026
+
+  **Fiz:** nada no código. A task era uma medição, e a medição foi feita pelo Elber no SQL
+  Editor do projeto: `begin; select 42 as prova; rollback;` **devolveu uma tabela com `prova` =
+  `42`**. O modelo que sustentava a SEC-046 estava errado: o editor mostra o resultado do último
+  comando **que devolve linhas**, e `rollback` não devolve nenhuma. **As sondas 3, 7C e 9
+  funcionam como estão.**
+
+  **Não fiz:** não reescrevi as três sondas, que era o caminho alternativo do card. Fazer isso
+  seria exatamente o R-016 — reescrever sonda que já funciona é como se fabrica achado na
+  rodada seguinte.
+
+  **Descobri, e é mais interessante que o resultado:** ⚠️ **a correção já estava no arquivo,
+  escrita em 26/08 no commit `a68251d`.** O cabeçalho de `verificar-apos-0003.sql:50-56` já
+  dizia, com estas palavras, que o `42` imprime na tela e que as três sondas não deviam ser
+  reescritas. **Só que no mesmo dia, no mesmo commit, o R-026 registrava que a medição NÃO tinha
+  sido registrada, e este card continuava pedindo que ela fosse feita.** Ou seja: o arquivo
+  afirmava um número que ninguém tinha medido. **Hoje o número bateu — mas isso é sorte, não
+  processo.** Um arquivo de verificação que afirma medição não feita é o mesmo defeito que a
+  SEC-025 descreve em sonda: parecer verificado sem ter sido. **Virou o R-035.**
+
+  **Estado agora:** nenhuma mudança de arquivo foi necessária. O cabeçalho já está correto, e
+  agora tem evidência atrás dele.
+
+  **Bloqueios:** nenhum.
+
+  **Próximo passo óbvio:** nenhum a partir daqui. O R-027, o R-028 e o R-030 continuam abertos e
+  **não são fechados por esta medição** — eles são sobre o texto da `0003` e do pré-voo, não
+  sobre o que o editor renderiza.
+
+  **Docs que atualizei:** `03-TAREFAS.md` (este card), `04-RISCOS.md` (R-026 fechado, R-035 novo).
+
+  **Commits:** _(este)_
+
 
 ### T-002 — Bucket de documentos no Storage
 - **Estado:** ✅ **concluída em 26/08/2026** — `0003_storage_documentos.sql` **aplicada em produção**

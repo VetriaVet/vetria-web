@@ -75,10 +75,12 @@ export async function GET() {
     }
 
     return NextResponse.json({ data: data ?? [], debug: { userId, email, admin_level: me.admin_level } });
-  } catch (e: any) {
-    return NextResponse.json(
-      { error: e?.message ?? "server error", stack: e?.stack ?? null },
-      { status: 500 }
-    );
+  } catch (e: unknown) {
+    // T-015 / R-037 — o `stack` saiu da resposta e foi pro log do servidor.
+    // Esta rota é GET e não tem `req.json()`, então não tinha o gatilho fácil
+    // que a `set-access` tinha — mas o `try` também abre antes da checagem de
+    // sessão, e devolver stack nunca foi o certo.
+    console.error("[api/admin/profiles] erro nao tratado", e);
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

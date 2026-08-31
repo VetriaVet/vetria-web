@@ -365,3 +365,34 @@ descartada no DL-051, o que tornou o modelo literal — **nenhum token de escrit
   a Sonda 2 — mudam juntos, no mesmo dia, e isso está anotado nos dois arquivos.
 **Status:** ✅ aplicada
 
+
+---
+
+### DL-055 — O passo 8 da rota de upload grava com a sessão do usuário, para que a trilha diga quem mexeu
+**Data:** 31/08/2026 · **Fase/Task:** F3/S2 · T-008 / R-031 (SEC-051) · **Commit:** _(esta branch)_
+**Contexto:** o contrato de oito passos da seção 2.b da `0003` é explícito no passo 7 ("escrever no
+bucket com `service_role`") e **omisso no passo 8** ("só então gravar a linha"), que não diz com
+qual cliente. A omissão não é neutra: com `service_role` a RLS não se aplica, `auth.uid()` é nulo,
+e o `insert into audit_logs` do trigger de revalidação grava **`actor_id = null`**. A trilha
+passaria a dizer que o perfil voltou para a fila **sem dizer quem trocou o documento**.
+**É uma regressão que ninguém decidiu.** No desenho antigo, de URL assinada, quem gravava era a
+sessão do usuário e o `actor_id` saía certo; a arquitetura nova do DL-051 apagou esse dado por
+efeito colateral, e o mesmo arquivo gasta 18 linhas explicando que "quem abriu o RG do fulano em
+março?" precisa de resposta.
+**Decisão:** **o passo 8 grava com a sessão do usuário.** `service_role` fica **só** no passo 7,
+que escreve os bytes no bucket. São dois clientes na mesma rota, de propósito, e o de maior
+privilégio tem o menor alcance.
+**Alternativas descartadas:** gravar tudo com `service_role`, que era o caminho de menor esforço e
+o que a omissão produziria por inércia. Custa o `actor_id` de toda troca de documento, num sistema
+em que a validação profissional é o produto.
+**Implicações:**
+- A linha passa a ser escrita **sob RLS**, então a policy de UPDATE de `perfil_privado` tem que
+  alcançar o próprio dono. Ela alcança (`0002`, policy do dono), e **a rota tem que falhar
+  ruidosamente se não alcançar** — nunca cair para `service_role` como plano B.
+- ⚠️ **Esbarra no R-029:** a guarda `recusar_dado_de_estabelecimento_em_pessoa_fisica` levanta em
+  **todo** UPDATE da linha de quem trocou de `clinic` para `vet` sem limpar as três colunas,
+  inclusive neste passo 8, que nem toca nelas. O caminho legítimo do upload quebra para essa conta,
+  e a mensagem não diz como sair. **Os dois assuntos se encontram dentro da T-008.**
+- **O R-031 não fecha com esta decisão.** Ele só fecha quando o texto do passo 8, dentro da
+  `0003`, disser isto — porque é esse arquivo que a `0004` vai copiar como modelo.
+**Status:** ✅ decidida em 31/08 · ⬜ **não escrita na `0003` ainda** · critério no card da T-008
