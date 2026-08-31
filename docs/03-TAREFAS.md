@@ -147,28 +147,6 @@ _(vazio)_
   - **5. Falta 1 gesto, e ele é de celular:** criar 4 secrets em `Settings > Secrets and variables > Actions` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `E2E_VET_EMAIL`, `E2E_VET_SENHA`) e ter uma conta `vet` de teste. **Sem os 2 primeiros o workflow para com erro escrito** (há um passo de conferência só pra isso), em vez de ficar verde à toa com 500 em toda rota. Sem os 2 últimos, os testes de login aparecem **pulados com o motivo escrito** — nunca verdes.
   - **6. Nasceu a T-014**, do passo de lint que hoje não bloqueia.
 
-### T-014 — Zerar o lint e tornar o passo bloqueante no CI
-- **Estado:** ⬜ fila _(nasceu em 28/08 dentro da T-003)_
-- **Fase / Semana:** F3 / S2
-- **Capacidade:** transversal obrigatória **Testes** (`00-ESCOPO.md` §2)
-- **Nível:** 🟡 — toca `middleware.ts` e rotas de `/api/*`, que são 🟡 por regra
-- **Agente dono:** vetria-backend _(não é `vetria-qa`: os 14 erros estão todos em arquivo de produção, e `vetria-qa` escreve só em `tests/`)_
-- **Depende de:** T-003 (o workflow precisa existir pra ter o que destravar)
-- **Por quê:** o `.github/workflows/ci.yml` roda `npm run lint` com **`continue-on-error: true`**. Enquanto essa linha existir, **lint não é rede de segurança nenhuma no CI**: ele reporta e segue. A linha foi escrita assim de propósito, porque CI que nasce vermelho ninguém olha depois — mas ela é dívida com data, não desenho.
-- **O que está acusando hoje (14 erros, 3 avisos, todos anteriores à T-003):**
-  - `@typescript-eslint/no-explicit-any` — **9 erros**: `app/admin/AdminPanel.tsx` (3), `app/api/admin/set-access/route.ts` (4), `app/api/admin/profiles/route.ts` (1), `app/api/onboarding/set-role/route.ts` (1). ⚠️ **Sete deles estão em rota de API de admin**, que é a superfície de maior privilégio do sistema: `any` ali é onde o tipo para de ajudar exatamente onde ele mais valeria
-  - `react-hooks/immutability` e mais um `any` — **2 erros** em `app/onboarding/OnboardingClient.tsx:56` (`window.location.href = "/app"`)
-  - `@next/next/no-html-link-for-pages` — **1 erro** em `app/login/page.tsx:82` (`<a href="/">` no logo, devia ser `<Link>`)
-  - `prefer-const` — **1 erro** em `middleware.ts:5`
-  - `Parsing error: Maximum call stack size exceeded` — **1 erro** em `vetria-proto/assets/lucide.min.js`. ⚠️ **Este é falso trabalho:** a pasta está no `.gitignore` e **não existe no CI**, então o erro só aparece na máquina do Elber. O conserto é acrescentar `vetria-proto/**` ao `globalIgnores` do `eslint.config.mjs` — e vale fazer primeiro, porque é uma linha e limpa o ruído de quem for atacar os outros 13
-  - 3 avisos de variável não usada (`LucideIcon`, `GhostRow`) e uma diretiva `eslint-disable` inútil
-- **Feito quando:**
-  - [ ] `npm run lint` sai com **0 erro**
-  - [ ] O passo `Lint` do `.github/workflows/ci.yml` **perde o `continue-on-error: true`** e o comentário de dívida que está acima dele
-  - [ ] O aviso da seção **CI** do `README.md` sai junto
-  - [ ] `npm run build` continua verde
-- **Não fazer:** não silenciar erro com `eslint-disable` linha a linha — isso troca uma dívida visível por uma invisível. Trocar `any` por tipo de verdade, e onde o tipo for mesmo desconhecido, `unknown` com estreitamento. Não aproveitar a passagem pra refatorar as rotas de admin: a task é de tipo, não de comportamento.
-- **Resultado:** _(preencher)_
 
 ---
 
@@ -183,6 +161,80 @@ tem mais nenhum card 🔴 e nenhum card esperando o Elber.**
 ---
 
 # ✅ CONCLUÍDAS
+
+### T-014 — Zerar o lint e tornar o passo bloqueante no CI
+- **Estado:** ✅ **CONCLUÍDA em 31/08/2026.** `npm run lint` sai com **0 erro e 0 aviso**, e o passo do CI passou a bloquear.
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** transversal obrigatória **Testes** (`00-ESCOPO.md` §2)
+- **Nível:** 🟡 — toca `middleware.ts` e rotas de `/api/*`, que são 🟡 por regra
+- **Agente dono:** vetria-backend _(não é `vetria-qa`: os 14 erros estão todos em arquivo de produção, e `vetria-qa` escreve só em `tests/`)_
+- **Depende de:** T-003 (o workflow precisa existir pra ter o que destravar)
+- **Por quê:** o `.github/workflows/ci.yml` roda `npm run lint` com **`continue-on-error: true`**. Enquanto essa linha existir, **lint não é rede de segurança nenhuma no CI**: ele reporta e segue. A linha foi escrita assim de propósito, porque CI que nasce vermelho ninguém olha depois — mas ela é dívida com data, não desenho.
+- **O que está acusando hoje (14 erros, 3 avisos, todos anteriores à T-003):**
+  - `@typescript-eslint/no-explicit-any` — **9 erros**: `app/admin/AdminPanel.tsx` (3), `app/api/admin/set-access/route.ts` (4), `app/api/admin/profiles/route.ts` (1), `app/api/onboarding/set-role/route.ts` (1). ⚠️ **Sete deles estão em rota de API de admin**, que é a superfície de maior privilégio do sistema: `any` ali é onde o tipo para de ajudar exatamente onde ele mais valeria
+  - `react-hooks/immutability` e mais um `any` — **2 erros** em `app/onboarding/OnboardingClient.tsx:56` (`window.location.href = "/app"`)
+  - `@next/next/no-html-link-for-pages` — **1 erro** em `app/login/page.tsx:82` (`<a href="/">` no logo, devia ser `<Link>`)
+  - `prefer-const` — **1 erro** em `middleware.ts:5`
+  - `Parsing error: Maximum call stack size exceeded` — **1 erro** em `vetria-proto/assets/lucide.min.js`. ⚠️ **Este é falso trabalho:** a pasta está no `.gitignore` e **não existe no CI**, então o erro só aparece na máquina do Elber. O conserto é acrescentar `vetria-proto/**` ao `globalIgnores` do `eslint.config.mjs` — e vale fazer primeiro, porque é uma linha e limpa o ruído de quem for atacar os outros 13
+  - 3 avisos de variável não usada (`LucideIcon`, `GhostRow`) e uma diretiva `eslint-disable` inútil
+- **Feito quando:**
+  - [x] `npm run lint` sai com **0 erro** — e com **0 aviso** também, que o card não pedia
+  - [x] O passo `Lint` perdeu o `continue-on-error: true` e o comentário de dívida. No lugar ficou o motivo de nunca devolvê-lo
+  - [x] O aviso da seção **CI** do `README.md` saiu
+  - [x] `npm run build` continua verde, e **os 13 testes E2E continuam passando** (a troca de `<a>` por `<Link>` mexeu numa tela que 2 testes visitam)
+- **Não fazer:** não silenciar erro com `eslint-disable` linha a linha — isso troca uma dívida visível por uma invisível. Trocar `any` por tipo de verdade, e onde o tipo for mesmo desconhecido, `unknown` com estreitamento. Não aproveitar a passagem pra refatorar as rotas de admin: a task é de tipo, não de comportamento.
+- **Resultado:**
+
+  ## HANDOFF — vetria-backend — T-014 — 31/08/2026
+
+  **Fiz:** 17 problemas viraram 0, em 10 arquivos.
+  - **`eslint.config.mjs`** — `vetria-proto/**` entrou no `globalIgnores`. Era 1 dos 14 erros e
+    **falso trabalho**: a pasta está no `.gitignore` e não existe no CI, então o
+    `Parsing error: Maximum call stack size exceeded` do `lucide.min.js` só aparecia na máquina
+    do Elber, escondendo os 13 reais no meio do ruído. Foi o primeiro a sair, de propósito.
+  - **Os 9 `any`** viraram tipo de verdade, nenhum `eslint-disable`:
+    `AdminPanel.tsx` ganhou `SetAccessPayload` (os campos têm que casar com o destructuring de
+    `set-access/route.ts:19` — errar um nome ali não falha em lugar nenhum, o servidor lê
+    `undefined` e escreve o que não devia) e um `mensagemDoErro()` que estreita `unknown`;
+    os `catch (e: any)` das três rotas viraram `catch (e: unknown)` com `e instanceof Error`.
+  - **Os três `(error as any).details/hint/code`** de `set-access` **simplesmente saíram**: o
+    `error` do Supabase já é `PostgrestError` e **já declara as três**. O cast não contornava
+    tipo faltando, apagava tipo existente.
+  - **`login/page.tsx:82`** — `<a href="/">` virou `<Link>`, com o import.
+  - **`middleware.ts:5`** — `let` virou `const`.
+  - **`OnboardingClient.tsx:56`** — `window.location.href = "/app"` virou
+    `window.location.assign("/app")`. A regra `react-hooks/immutability` acusa a **atribuição**;
+    `assign()` tem efeito idêntico, inclusive a recarga completa, que aqui é o que se quer.
+  - **3 avisos:** `LucideIcon` e `GhostRow` não usados saíram dos imports, e a diretiva
+    `eslint-disable-next-line react-hooks/exhaustive-deps` do `AdminPanel` saiu porque **não
+    silenciava nada** — diretiva inútil ensina que existe uma exceção aprovada onde não existe.
+  - **`ci.yml`** — o passo virou `- name: Lint` sem `continue-on-error`. **`README.md`** perdeu o
+    aviso.
+
+  **Não fiz, e é o item mais importante deste handoff:** ⚠️ **não mexi no corpo das respostas das
+  rotas de admin, e elas devolvem stack trace do servidor.** Ver **R-037**. O card proíbe
+  ("a task é de tipo, não de comportamento") e a regra 8 do `AGENTES.md` manda parar e perguntar.
+  As duas rotas foram tipadas com o corpo **byte a byte igual**, e o R-037 está citado em
+  comentário dentro das duas.
+
+  **Descobri:** os `any` **escondiam** o achado. `{ error: e?.message, stack: e?.stack }` com
+  `e: any` não chama atenção de ninguém; a mesma linha com `unknown` obriga a olhar o que sai.
+  **O `try` das duas rotas abre na linha 17, a autenticação é na 30/36 e a autorização na 48/56.**
+  No `set-access` a linha 18 é `await req.json()`: **um POST com JSON malformado, sem cookie
+  nenhum, devolve 500 com o stack.** Não é vazamento de credencial nem furo de RLS — é
+  reconhecimento gratuito da rota de maior privilégio do sistema.
+
+  **Estado agora:** lint é rede de segurança de verdade no CI. Erro novo derruba o pipeline.
+
+  **Bloqueios:** nenhum. **Não conferido ainda:** se os 2 testes de login rodaram verdes no CI ou
+  continuaram pulados — localmente pulam, porque a máquina não tem os secrets.
+
+  **Próximo passo óbvio:** decidir o R-037. É deleção de duas linhas mais mover o `req.json()`;
+  o caro é escolher onde ele mora, porque não existe card destas rotas e a S3 é a porta natural.
+
+  **Docs que atualizei:** `03-TAREFAS.md` (este card), `04-RISCOS.md` (R-037), `02-ESTADO.md`.
+
+  **Commits:** _(este)_
 
 ### T-006 — Onboarding do veterinário passa a persistir
 - **Estado:** ✅ **CONCLUÍDA em 31/08/2026.** Prova de persistência feita na preview pelo Elber, com `select` real. Todos os 7 critérios fechados.

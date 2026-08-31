@@ -53,9 +53,14 @@ export default function OnboardingClient() {
         return;
       }
 
-      window.location.href = "/app";
-    } catch (e: any) {
-      setMsg(e?.message ?? "Erro ao salvar role");
+      // T-014 — `assign()` em vez de `window.location.href = ...`.
+      // A regra `react-hooks/immutability` acusa a ATRIBUIÇÃO a um objeto
+      // definido fora do componente. O efeito é idêntico: navegação com
+      // recarga completa, que aqui é o que se quer — o role acabou de mudar no
+      // banco e o servidor precisa reler antes de decidir o painel.
+      window.location.assign("/app");
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "Erro ao salvar role");
       setLoading(null);
     }
   }

@@ -11,6 +11,27 @@ type Row = {
   created_at: string;
 };
 
+// T-014 — o corpo que esta tela manda pra `/api/admin/set-access`.
+// Era `any`, e `any` numa chamada que TROCA ROLE é onde o tipo mais valeria:
+// errar o nome de um campo aqui não falha em lugar nenhum, o servidor lê
+// `undefined` e escreve o que não devia. Os nomes têm que casar com o
+// destructuring de `app/api/admin/set-access/route.ts:19`.
+// ⚠️ Rota em português, role em inglês (DL-043): os valores continuam
+// `tutor` / `vet` / `clinic` / `admin`.
+type SetAccessPayload = {
+  target_user_id: string;
+  new_role: "tutor" | "vet" | "clinic" | "admin";
+  new_admin_level?: "comum" | "master" | "admin";
+  new_admin_team?: string;
+};
+
+// Toda mensagem de erro desta tela passa por aqui. `unknown` obriga a
+// estreitar, e é isso que impede um objeto qualquer virar "[object Object]"
+// na cara do admin.
+function mensagemDoErro(e: unknown, padrao: string) {
+  return e instanceof Error ? e.message : padrao;
+}
+
 // TASK-021: refator SÓ visual (dark). Lógica de fetch + set-access PRESERVADA
 // da Sprint 1 — chama /api/admin/profiles e /api/admin/set-access.
 
@@ -44,15 +65,15 @@ export default function AdminPanel() {
       } else {
         setRows((json.data ?? []) as Row[]);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setRows([]);
-      setMsg(e?.message ?? "Erro ao carregar");
+      setMsg(mensagemDoErro(e, "Erro ao carregar"));
     } finally {
       setLoading(false);
     }
   }
 
-  async function callSetAccess(payload: any) {
+  async function callSetAccess(payload: SetAccessPayload) {
     setMsg(null);
 
     try {
@@ -71,8 +92,8 @@ export default function AdminPanel() {
 
       setMsg("Atualizado ✅");
       load();
-    } catch (e: any) {
-      setMsg(e?.message ?? "Erro ao atualizar");
+    } catch (e: unknown) {
+      setMsg(mensagemDoErro(e, "Erro ao atualizar"));
     }
   }
 
@@ -108,7 +129,10 @@ export default function AdminPanel() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // T-014 — o `eslint-disable-next-line react-hooks/exhaustive-deps` que
+    // estava aqui não silenciava nada: a regra não acusava. Diretiva inútil é
+    // pior que nenhuma, porque ensina que este `useEffect` tem uma exceção
+    // aprovada quando ele não tem.
   }, []);
 
   const hasError = !!msg && msg !== "Atualizado ✅";

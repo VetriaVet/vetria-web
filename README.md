@@ -74,9 +74,8 @@ Local elas vêm do `.env.local`, que **não é versionado**. No CI vêm de
 `.github/workflows/ci.yml` roda **build + lint + E2E** em push na `main` e em todo pull
 request.
 
-> ⚠️ O passo de **lint não bloqueia ainda** (`continue-on-error: true`). São 14 erros e
-> 3 avisos anteriores à T-003, todos em arquivo de produção. Ver o card **T-014**: quando
-> ele fechar, essa linha some do workflow.
+Os três passos **bloqueiam**: build, lint e E2E. O lint passou a bloquear em 31/08 (T-014),
+quando os 14 erros e 3 avisos herdados foram zerados.
 
 ## Learn More
 

@@ -70,16 +70,29 @@ const { error } = await admin
   .eq("id", target_user_id);
 
     if (error) {
-  return NextResponse.json(
-    { error: error.message, details: (error as any).details, hint: (error as any).hint, code: (error as any).code },
-    { status: 400 }
-  );
-}
+      // T-014 — os três `as any` saíram. `error` já é `PostgrestError`, que
+      // declara `details`, `hint` e `code`: o cast não estava contornando
+      // tipo faltando, estava só apagando o que já existia.
+      return NextResponse.json(
+        {
+          error: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    // T-014 — `unknown` obriga a estreitar antes de ler `.message`/`.stack`.
+    // ⚠️ O CORPO DESTA RESPOSTA NÃO MUDOU, e isso é de propósito: o card da
+    // T-014 é de tipo, não de comportamento. O `stack` continua saindo daqui
+    // para o cliente, e isso é o R-037 — leia antes de copiar este bloco.
+    const erro = e instanceof Error ? e : null;
     return NextResponse.json(
-      { error: e?.message ?? "server error", stack: e?.stack ?? null },
+      { error: erro?.message ?? "server error", stack: erro?.stack ?? null },
       { status: 500 }
     );
   }

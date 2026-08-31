@@ -17,6 +17,13 @@ preview, com `select` real: `status` virou `pending_validation`, os 13 campos gr
 apareceu). **A T-003 está verde no CI** (execução #2, 1m20s) e só não fechou porque falta
 confirmar se os 2 testes de login rodaram ou continuaram pulados.
 
+⚠️ **A T-014 fechou em 31/08:** os 17 problemas de lint foram zerados e o passo passou a
+bloquear no CI. Ela produziu o **R-037**, que é o achado mais sério em aberto hoje: as duas rotas
+de admin devolvem **stack trace do servidor**, e a de POST faz isso **sem autenticação nenhuma**
+(o `try` abre antes da checagem de sessão, e a primeira linha dentro dele é `req.json()`). Não é
+credencial nem furo de RLS, mas é reconhecimento de graça na rota de maior privilégio. **Não foi
+consertado de propósito:** o card da T-014 é de tipo, não de comportamento.
+
 ⚠️ **Sobrou uma coisa esperando o Elber: o MERGE.** **Produção ainda roda o código antigo do
 onboarding**, que descarta os 4 passos. Enquanto o PR #1 não entrar na `main`, o item 1 do DoD da
 F3 está resolvido na branch e aberto no produto.
@@ -54,8 +61,8 @@ a pessoa digitou**. Ninguém entra na fila de validação, porque `status` conti
 tabelas, a RLS e `concluir_onboarding_profissional()` existem desde a `0002`: falta o código
 chamar.
 
-**Ordem da S2:** ~~T-006~~ ✅ → **T-007 → T-008**. ~~T-013~~ ✅. **T-003 verde, falta confirmar
-os 2 testes de login.** **Sobra na fila: T-007, T-008 e T-014.**
+**Ordem da S2:** ~~T-006~~ ✅ → **T-007 → T-008**. ~~T-013~~ ✅ ~~T-014~~ ✅. **T-003 verde,
+falta confirmar os 2 testes de login.** **Sobra na fila: T-007 e T-008.**
 ⚠️ **A T-007 não deve começar antes do R-034** (revisão independente do `actions.ts` que ela vai
 clonar) e herda o **R-036** (perfil aprovado sem canal de contato e sem coerência cidade/UF).
 
@@ -84,7 +91,7 @@ T-003 em 31/08 (falta só confirmar os 2 testes de login). **Saiu da S2:** onboa
 | **Banco** | ✅ Núcleo (`0002`) + storage e privacidade (`0003`), as duas aplicadas em 26/08. `profiles.status`, `vet_profiles`, `clinic_profiles`, `perfil_privado`, `animais`, `contatos`, `audit_logs`, com RLS codificando a matriz. Identificação do estabelecimento (`cnpj`, `razao_social`, `responsavel_tecnico`) e identidade dos bytes do documento (`documento_hash`, `documento_tamanho`) vivem em `perfil_privado`. **`vet_profiles` e `perfil_privado` deixaram de estar vazias em 31/08**, na prova da T-006 (1 linha, conta de teste). As demais continuam vazias. |
 | **Storage** | 🟡 Bucket privado `documentos` existe (10 MiB; pdf/jpeg/png/webp; **zero policy**, só `service_role` alcança). **Está vazio:** falta a rota que sobe o arquivo (T-008). |
 | **Emails transacionais** | 🟡 3 do Supabase ativos; 3 do app versionados e desligados (esperam a F3). |
-| **Testes** | 🟡 **Commitados em 31/08** (`82f59bb`, em branch) e **rodando verde no CI** (execução #2, 1m20s, com os 4 secrets no lugar). Playwright + GitHub Actions (T-003): **13 testes** cobrindo as portas trancadas do `middleware.ts`, as telas públicas, o `noindex` do `/roadmap` e a regra de copy do DL-038, **mais 2 de login** cujo estado (rodaram ou pularam) ainda não foi conferido. ⚠️ **Lint no CI ainda não bloqueia** (T-014), e **a persistência do onboarding continua sem teste** (R-033): a prova da T-006 foi manual. |
+| **Testes** | 🟡 **Commitados em 31/08** (`82f59bb`, em branch) e **rodando verde no CI** (execução #2, 1m20s, com os 4 secrets no lugar). Playwright + GitHub Actions (T-003): **13 testes** cobrindo as portas trancadas do `middleware.ts`, as telas públicas, o `noindex` do `/roadmap` e a regra de copy do DL-038, **mais 2 de login** cujo estado (rodaram ou pularam) ainda não foi conferido. ✅ **O lint passou a BLOQUEAR em 31/08** (T-014): `npm run lint` sai com 0 erro e 0 aviso. ⚠️ **A persistência do onboarding continua sem teste** (R-033): a prova da T-006 foi manual. |
 
 ---
 

@@ -63,20 +63,16 @@ jobs:
       - name: Build
         run: npm run build
 
-      # ⚠️ DÍVIDA CONHECIDA, e ela tem prazo. Hoje o `npm run lint` acusa 14
-      # erros e 3 avisos, TODOS anteriores a esta task e TODOS em arquivo de
-      # produção (`any` solto no admin e nas rotas de API, `<a>` em vez de
-      # `<Link>` no login, `let` que devia ser `const` no middleware).
-      # `vetria-qa` escreve só em `tests/` e não pode consertá-los daqui.
+      # ✅ T-014 (31/08/2026) — este passo PASSOU A BLOQUEAR.
+      # Nasceu com `continue-on-error: true` porque havia 14 erros e 3 avisos
+      # anteriores, todos em arquivo de produção, e CI que nasce vermelho
+      # ninguém olha depois. Os 17 foram zerados e a linha saiu.
       #
-      # Deixar o passo bloqueante agora deixaria o CI vermelho no primeiro dia,
-      # e CI que nasce vermelho ninguém olha depois. Então ele REPORTA sem
-      # derrubar, e a saída fica visível no log.
-      #
-      # 👉 Trocar `continue-on-error` para `false` assim que a T-014 fechar.
-      #    Enquanto essa linha existir, lint NÃO é rede de segurança aqui.
-      - name: Lint (nao bloqueia ainda — ver T-014)
-        continue-on-error: true
+      # ⚠️ Quem for tentado a devolver o `continue-on-error` num dia de pressa:
+      # o custo dele não é o erro que passa, é que o passo vira decoração e
+      # ninguém mais lê a saída. Conserte o lint ou remova o passo, não o
+      # transforme em enfeite.
+      - name: Lint
         run: npm run lint
 
       - name: Instalar o Chromium do Playwright

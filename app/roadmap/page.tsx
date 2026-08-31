@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Check, Clock, ChevronRight, Info, Crown, type LucideIcon } from "lucide-react";
+import { Check, Clock, ChevronRight, Info, Crown } from "lucide-react";
 
 // Roadmap vivo da Vetria — rota isolada (não linkada na navegação; acessível
 // por link direto). noindex pra não ser indexada. É a janela dos donos pro

@@ -75,9 +75,11 @@ export async function GET() {
     }
 
     return NextResponse.json({ data: data ?? [], debug: { userId, email, admin_level: me.admin_level } });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    // T-014 — só o tipo mudou. ⚠️ O `stack` continua indo pro cliente: R-037.
+    const erro = e instanceof Error ? e : null;
     return NextResponse.json(
-      { error: e?.message ?? "server error", stack: e?.stack ?? null },
+      { error: erro?.message ?? "server error", stack: erro?.stack ?? null },
       { status: 500 }
     );
   }
