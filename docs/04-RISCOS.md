@@ -47,10 +47,6 @@
 - **Precisa de decisão até:** F5 / S10 (LPs de preço)
 - **Registrado em:** `06-PERMISSOES.md` §7
 
-### R-003 — Zero testes automatizados em código que já está em produção
-- **O quê:** ~45 telas, auth real, RBAC, e nenhuma verificação automática. Nas próximas 12 semanas o banco inteiro entra por baixo dessas telas.
-- **Corrige em:** F3 / **S2** — T-003. **Escorregou da S1 sem ninguém decidir que escorregaria**, que é a forma mais comum de dívida crescer. Se escorregar de novo, o item 5 do DoD da F3 fica sem chance de fechar em quatro semanas.
-
 ### R-004 — `dangerouslyAllowSVG: true` no `next.config.ts`
 - **O quê:** necessário pra logo SVG renderizar via `next/image` (DL-040). Está mitigado por CSP sandbox. Vira risco real se algum dia entrar SVG enviado por usuário (foto de perfil, documento).
 - **Regra:** **nunca** servir SVG de origem de usuário por `next/image`. Upload de imagem de usuário aceita só raster (jpg/png/webp).
@@ -304,6 +300,18 @@
 ---
 
 ## ✅ FECHADOS
+
+- **R-003** — "zero testes automatizados em código que já está em produção". **31/08 — FECHADO:
+  a premissa do título morreu.** A T-003 entregou Playwright + GitHub Actions, e desde o merge do
+  PR #1 (`423a823`) o CI roda **build + lint + E2E em todo push na `main` e em todo pull request,
+  com os três passos bloqueando**. São **13 testes**, e o mais valioso não é o de login: são as
+  seis rotas de `/app` e `/admin` provando que visitante sem sessão cai no `/login` — ou seja, o
+  `middleware.ts` ganhou prova **antes** de alguém mexer nele pra consertar o R-001.
+  ⚠️ **O que NÃO fechou junto, e continua em risco próprio:** a **cobertura**. O caminho de
+  persistência do onboarding não tem teste nenhum (**R-033**), e a prova da T-006 foi manual. O
+  item 5 do DoD da F3 ("testes automáticos dos fluxos críticos") **continua aberto** e é cobrado
+  no fechamento da fase. **Fechar o R-003 não é dizer que há cobertura suficiente; é dizer que a
+  rede existe e está ligada.**
 
 - **R-037** — as duas rotas de admin devolviam `{ error, stack }` no `catch` final, e nas duas o
   `try` abria **antes** da checagem de sessão. No `set-access` a primeira linha dentro dele era
