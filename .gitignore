@@ -59,3 +59,10 @@ vetria-proto/
 supabase/backups/
 backup-*.txt
 backup-*.csv
+
+# Playwright (T-003). O relatório e os traces podem conter SCREENSHOT de tela
+# logada, ou seja, dado pessoal de conta real. Nunca versionar.
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
