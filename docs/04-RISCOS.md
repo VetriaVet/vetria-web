@@ -291,5 +291,11 @@
 
 - **R-005** — `is_admin_master` era duplicata byte a byte de `is_master_admin`. Removida pela `0002` em 26/08/2026.
 - **R-006** — o schema vivia fora do repo. `0000_baseline.sql` versiona o que existia; da `0002` em diante tudo passa por arquivo. **26/08 — o commit `a68251d` fechou a última brecha:** a `0003`, o backup e o arquivo de verificação estavam **untracked**, e produção tinha um schema que o repositório não descrevia.
+  ⚠️ **Correção de 31/08:** esse commit fechou o risco **no disco do Elber, não no repositório.**
+  Ele e mais cinco ficaram **sem push por cinco dias**, então de 26 a 31/08 o GitHub continuou
+  com um `origin/main` que não descrevia o schema de produção — que é a definição literal deste
+  risco. **`git push origin main` em 31/08 (`7ce2518..22cc5cc`) é o que de fato o fechou.**
+  **A lição não é sobre a `0003`:** "fechado" passou a exigir `origin`, e não a árvore local.
+  Commit que não sai da máquina não versiona nada para mais ninguém.
 - **R-015** — token do GitHub em texto puro na URL do remote. O remote virou `https://VetriaVet@github.com/...` e a autenticação passou pro credential manager, em 26/08/2026.
 - **R-002 item 3** — o "bug latente" do `admin_level ?? "admin"` era improcedente: o enum aceita `admin`, e `comum` nunca existiu. Confirmado por introspecção.
