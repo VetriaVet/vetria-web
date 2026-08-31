@@ -211,21 +211,6 @@ _(vazio)_
   - **5. Falta 1 gesto, e ele é de celular:** criar 4 secrets em `Settings > Secrets and variables > Actions` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `E2E_VET_EMAIL`, `E2E_VET_SENHA`) e ter uma conta `vet` de teste. **Sem os 2 primeiros o workflow para com erro escrito** (há um passo de conferência só pra isso), em vez de ficar verde à toa com 500 em toda rota. Sem os 2 últimos, os testes de login aparecem **pulados com o motivo escrito** — nunca verdes.
   - **6. Nasceu a T-014**, do passo de lint que hoje não bloqueia.
 
-### T-013 — Medir se o editor renderiza `select` que não é o último comando, e só então mexer nas três sondas
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S2
-- **Capacidade:** E1
-- **Nível:** 🟢 pra medir (é um `select` de leitura, em rollback) · 🟡 se a correção das sondas for necessária
-- **Agente dono:** vetria-backend
-- **Depende de:** nada. ⚠️ **Deixou de ser pré-requisito da T-002 em 26/08:** a migration foi aplicada e as 18 sondas foram rodadas **com o veredito lido na tela**, uma a uma. Isso não invalida o achado — invalida a urgência. O card vira **acompanhamento**: conserta o arquivo de verificação para a próxima vez que alguém o rodar (reversão da `0003`, ambiente novo, ou a `0004` copiando o padrão)
-- **Por quê:** SEC-046. As sondas 3, 7C e 9 do `verificar-apos-0003.sql` terminam em `rollback;` **depois** do `select` que carrega o veredito. O próprio arquivo declara, em `:49-50`, que "o editor do Supabase mostra só o resultado da última query" — e usa esse modelo para justificar o select pós-`commit` da migration. Sob o mesmo modelo, o último comando dessas três é `rollback`, que não devolve linha, e o veredito some. **É a SEC-035 com o canal trocado, e nasceu dentro da correção da SEC-038.** A Sonda 3 é a pior das três: sucesso é `0`, falha é qualquer número maior, e os dois casos são "Success" com o mesmo aspecto.
-- **Feito quando:**
-  - [ ] Rodado no dashboard e o resultado colado neste card: `begin; select 42 as prova; rollback;`
-  - [ ] **Se `42` aparecer:** o achado cai inteiro. Muda **uma frase** do cabeçalho do arquivo de verificação, dizendo que `select` dentro de transação revertida aparece sim. Fim do card
-  - [ ] **Se `42` não aparecer:** as sondas 3, 7C e 9 adotam o padrão que as 10, 10B e 13B já usam (tabela temporária + `select` como último comando, fora de transação), com a troca de papel saindo por `perform set_config('role','anon',true)` em vez de `set local role`
-- **Não fazer:** ⚠️ **não mexer nas três sondas antes de medir.** Reescrever sonda que já funciona é como se fabrica achado na rodada seguinte (R-016). Não tocar nas 7A e 7B: elas esperam **erro** como sucesso, e erro aparece em vermelho. Não tocar nas 10, 10B e 13B: o padrão delas está certo.
-- **Resultado:** _(preencher)_
-
 ### T-014 — Zerar o lint e tornar o passo bloqueante no CI
 - **Estado:** ⬜ fila _(nasceu em 28/08 dentro da T-003)_
 - **Fase / Semana:** F3 / S2
@@ -262,6 +247,56 @@ tem mais nenhum card 🔴 e nenhum card esperando o Elber.**
 ---
 
 # ✅ CONCLUÍDAS
+
+### T-013 — Medir se o editor renderiza `select` que não é o último comando, e só então mexer nas três sondas
+- **Estado:** ✅ **concluída em 31/08/2026** — medida rodada pelo Elber, `42` apareceu, achado derrubado
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** E1
+- **Nível:** 🟢 pra medir (é um `select` de leitura, em rollback) · 🟡 se a correção das sondas for necessária
+- **Agente dono:** vetria-backend
+- **Depende de:** nada. ⚠️ **Deixou de ser pré-requisito da T-002 em 26/08:** a migration foi aplicada e as 18 sondas foram rodadas **com o veredito lido na tela**, uma a uma. Isso não invalida o achado — invalida a urgência. O card vira **acompanhamento**: conserta o arquivo de verificação para a próxima vez que alguém o rodar (reversão da `0003`, ambiente novo, ou a `0004` copiando o padrão)
+- **Por quê:** SEC-046. As sondas 3, 7C e 9 do `verificar-apos-0003.sql` terminam em `rollback;` **depois** do `select` que carrega o veredito. O próprio arquivo declara, em `:49-50`, que "o editor do Supabase mostra só o resultado da última query" — e usa esse modelo para justificar o select pós-`commit` da migration. Sob o mesmo modelo, o último comando dessas três é `rollback`, que não devolve linha, e o veredito some. **É a SEC-035 com o canal trocado, e nasceu dentro da correção da SEC-038.** A Sonda 3 é a pior das três: sucesso é `0`, falha é qualquer número maior, e os dois casos são "Success" com o mesmo aspecto.
+- **Feito quando:**
+  - [x] Rodado no dashboard em **31/08/2026**. **`42` APARECEU** — o SQL Editor devolveu uma tabela com a coluna `prova` e o valor `42`
+  - [x] **`42` apareceu, então o achado caiu inteiro.** Muda **uma frase** do cabeçalho do arquivo de verificação, dizendo que `select` dentro de transação revertida aparece sim. Fim do card
+  - [x] ~~**Se `42` não aparecer:**~~ **não se aplica.** as sondas 3, 7C e 9 adotam o padrão que as 10, 10B e 13B já usam (tabela temporária + `select` como último comando, fora de transação), com a troca de papel saindo por `perform set_config('role','anon',true)` em vez de `set local role`
+- **Não fazer:** ⚠️ **não mexer nas três sondas antes de medir.** Reescrever sonda que já funciona é como se fabrica achado na rodada seguinte (R-016). Não tocar nas 7A e 7B: elas esperam **erro** como sucesso, e erro aparece em vermelho. Não tocar nas 10, 10B e 13B: o padrão delas está certo.
+- **Resultado:**
+
+  ## HANDOFF — vetria-backend — T-013 — 31/08/2026
+
+  **Fiz:** nada no código. A task era uma medição, e a medição foi feita pelo Elber no SQL
+  Editor do projeto: `begin; select 42 as prova; rollback;` **devolveu uma tabela com `prova` =
+  `42`**. O modelo que sustentava a SEC-046 estava errado: o editor mostra o resultado do último
+  comando **que devolve linhas**, e `rollback` não devolve nenhuma. **As sondas 3, 7C e 9
+  funcionam como estão.**
+
+  **Não fiz:** não reescrevi as três sondas, que era o caminho alternativo do card. Fazer isso
+  seria exatamente o R-016 — reescrever sonda que já funciona é como se fabrica achado na
+  rodada seguinte.
+
+  **Descobri, e é mais interessante que o resultado:** ⚠️ **a correção já estava no arquivo,
+  escrita em 26/08 no commit `a68251d`.** O cabeçalho de `verificar-apos-0003.sql:50-56` já
+  dizia, com estas palavras, que o `42` imprime na tela e que as três sondas não deviam ser
+  reescritas. **Só que no mesmo dia, no mesmo commit, o R-026 registrava que a medição NÃO tinha
+  sido registrada, e este card continuava pedindo que ela fosse feita.** Ou seja: o arquivo
+  afirmava um número que ninguém tinha medido. **Hoje o número bateu — mas isso é sorte, não
+  processo.** Um arquivo de verificação que afirma medição não feita é o mesmo defeito que a
+  SEC-025 descreve em sonda: parecer verificado sem ter sido. **Virou o R-035.**
+
+  **Estado agora:** nenhuma mudança de arquivo foi necessária. O cabeçalho já está correto, e
+  agora tem evidência atrás dele.
+
+  **Bloqueios:** nenhum.
+
+  **Próximo passo óbvio:** nenhum a partir daqui. O R-027, o R-028 e o R-030 continuam abertos e
+  **não são fechados por esta medição** — eles são sobre o texto da `0003` e do pré-voo, não
+  sobre o que o editor renderiza.
+
+  **Docs que atualizei:** `03-TAREFAS.md` (este card), `04-RISCOS.md` (R-026 fechado, R-035 novo).
+
+  **Commits:** _(este)_
+
 
 ### T-002 — Bucket de documentos no Storage
 - **Estado:** ✅ **concluída em 26/08/2026** — `0003_storage_documentos.sql` **aplicada em produção**

@@ -25,8 +25,8 @@
 > e verificada por 18 sondas. Estão em ✅ FECHADOS, e a regra que os manteve abertos até o
 > último minuto continua valendo: **risco só fecha quando o banco muda, não quando o SQL
 > existe.** O **R-018** fechou na mesma sessão; a pergunta de produto que sobrou dele virou o
-> **R-032**. O **R-026** foi rebaixado para 🟡: ele impedia declarar verificado, e a verificação
-> aconteceu.
+> **R-032**. O **R-026** foi rebaixado para 🟡 em 26/08 e **FECHOU em 31/08**, quando a medição
+> que faltava foi feita: `42` apareceu. O que sobrou dele virou o **R-035**.
 
 ### R-002 — Modelo de `master` inconsistente entre doc, código e enum ⚠️ RECLASSIFICADO
 - **Descoberto:** 26/08/2026 · **Reclassificado:** 26/08/2026, após leitura de `app/api/admin/*`
@@ -64,19 +64,10 @@
 > (`docs/relatorios/SEC-2026-08-26-0003-v2.md`, 26/08). Nenhum é vazamento e nenhum bloqueou a
 > aplicação, que aconteceu no mesmo dia. **Nenhum deles é sobre o estado do banco: os seis são
 > sobre o ARQUIVO**, e é por isso que continuam abertos depois de a migration ter rodado verde.
+> ✅ **O R-026 fechou em 31/08** (medição feita, `42` apareceu) e **o R-031 foi decidido em 31/08**
+> (DL-055), mas só fecha quando o texto do passo 8 entrar na `0003`. **Restam quatro do grupo.**
 > Cada um registra abaixo o que a aplicação mediu, e por que o achado sobrevive à medição.
 > **O que eles protegem é a `0004`**, que vai copiar este arquivo como modelo.
-
-### R-026 — Três sondas entregam o veredito por um `select` que não é o último comando (SEC-046)
-- **Descoberto:** 26/08/2026, 2ª auditoria da `0003`, antes de aplicar · **Rebaixado de 🟠 para 🟡 em 26/08**, depois da aplicação
-- **O quê:** as sondas 3, 7C e 9 do `verificar-apos-0003.sql` terminam em `rollback;` **depois** do `select` que carrega o veredito. O próprio arquivo declara o modelo do editor ("mostra só o resultado da última query") e usa esse modelo para justificar o select pós-`commit` da migration. Sob o mesmo modelo, o último comando dessas três é `rollback`, que não devolve linha.
-- **É a SEC-035 com o canal trocado, e nasceu dentro da correção da SEC-038** — a 7C e a 9 são as correções dos itens 2 e 4 daquele achado. **O padrão do R-016 outra vez.**
-- **A Sonda 3 é a pior das três:** ela falha para os dois lados. Sucesso é `0`, falha é qualquer número maior, e os dois casos são "Success" com o mesmo aspecto na tela.
-- **Não impediu aplicar; impedia declarar verificado.** As três revertem e nenhuma abre superfície.
-- **Não são afetadas:** 7A e 7B (esperam **erro**, que aparece em vermelho) e 10, 10B e 13B (o padrão certo já está nelas: tabela temporária mais `select` como último comando, fora de transação).
-- **26/08 — a migration foi aplicada e as 18 sondas foram rodadas com o veredito LIDO NA TELA**, uma a uma, incluindo as três desta lista: a Sonda 3 devolveu `0` objetos para `anon`; a 7C devolveu `1` linha própria, `0` linhas alheias e o `auth.uid()` da conta que espiava; a 9 devolveu `1` com o perfil `active` e `0` fora dele. **Isso baixa a urgência e não apaga o achado:** a medição de dez segundos do card (`begin; select 42 as prova; rollback;`) não foi registrada, então continua sem resposta escrita **por que** os três apareceram. O risco vale para a próxima vez que alguém rodar o arquivo: reversão da `0003`, ambiente novo, ou a `0004` copiando o padrão.
-- ⚠️ **Medir antes de mexer:** `begin; select 42 as prova; rollback;`. Se `42` aparecer, o risco cai inteiro. **Reescrever sonda que já funciona é como se fabrica achado na rodada seguinte.**
-- **Task:** **T-013** (acompanhamento, não é pré-requisito de nada)
 
 ### R-027 — O pré-voo 1.2 aborta sobre uma condição que ninguém mediu, e manda consertar por um caminho que não existe (SEC-047)
 - **Descoberto:** 26/08/2026, 2ª auditoria da `0003`, antes de aplicar
@@ -197,6 +188,25 @@
   do 053/055 fica fechado por cobertura, e não por memória.
 - **Prazo:** antes da T-007. 🟡
 
+### R-035 — O arquivo de verificação afirmava uma medição que ninguém tinha feito
+- **Descoberto:** 31/08/2026, ao fechar a T-013.
+- **O quê:** o cabeçalho de `supabase/verificar-apos-0003.sql:50-56` afirma, desde o commit
+  `a68251d` de **26/08**, que `begin; select 42 as prova; rollback;` **imprime 42 na tela**, e usa
+  isso para mandar não reescrever as sondas 3, 7C e 9. **No mesmo commit, o R-026 registrava que
+  essa medição não tinha sido registrada, e o card da T-013 continuava pedindo que ela fosse
+  feita.** O arquivo afirmava um número que ninguém tinha medido.
+- **31/08 — a medição foi feita e o número bateu.** O arquivo estava certo. **Isso é sorte, não
+  processo**, e é por isso que o achado sobrevive ao resultado.
+- **Por que é a SEC-025 em outro lugar:** aquele achado descreve sonda que parece verificada sem
+  ter sido. Aqui é o **cabeçalho** do arquivo de verificação fazendo o mesmo — e o cabeçalho é
+  justamente o que o operador lê para decidir se confia no resto.
+- **O agravante é o inverso do que parece:** se a medição tivesse dado errado, o arquivo teria
+  mandado **não** corrigir três sondas cegas, com uma afirmação de autoridade em cima.
+- **Correção:** afirmação de medição no repositório carrega **data e quem mediu**, ou é escrita
+  como expectativa ("esperado: imprime 42") e não como fato. Vale para a `0004`, que copia este
+  formato. Não vira card próprio: entra no primeiro card que tocar o arquivo de verificação.
+- **Prazo:** antes da `0004`. 🟡
+
 ### R-019 — O plano promete foto de perfil e horários, e não existe nem campo nem coluna para nenhum dos dois
 - **Descoberto:** 26/08/2026, na abertura da S2, conferindo o `01-PLANO.md` §S2 contra o código e o schema
 - **O quê:** o plano da S2 diz "foto" para o veterinário e "horários" para o estabelecimento. Na realidade: `vet_profiles` não tem coluna de foto, `clinic_profiles` não tem coluna de horários, o `ClinicOnboardingForm` **não coleta horário nenhum**, e o `VetOnboardingForm:229` já avisa honestamente "Upload de foto chega em breve".
@@ -275,6 +285,17 @@
 ---
 
 ## ✅ FECHADOS
+
+- **R-026** — as sondas 3, 7C e 9 entregavam o veredito por um `select` seguido de `rollback;`, e
+  o arquivo declarava que "o editor mostra só o resultado da última query" (SEC-046).
+  **31/08 — MEDIDO E DERRUBADO.** `begin; select 42 as prova; rollback;` no SQL Editor deste
+  projeto **devolveu uma tabela com `prova` = `42`**. O modelo estava errado: o editor mostra o
+  resultado do último comando **que devolve linhas**, e `rollback` não devolve nenhuma. **As três
+  sondas funcionam como estão e não foram tocadas** — reescrever sonda que funciona é o R-016.
+  O que continua valendo é a **SEC-035**, e por outro motivo: `raise notice` não é result set, é
+  outro canal, e esse o editor não renderiza mesmo. **Task:** T-013 ✅.
+  ⚠️ **Isto não fecha R-027, R-028 nem R-030:** os três são sobre o texto da `0003` e das
+  mensagens de pré-voo, não sobre o que o editor renderiza. **O que saiu daqui foi o R-035.**
 
 > **Cinco riscos fecharam em 26/08/2026, todos pela aplicação da `0003` em produção**
 > (commit `a68251d`, verificada por 18 sondas e pelo select de onze colunas da própria
