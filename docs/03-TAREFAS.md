@@ -5,6 +5,10 @@
 >
 > **Semana atual:** **S2 aberta em 26/08** · **Anterior:** S1 ✅ fechada em 26/08 (5 de 6) · **Fase:** F3
 >
+> ✅ **31/08 — T-003, T-006, T-013, T-014 e T-015 fecharam, e o PR #1 foi MERGEADO** (`423a823`).
+> **O onboarding do veterinário está persistindo EM PRODUÇÃO.** Sobram na S2: **T-007** e
+> **T-008**. ⚠️ **A T-007 não começa antes do R-034.**
+>
 > **Ordem de execução da S2:** **T-006 → T-007 → T-008.**
 > **T-003 corre em paralelo do primeiro dia**, porque `vetria-qa` não disputa arquivo com ninguém.
 > **T-013 vira acompanhamento:** as sondas já foram rodadas e o veredito saiu, então ela deixa

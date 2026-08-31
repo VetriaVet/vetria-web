@@ -3,7 +3,7 @@
 > **Este é o primeiro arquivo que qualquer sessão ou agente lê.**
 > Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
 >
-> **Última atualização:** 31/08/2026 (T-006 e T-013 fechadas) · **Fase:** F3 (S2) · **Commit base:** branch `f3-s2/onboarding-vet-e-ci`, PR #1 aberto e **não mergeado**
+> **Última atualização:** 31/08/2026 (5 cards fechados, PR #1 no ar) · **Fase:** F3 (S2) · **Commit base:** `423a823` na `main`
 
 ---
 
@@ -11,12 +11,13 @@
 
 **Fase:** F3 — Núcleo de dados · **Semana:** 2 de 13 · **Entrega:** 25/11/2026
 
-**Em execução:** nada. **31/08 fechou 5 cards.** Tudo vive na branch
-`f3-s2/onboarding-vet-e-ci` — **PR #1, CI verde, NÃO MERGEADO.**
+**Em execução:** nada. **31/08 fechou 5 cards, e o PR #1 foi MERGEADO E ESTÁ NO AR**
+(`423a823`, `22cc5cc..423a823`).
 
-🔴 **A PRIMEIRA COISA DE AMANHÃ É O MERGE.** Produção ainda roda o código antigo do onboarding,
-que **descarta os 4 passos** que o veterinário preenche. O item 1 do DoD da F3 está resolvido na
-branch e continua aberto no produto.
+🎉 **Marco: o produto guardou dado de um profissional de verdade pela primeira vez.** Até 31/08 as
+~45 telas eram casca. Agora o "Concluir" do onboarding do veterinário grava os 13 campos em
+`vet_profiles`, o WhatsApp em `perfil_privado`, e o profissional **entra na fila de validação**.
+É o **item 1 do DoD da F3**, fechado e em produção.
 
 **O que fechou em 31/08, uma linha cada** (o detalhe está no Resultado de cada card):
 
@@ -81,7 +82,7 @@ onboarding do responsável vai pra S3; foto e horários não entram (R-019).
 Todas essas telas estão no ar, bonitas e navegáveis, mas **não persistem nada**:
 
 - Onboarding de **estabelecimento** (multi-step) → F3/S2 (T-007)
-- Onboarding de **veterinário** → ⚠️ **resolvido na branch (T-006), ainda casca em produção até o merge**
+- ~~Onboarding de **veterinário**~~ ✅ **deixou de ser casca em 31/08** (T-006, em produção)
 - Onboarding do responsável (coleta cidade e um animal, e descarta os dois) → F3/S3
 - Editores de perfil das 3 personas → F3/S3
 - `/admin/validacoes`, `/admin/moderacao`, `/admin/conteudo` → F3/S4
