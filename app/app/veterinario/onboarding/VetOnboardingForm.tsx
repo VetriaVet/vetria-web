@@ -2,72 +2,71 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
-import { Input } from "../../../../components/ui/Input";
-import { Label } from "../../../../components/ui/Label";
-import { Select } from "../../../../components/ui/Select";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Select } from "@/components/ui/Select";
+import {
+  ESPECIALIDADES,
+  ESTADOS,
+  EXPERIENCIA,
+  STEPS,
+  TITULOS,
+  type ResultadoOnboarding,
+  type VetOnboardingInicial,
+  type VetOnboardingPayload,
+} from "./campos";
 
-// Onboarding vet multi-step — casca fiel (DL-020). Os 4 passos capturam dados
-// só no estado client (sem persistência — vet_profiles é migration 031). O
-// "Concluir" chama a Server Action que apenas marca onboarding_completed
-// (DL-016: startTransition sem await/try-catch).
-
-const STEPS = [
-  { n: 1, title: "Dados profissionais", desc: "CRMV, especialidades" },
-  { n: 2, title: "Localização & atendimento", desc: "Cidade, modos" },
-  { n: 3, title: "Perfil público", desc: "Foto, bio, contato" },
-  { n: 4, title: "Validação", desc: "Documentos do CRMV" },
-];
-
-const TITULOS = [
-  { value: "mv", label: "Médico(a) Veterinário(a)" },
-  { value: "dr", label: "Doutor(a) em Veterinária" },
-  { value: "me", label: "Mestre em Veterinária" },
-  { value: "esp", label: "Especialista" },
-];
-
-const EXPERIENCIA = [
-  { value: "lt1", label: "Menos de 1 ano" },
-  { value: "1a3", label: "1 a 3 anos" },
-  { value: "3a5", label: "3 a 5 anos" },
-  { value: "5a10", label: "5 a 10 anos" },
-  { value: "gt10", label: "Mais de 10 anos" },
-];
-
-const ESTADOS = [
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS",
-  "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC",
-  "SP", "SE", "TO",
-].map((uf) => ({ value: uf, label: uf }));
-
-const ESPECIALIDADES = [
-  "Clínica geral", "Cardiologia", "Dermatologia", "Oftalmologia",
-  "Ortopedia", "Cirurgia", "Anestesiologia", "Oncologia",
-  "Animais exóticos", "Felinos", "Equinos", "Comportamento",
-];
+// Onboarding vet multi-step. Os 4 passos guardam estado no cliente e o
+// "Concluir" manda tudo pra Server Action, que valida de novo, grava em
+// `vet_profiles` e `perfil_privado` e chama a RPC da fila de validação (T-006).
+//
+// As listas de valores mudaram de lugar: vivem em `campos.ts`, porque o
+// servidor valida contra as mesmas listas. Duas cópias divergem, e a que
+// diverge é sempre a do servidor.
+//
+// DL-016: nenhum try/catch em volta da Action. O caminho de sucesso termina em
+// redirect() do servidor, e o caminho de falha volta como VALOR de retorno.
 
 export default function VetOnboardingForm({
-  initialName,
+  inicial,
+  modo,
   action,
 }: {
-  initialName: string;
-  action: () => Promise<void>;
+  inicial: VetOnboardingInicial;
+  modo: "novo" | "revisao";
+  action: (
+    payload: VetOnboardingPayload
+  ) => Promise<ResultadoOnboarding | void>;
 }) {
   const [step, setStep] = useState(1);
   const [isPending, startTransition] = useTransition();
+  const [erro, setErro] = useState<string | null>(null);
 
-  // estado (visual; não persiste)
-  const [nome, setNome] = useState(initialName);
-  const [titulo, setTitulo] = useState("");
-  const [crmv, setCrmv] = useState("");
-  const [uf, setUf] = useState("");
-  const [especialidades, setEspecialidades] = useState<string[]>([]);
-  const [experiencia, setExperiencia] = useState("");
-  const [cidade, setCidade] = useState("");
-  const [estado, setEstado] = useState("");
-  const [bairro, setBairro] = useState("");
-  const [modos, setModos] = useState({ presencial: false, domiciliar: false, tele: false });
-  const [bio, setBio] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
+  const [nome, setNome] = useState(inicial.nome);
+  const [titulo, setTitulo] = useState(inicial.titulo);
+  const [crmv, setCrmv] = useState(inicial.crmv);
+  const [uf, setUf] = useState(inicial.crmvUf);
+  const [especialidades, setEspecialidades] = useState<string[]>(inicial.especialidades);
+  const [experiencia, setExperiencia] = useState(inicial.experiencia);
+  const [cidade, setCidade] = useState(inicial.cidade);
+  const [estado, setEstado] = useState(inicial.estado);
+  const [bairro, setBairro] = useState(inicial.bairro);
+  const [modos, setModos] = useState({
+    presencial: inicial.atendePresencial,
+    domiciliar: inicial.atendeDomiciliar,
+    tele: inicial.atendeTeleorientacao,
+  });
+  const [bio, setBio] = useState(inicial.bio);
+  const [whatsapp, setWhatsapp] = useState(inicial.whatsapp);
+
+  const emRevisao = modo === "revisao";
+
+  // Pelo menos um modo de atendimento é obrigatório (decisão do Elber, 26/08).
+  // Bloquear aqui evita que a pessoa chegue ao passo 4 e tome o erro do
+  // servidor. A regra que VALE continua sendo a da Server Action: esta é
+  // conveniência, não autorização.
+  const algumModo = modos.presencial || modos.domiciliar || modos.tele;
+  const podeAvancar = step === 2 ? algumModo : true;
 
   function toggleEsp(e: string) {
     setEspecialidades((p) => (p.includes(e) ? p.filter((x) => x !== e) : [...p, e]));
@@ -82,9 +81,30 @@ export default function VetOnboardingForm({
   function back() {
     setStep((s) => Math.max(1, s - 1));
   }
+
   function finish() {
-    startTransition(() => {
-      action(); // DL-016: sem await, sem try/catch
+    setErro(null);
+    // DL-016: sem try/catch. O `await` existe só pra ler o erro que a Action
+    // devolve como valor; no sucesso ela redireciona e esta linha nunca
+    // resolve com objeto.
+    startTransition(async () => {
+      const r = await action({
+        nome,
+        titulo,
+        crmv,
+        crmvUf: uf,
+        especialidades,
+        experiencia,
+        cidade,
+        estado,
+        bairro,
+        atendePresencial: modos.presencial,
+        atendeDomiciliar: modos.domiciliar,
+        atendeTeleorientacao: modos.tele,
+        bio,
+        whatsapp,
+      });
+      if (r && r.ok === false) setErro(r.mensagem);
     });
   }
 
@@ -97,11 +117,14 @@ export default function VetOnboardingForm({
         </div>
 
         <h1 className="font-bold text-[24px] leading-tight mb-3">
-          Vamos configurar seu perfil profissional.
+          {emRevisao
+            ? "Seu cadastro está em validação."
+            : "Vamos configurar seu perfil profissional."}
         </h1>
         <p className="text-[13px] text-white/70 leading-relaxed mb-8">
-          Em poucos minutos seu perfil fica pronto pra validação. Você pode
-          pausar e voltar quando quiser.
+          {emRevisao
+            ? "Você pode corrigir e completar os dados enquanto nossa equipe confere seu CRMV. As alterações são salvas quando você chega ao fim."
+            : "Em poucos minutos seu perfil fica pronto pra validação. Você pode pausar e voltar quando quiser."}
         </p>
 
         <ol className="flex flex-col gap-1">
@@ -208,6 +231,10 @@ export default function VetOnboardingForm({
               </div>
               <div className="mt-5">
                 <Label>Como você atende</Label>
+                <p className="text-[12px] text-corpo-texto/70 mb-3">
+                  Marque pelo menos uma. É por aqui que responsáveis filtram a
+                  busca, e dá pra marcar mais de uma.
+                </p>
                 <div className="grid sm:grid-cols-3 gap-3 mt-1.5">
                   <ModeCard active={modos.presencial} onClick={() => toggleModo("presencial")} title="Presencial" desc="Em estabelecimento ou consultório" />
                   <ModeCard active={modos.domiciliar} onClick={() => toggleModo("domiciliar")} title="Domiciliar" desc="Visitas na casa do responsável" />
@@ -225,7 +252,8 @@ export default function VetOnboardingForm({
               <div className="mb-4">
                 <Label>Foto de perfil</Label>
                 <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center text-corpo-texto/60">
-                  {/* TODO: upload pra Supabase Storage (migration 031) */}
+                  {/* Foto de perfil está fora dos 3 meses (R-019): não existe
+                      coluna em `vet_profiles` nem bucket público. Volta na F4/S7. */}
                   <p className="text-sm">Upload de foto chega em breve</p>
                 </div>
               </div>
@@ -251,11 +279,16 @@ export default function VetOnboardingForm({
 
           {step === 4 && (
             <StepWrap
-              title="Quase lá: validação do CRMV."
-              desc="Ao concluir, enviamos seu cadastro pra validação da equipe Vetria. Você recebe um email quando o perfil for aprovado."
+              title={emRevisao ? "Revise e salve." : "Quase lá: validação do CRMV."}
+              desc={
+                emRevisao
+                  ? "Ao salvar, seus dados são atualizados e seguem na fila de validação da equipe Vetria. Você recebe um email quando o perfil for aprovado."
+                  : "Ao concluir, enviamos seu cadastro pra validação da equipe Vetria. Você recebe um email quando o perfil for aprovado."
+              }
             >
               <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center text-corpo-texto/60 mb-4">
-                {/* TODO: upload de documentos do CRMV (migration 031) */}
+                {/* Upload do documento do CRMV é a T-008: o bucket privado
+                    `documentos` já existe e a rota de envio ainda não. */}
                 <p className="text-sm">Envio de documentos do CRMV chega em breve</p>
               </div>
               <div className="flex gap-3 rounded-xl bg-fundo-destaque p-4">
@@ -268,6 +301,21 @@ export default function VetOnboardingForm({
                 </p>
               </div>
             </StepWrap>
+          )}
+
+          {/* Erro honesto: o que o servidor recusou, dito com todas as letras.
+              Nada é perdido — o estado do formulário continua na tela. */}
+          {erro && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-4 text-[13px] text-red-800 leading-relaxed"
+            >
+              <strong className="block font-semibold mb-0.5">
+                Não deu pra salvar.
+              </strong>
+              {erro}
+            </div>
           )}
 
           {/* Ações */}
@@ -289,7 +337,13 @@ export default function VetOnboardingForm({
                 <button
                   type="button"
                   onClick={next}
-                  className="inline-flex items-center gap-2 rounded-pill bg-principal text-white px-6 py-2.5 font-semibold text-sm hover:bg-[#142E33] transition"
+                  disabled={!podeAvancar}
+                  title={
+                    podeAvancar
+                      ? undefined
+                      : "Marque pelo menos uma forma de atendimento para continuar."
+                  }
+                  className="inline-flex items-center gap-2 rounded-pill bg-principal text-white px-6 py-2.5 font-semibold text-sm hover:bg-[#142E33] transition disabled:opacity-50"
                 >
                   Continuar
                   <ArrowRightIcon />
@@ -302,7 +356,11 @@ export default function VetOnboardingForm({
                   aria-busy={isPending}
                   className="inline-flex items-center gap-2 rounded-pill bg-principal text-white px-6 py-2.5 font-semibold text-sm hover:bg-[#142E33] transition disabled:opacity-50"
                 >
-                  {isPending ? "Enviando..." : "Concluir cadastro"}
+                  {isPending
+                    ? "Salvando..."
+                    : emRevisao
+                      ? "Salvar alterações"
+                      : "Concluir cadastro"}
                 </button>
               )}
             </div>
@@ -336,7 +394,7 @@ function Chips({
   selected,
   onToggle,
 }: {
-  items: string[];
+  items: readonly string[];
   selected: string[];
   onToggle: (s: string) => void;
 }) {
