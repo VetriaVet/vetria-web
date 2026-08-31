@@ -3,7 +3,7 @@
 > **Este é o primeiro arquivo que qualquer sessão ou agente lê.**
 > Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
 >
-> **Última atualização:** 31/08/2026 (T-003 e T-006 commitadas em branch) · **Fase:** F3 (S2) · **Commit base:** `445cfde`, branch `f3-s2/onboarding-vet-e-ci`
+> **Última atualização:** 31/08/2026 (T-006 e T-013 fechadas) · **Fase:** F3 (S2) · **Commit base:** branch `f3-s2/onboarding-vet-e-ci`, PR #1 aberto e **não mergeado**
 
 ---
 
@@ -11,17 +11,20 @@
 
 **Fase:** F3 — Núcleo de dados · **Semana:** 2 de 13 · **Entrega:** 25/11/2026
 
-**Em execução:** nada. **T-003 e T-006 estão escritas, verdes e commitadas** na branch
-`f3-s2/onboarding-vet-e-ci` (`82f59bb` e `445cfde`), **e nenhuma das duas fechou.**
+**Em execução:** nada. ✅ **A T-006 FECHOU em 31/08** — a prova de persistência foi feita na
+preview, com `select` real: `status` virou `pending_validation`, os 13 campos gravaram, o
+`whatsapp` foi pra `perfil_privado` e o `slug` ficou nulo. ✅ **A T-013 fechou junto** (o `42`
+apareceu). **A T-003 está verde no CI** (execução #2, 1m20s) e só não fechou porque falta
+confirmar se os 2 testes de login rodaram ou continuaram pulados.
 
-⚠️ **A S2 continua sem card 🔴, mas voltou a ter coisa esperando o Elber** — quatro gestos, e
-três deles são de celular:
-1. **A prova de persistência da T-006**, na preview da Vercel desta branch. É o último item de
-   DoD aberto do card e é **manual** (R-033). Precisa de uma conta `vet` nova, porque
-   `concluir_onboarding_profissional()` só sai de `incomplete` uma vez.
-2. **Os 4 secrets do GitHub**, sem os quais os 2 testes de login da T-003 nunca saem de "pulado".
-3. **`begin; select 42 as prova; rollback;`** no SQL Editor, que fecha a T-013 sozinha.
-4. **Fazer o merge desta branch**, porque **produção ainda roda o código antigo do onboarding.**
+⚠️ **Sobrou uma coisa esperando o Elber: o MERGE.** **Produção ainda roda o código antigo do
+onboarding**, que descarta os 4 passos. Enquanto o PR #1 não entrar na `main`, o item 1 do DoD da
+F3 está resolvido na branch e aberto no produto.
+
+**Como testar onboarding em preview, porque isso vai se repetir na T-007:** a confirmação de
+email do Supabase é montada a partir do **Site URL**, então ela **sempre** joga a pessoa em
+produção. O caminho que funciona é **confirmar em produção e depois LOGAR na preview** — login
+não passa por email.
 
 ⚠️ **O que se descobriu em 31/08, e vale mais que o código:** a auditoria da T-006 **existia só
 nos comentários do código**. Cinco achados (SEC-052, 054, 056, 057, 058) estavam corrigidos e
@@ -51,10 +54,10 @@ a pessoa digitou**. Ninguém entra na fila de validação, porque `status` conti
 tabelas, a RLS e `concluir_onboarding_profissional()` existem desde a `0002`: falta o código
 chamar.
 
-**Ordem da S2:** **T-006 → T-007 → T-008** (desbloqueada em 26/08: o bucket existe e está vazio).
-**T-003 (Playwright + CI) corre em paralelo**, porque `vetria-qa` só escreve em `tests/`.
-**T-013** virou acompanhamento: conserta o arquivo de verificação para a próxima vez que alguém
-o rodar.
+**Ordem da S2:** ~~T-006~~ ✅ → **T-007 → T-008**. ~~T-013~~ ✅. **T-003 verde, falta confirmar
+os 2 testes de login.** **Sobra na fila: T-007, T-008 e T-014.**
+⚠️ **A T-007 não deve começar antes do R-034** (revisão independente do `actions.ts` que ela vai
+clonar) e herda o **R-036** (perfil aprovado sem canal de contato e sem coerência cidade/UF).
 
 ⚠️ **Duas perguntas de produto sem dono, e as duas vencem antes do perfil público da F4/S7**
 (R-032): endereço e CEP de MEI são vitrine ou dado pessoal, já que em quem atende em casa eles são
@@ -63,8 +66,8 @@ validação e o veterinário não? Hoje as duas estão escritas no banco, em `co
 pergunta em aberto.
 
 **S1 entregou 5 de 6:** governança, baseline, migration `0002`, auditoria e o fix de layout dos
-onboardings. **Escorregaram pra S2:** T-002 e T-003 — a T-002 fechou em 26/08, a T-003 continua
-na fila. **Saiu da S2:** onboarding do responsável vai pra S3; foto e horários não entram (R-019).
+onboardings. **Escorregaram pra S2:** T-002 e T-003 — **as duas fecharam**, a T-002 em 26/08 e a
+T-003 em 31/08 (falta só confirmar os 2 testes de login). **Saiu da S2:** onboarding do responsável vai pra S3; foto e horários não entram (R-019).
 **Backup:** `supabase/backups/`, fora do repo.
 
 ---
@@ -78,10 +81,10 @@ na fila. **Saiu da S2:** onboarding do responsável vai pra S3; foto e horários
 | **RBAC** | 🟡 Parcial. Roteia por role e `requirePainel` guarda as páginas de painel — mas o `middleware.ts` não isola painel por role. **Ver R-001.** Matriz alvo definida em `docs/06-PERMISSOES.md` (DL-044 a DL-047). |
 | **Telas** | ✅ ~45 telas no design system v2 (Inter + tokens `@theme` do Tailwind v4), estados honestos, sem dado fake. |
 | **Admin** | 🟡 Painel dark completo; RBAC de usuários é real; validações/moderação/conteúdo são casca. |
-| **Banco** | ✅ Núcleo (`0002`) + storage e privacidade (`0003`), as duas aplicadas em 26/08. `profiles.status`, `vet_profiles`, `clinic_profiles`, `perfil_privado`, `animais`, `contatos`, `audit_logs`, com RLS codificando a matriz. Identificação do estabelecimento (`cnpj`, `razao_social`, `responsavel_tecnico`) e identidade dos bytes do documento (`documento_hash`, `documento_tamanho`) vivem em `perfil_privado`. **Tabelas vazias:** as telas ainda não escrevem nelas (F3/S2). |
+| **Banco** | ✅ Núcleo (`0002`) + storage e privacidade (`0003`), as duas aplicadas em 26/08. `profiles.status`, `vet_profiles`, `clinic_profiles`, `perfil_privado`, `animais`, `contatos`, `audit_logs`, com RLS codificando a matriz. Identificação do estabelecimento (`cnpj`, `razao_social`, `responsavel_tecnico`) e identidade dos bytes do documento (`documento_hash`, `documento_tamanho`) vivem em `perfil_privado`. **`vet_profiles` e `perfil_privado` deixaram de estar vazias em 31/08**, na prova da T-006 (1 linha, conta de teste). As demais continuam vazias. |
 | **Storage** | 🟡 Bucket privado `documentos` existe (10 MiB; pdf/jpeg/png/webp; **zero policy**, só `service_role` alcança). **Está vazio:** falta a rota que sobe o arquivo (T-008). |
 | **Emails transacionais** | 🟡 3 do Supabase ativos; 3 do app versionados e desligados (esperam a F3). |
-| **Testes** | 🟡 **Commitados em 31/08** (`82f59bb`, em branch). Playwright + workflow de CI (T-003): **13 testes verdes** cobrindo as portas trancadas do `middleware.ts`, as telas públicas, o `noindex` do `/roadmap` e a regra de copy do DL-038. **2 testes de login pulam** até os secrets do GitHub existirem. ⚠️ **Lint no CI ainda não bloqueia** (T-014), e **a persistência do onboarding ainda não tem teste** (R-033). |
+| **Testes** | 🟡 **Commitados em 31/08** (`82f59bb`, em branch) e **rodando verde no CI** (execução #2, 1m20s, com os 4 secrets no lugar). Playwright + GitHub Actions (T-003): **13 testes** cobrindo as portas trancadas do `middleware.ts`, as telas públicas, o `noindex` do `/roadmap` e a regra de copy do DL-038, **mais 2 de login** cujo estado (rodaram ou pularam) ainda não foi conferido. ⚠️ **Lint no CI ainda não bloqueia** (T-014), e **a persistência do onboarding continua sem teste** (R-033): a prova da T-006 foi manual. |
 
 ---
 
@@ -106,7 +109,6 @@ Todas essas telas estão no ar, bonitas e navegáveis, mas **não persistem nada
 - Rotas `/buscar`, `/veterinario/[slug]`, `/estabelecimento/[slug]`
 - As 6 landing pages
 - Consentimento, exportação e exclusão de dados (LGPD)
-- Qualquer teste automatizado ou pipeline de CI
 
 ---
 

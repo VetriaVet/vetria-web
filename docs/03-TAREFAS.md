@@ -79,70 +79,6 @@ _(vazio)_
 > escritos:** a `0003` foi aplicada em produção horas depois, em 26/08. O que ficou no banco está
 > no card da **T-002**.
 
-### T-006 — Onboarding do veterinário passa a persistir
-- **Estado:** 🟡 **escrita e verde em 28/08/2026, commitada em 31/08 — falta a PROVA DE PERSISTÊNCIA**, que é manual e depende da preview (ver Resultado, ponto 5)
-- **Fase / Semana:** F3 / S2
-- **Capacidade:** E2
-- **Nível:** 🟡
-- **Agente dono:** vetria-backend
-- **Depende de:** T-001 ✅ (não depende da T-002)
-- **Por quê:** hoje o botão "Concluir" de `app/app/veterinario/onboarding/page.tsx` só faz `update profiles set onboarding_completed = true` e **joga fora tudo que o profissional digitou nos 4 passos**. Ninguém entra na fila de validação, porque `status` continua `incomplete`. É o item 1 do DoD da F3 e é a espinha da semana: a T-007 é o mesmo padrão aplicado de novo.
-- **Feito quando:**
-  - [x] Server Action grava em `vet_profiles` (`nome_exibicao`, `titulo`, `crmv`, `crmv_uf`, `especialidades`, `experiencia`, `bio`, `cidade`, `estado`, `bairro`, `atende_presencial`, `atende_domiciliar`, `atende_teleorientacao`) na linha do próprio `auth.uid()`
-  - [x] **WhatsApp vai para `perfil_privado`, nunca para `vet_profiles`** (SEC-002). Telefone em tabela de leitura pública entrega a base inteira pela API anônima
-  - [x] A conclusão chama `concluir_onboarding_profissional()` por RPC. O `status` vira `pending_validation` **no servidor**. O cliente não escreve `status` em hipótese nenhuma: a policy levanta exceção, e é assim que tem que ser
-  - [ ] **Prova de persistência:** cadastro novo de vet → preencher os 4 passos → sair, deslogar, voltar → os dados estão no banco (conferir com `select` real, não pela tela)
-  - [x] Erro do banco vira mensagem legível na tela. Hoje o caminho de erro é `redirect("...?error=1")` e a tela não mostra nada
-  - [x] Nenhum `redirect()` dentro de `try/catch` (DL-016)
-  - [x] Se o perfil já estiver `active`, a Action **relê `profiles.status` depois de salvar**: o trigger de revalidação (SEC-016/023) devolve o perfil para `pending_validation` quando CRMV ou documento mudam, e a resposta do update **não diz nada sobre isso**. Sem a releitura, a tela mente para um profissional que acabou de sair do ar
-- **Não fazer:** não escrever `slug` (é pinado pela RLS e a regra só nasce na F4/S5). Não fazer upload de arquivo (T-008). Não tocar em `middleware.ts` nem no portão de status (S3). Não mexer no formulário do estabelecimento (T-007). Não inventar campo que a tabela não tem.
-- **Resultado:**
-
-  ## HANDOFF — vetria-backend — T-006 — 28/08/2026 _(escrito em 31/08, ver "Descobri")_
-
-  **Fiz:** a Server Action `salvarOnboardingVet` (`app/app/veterinario/onboarding/actions.ts`,
-  378 linhas, nova) grava os 13 campos públicos em `vet_profiles` por `upsert` com
-  `.select().single()` (DL-011: sem isso, gravação que não alcança linha nenhuma volta sem erro
-  e a tela manda a pessoa pra fila como se tivesse dado certo), o WhatsApp em `perfil_privado`
-  (SEC-002), chama `concluir_onboarding_profissional()` por RPC só se ainda estiver
-  `incomplete`, e **relê `profiles.status`** antes de decidir o destino (`actions.ts:355-377`).
-  `campos.ts` (novo) centraliza listas, limites e tipos. `page.tsx` passou a abrir o formulário
-  preenchido com o que já está no banco — sem isso, quem voltasse pra corrigir uma linha salvaria
-  o formulário vazio por cima do resto. `VetOnboardingForm.tsx` passou a mostrar erro do banco em
-  tela.
-
-  **Não fiz:** **a prova de persistência**, que é o último item de DoD aberto e é manual. Ver
-  Bloqueios. Não escrevi `slug`, `status`, as três colunas de estabelecimento nem as do
-  documento — cada uma por um motivo diferente, listados em `actions.ts:29-42` e na tabela do
-  relatório.
-
-  **Estado agora:** o onboarding do veterinário **deixou de ser casca** — mas só na branch
-  `f3-s2/onboarding-vet-e-ci`. **Produção continua rodando o código antigo, que descarta o que a
-  pessoa digita.** `npm run build` verde. Lint sem dívida nova.
-
-  **Descobri (e é o achado desta task, não do código):** **a auditoria desta task existia só nos
-  comentários do código.** O `actions.ts` cita SEC-052, 054, 056, 057 e 058, e os cinco números
-  não existiam em nenhum outro arquivo do repositório. A sessão de 28/08 terminou com tudo na
-  árvore de trabalho, sem commit, e o relatório nunca foi escrito. Em 31/08 ele foi
-  **reconstruído a partir do código** em `docs/relatorios/SEC-2026-08-28-T006.md`. ⚠️ **SEC-053 e
-  SEC-055 não foram recuperados** e não aparecem em lugar nenhum. Virou o **R-034**.
-
-  **Bloqueios:**
-  1. **A prova de persistência precisa da preview da Vercel desta branch** e de uma conta `vet`
-     nova, porque `concluir_onboarding_profissional()` só sai de `incomplete` uma vez.
-  2. **Não há teste automatizado deste caminho** (R-033), então a prova é manual, com `select`
-     rodado à mão.
-
-  **Próximo passo óbvio:** a prova de persistência na preview. **Depois dela**, e não antes,
-  `vetria-seguranca` revisa este arquivo contra a matriz de `06-PERMISSOES.md` (R-034) — porque
-  **a T-007 clona este `actions.ts`**, e foi assim que o R-017 nasceu duplicado.
-
-  **Docs que atualizei:** `02-ESTADO.md`, `03-TAREFAS.md` (este card e o da T-008),
-  `04-RISCOS.md` (R-031 decidido, R-034 novo), `05-DECISOES.md` (DL-055),
-  `relatorios/SEC-2026-08-28-T006.md` (novo).
-
-  **Commits:** `445cfde` (código) · `82f59bb` (T-003, em paralelo) · docs no commit seguinte.
-
 ### T-007 — Onboarding do estabelecimento passa a persistir
 - **Estado:** ⬜ fila
 - **Fase / Semana:** F3 / S2
@@ -247,6 +183,107 @@ tem mais nenhum card 🔴 e nenhum card esperando o Elber.**
 ---
 
 # ✅ CONCLUÍDAS
+
+### T-006 — Onboarding do veterinário passa a persistir
+- **Estado:** ✅ **CONCLUÍDA em 31/08/2026.** Prova de persistência feita na preview pelo Elber, com `select` real. Todos os 7 critérios fechados.
+- **Fase / Semana:** F3 / S2
+- **Capacidade:** E2
+- **Nível:** 🟡
+- **Agente dono:** vetria-backend
+- **Depende de:** T-001 ✅ (não depende da T-002)
+- **Por quê:** hoje o botão "Concluir" de `app/app/veterinario/onboarding/page.tsx` só faz `update profiles set onboarding_completed = true` e **joga fora tudo que o profissional digitou nos 4 passos**. Ninguém entra na fila de validação, porque `status` continua `incomplete`. É o item 1 do DoD da F3 e é a espinha da semana: a T-007 é o mesmo padrão aplicado de novo.
+- **Feito quando:**
+  - [x] Server Action grava em `vet_profiles` (`nome_exibicao`, `titulo`, `crmv`, `crmv_uf`, `especialidades`, `experiencia`, `bio`, `cidade`, `estado`, `bairro`, `atende_presencial`, `atende_domiciliar`, `atende_teleorientacao`) na linha do próprio `auth.uid()`
+  - [x] **WhatsApp vai para `perfil_privado`, nunca para `vet_profiles`** (SEC-002). Telefone em tabela de leitura pública entrega a base inteira pela API anônima
+  - [x] A conclusão chama `concluir_onboarding_profissional()` por RPC. O `status` vira `pending_validation` **no servidor**. O cliente não escreve `status` em hipótese nenhuma: a policy levanta exceção, e é assim que tem que ser
+  - [x] **Prova de persistência FEITA em 31/08**, na preview `vetria-web-n5un-git-f3-s2-...`, com a conta `contatolojalemon@gmail.com`. **`status` = `pending_validation`**, os 13 campos gravados, `whatsapp` em `perfil_privado`, `slug` nulo. Resultado completo no Resultado abaixo
+  - [x] Erro do banco vira mensagem legível na tela. Hoje o caminho de erro é `redirect("...?error=1")` e a tela não mostra nada
+  - [x] Nenhum `redirect()` dentro de `try/catch` (DL-016)
+  - [x] Se o perfil já estiver `active`, a Action **relê `profiles.status` depois de salvar**: o trigger de revalidação (SEC-016/023) devolve o perfil para `pending_validation` quando CRMV ou documento mudam, e a resposta do update **não diz nada sobre isso**. Sem a releitura, a tela mente para um profissional que acabou de sair do ar
+- **Não fazer:** não escrever `slug` (é pinado pela RLS e a regra só nasce na F4/S5). Não fazer upload de arquivo (T-008). Não tocar em `middleware.ts` nem no portão de status (S3). Não mexer no formulário do estabelecimento (T-007). Não inventar campo que a tabela não tem.
+- **Resultado:**
+
+  ## HANDOFF — vetria-backend — T-006 — 28/08/2026 _(escrito em 31/08, ver "Descobri")_
+
+  **Fiz:** a Server Action `salvarOnboardingVet` (`app/app/veterinario/onboarding/actions.ts`,
+  378 linhas, nova) grava os 13 campos públicos em `vet_profiles` por `upsert` com
+  `.select().single()` (DL-011: sem isso, gravação que não alcança linha nenhuma volta sem erro
+  e a tela manda a pessoa pra fila como se tivesse dado certo), o WhatsApp em `perfil_privado`
+  (SEC-002), chama `concluir_onboarding_profissional()` por RPC só se ainda estiver
+  `incomplete`, e **relê `profiles.status`** antes de decidir o destino (`actions.ts:355-377`).
+  `campos.ts` (novo) centraliza listas, limites e tipos. `page.tsx` passou a abrir o formulário
+  preenchido com o que já está no banco — sem isso, quem voltasse pra corrigir uma linha salvaria
+  o formulário vazio por cima do resto. `VetOnboardingForm.tsx` passou a mostrar erro do banco em
+  tela.
+
+  **Não fiz:** **a prova de persistência**, que é o último item de DoD aberto e é manual. Ver
+  Bloqueios. Não escrevi `slug`, `status`, as três colunas de estabelecimento nem as do
+  documento — cada uma por um motivo diferente, listados em `actions.ts:29-42` e na tabela do
+  relatório.
+
+  **Estado agora:** o onboarding do veterinário **deixou de ser casca** — mas só na branch
+  `f3-s2/onboarding-vet-e-ci`. **Produção continua rodando o código antigo, que descarta o que a
+  pessoa digita.** `npm run build` verde. Lint sem dívida nova.
+
+  **Descobri (e é o achado desta task, não do código):** **a auditoria desta task existia só nos
+  comentários do código.** O `actions.ts` cita SEC-052, 054, 056, 057 e 058, e os cinco números
+  não existiam em nenhum outro arquivo do repositório. A sessão de 28/08 terminou com tudo na
+  árvore de trabalho, sem commit, e o relatório nunca foi escrito. Em 31/08 ele foi
+  **reconstruído a partir do código** em `docs/relatorios/SEC-2026-08-28-T006.md`. ⚠️ **SEC-053 e
+  SEC-055 não foram recuperados** e não aparecem em lugar nenhum. Virou o **R-034**.
+
+  **Bloqueios:**
+  1. **A prova de persistência precisa da preview da Vercel desta branch** e de uma conta `vet`
+     nova, porque `concluir_onboarding_profissional()` só sai de `incomplete` uma vez.
+  2. **Não há teste automatizado deste caminho** (R-033), então a prova é manual, com `select`
+     rodado à mão.
+
+  **Próximo passo óbvio:** a prova de persistência na preview. **Depois dela**, e não antes,
+  `vetria-seguranca` revisa este arquivo contra a matriz de `06-PERMISSOES.md` (R-034) — porque
+  **a T-007 clona este `actions.ts`**, e foi assim que o R-017 nasceu duplicado.
+
+  **Docs que atualizei:** `02-ESTADO.md`, `03-TAREFAS.md` (este card e o da T-008),
+  `04-RISCOS.md` (R-031 decidido, R-034 novo), `05-DECISOES.md` (DL-055),
+  `relatorios/SEC-2026-08-28-T006.md` (novo).
+
+  **Commits:** `445cfde` (código) · `82f59bb` (T-003, em paralelo) · `b5728ad` e `68dd2bb` (docs).
+
+  ---
+
+  ## ADENDO — 31/08/2026: a prova de persistência passou
+
+  **Como foi feita:** a confirmação de email do Supabase é montada a partir do **Site URL** do
+  projeto, então ela **sempre** joga a pessoa em produção, não na preview. Por isso o caminho não
+  foi "cadastrar na preview": foi **cadastrar e confirmar em produção, depois LOGAR na preview** e
+  preencher o onboarding lá. Login não passa por email, então a preview aceita a sessão
+  normalmente. **Fica registrado porque a T-007 vai precisar do mesmo caminho.**
+
+  **De quebra, o bug ficou documentado antes de ser corrigido.** A mesma conta passou pelo
+  onboarding em **produção** primeiro, e o `select` mostrou `onboarding_completed = true`,
+  `status = incomplete`, **zero linha em `vet_profiles` e zero em `perfil_privado`** — que é
+  exatamente o que o código antigo faz (`22cc5cc`: um `update profiles set onboarding_completed =
+  true` e mais nada). Depois, o mesmo cadastro na preview:
+
+  | Campo | Medido | Veredito |
+  |---|---|---|
+  | `status` | `pending_validation` | ✅ a RPC rodou no servidor |
+  | `nome_exibicao`, `crmv`, `crmv_uf` | `Elder Lucas`, `GO-0155`, `AL` | ✅ |
+  | `especialidades` | `["Clínica geral"]` | ✅ array, dentro da whitelist |
+  | `experiencia`, `cidade`, `estado`, `bairro` | `1a3`, `Goiânia`, `AP`, `Residencial Itaipu` | ✅ |
+  | `atende_presencial` / `teleorientacao` | `true` / `true` | ✅ |
+  | `whatsapp` | preenchido, **em `perfil_privado`** | ✅ SEC-002 |
+  | `slug` | `null` | ✅ pinado pela RLS |
+  | `titulo`, `bio` | `null` | ✅ opcionais, não preenchidos |
+  | `cnpj`, `razao_social`, `responsavel_tecnico` | `null` | ✅ **por construção**: se não fossem, a guarda da SEC-044 teria levantado e o save teria falhado |
+
+  **As duas guardas de entrada foram exercitadas à mão e as duas seguraram:** concluir sem
+  nenhuma forma de atendimento é barrado, e concluir sem CRMV é barrado, os dois com alerta em
+  vermelho na tela.
+
+  ⚠️ **O que a prova revelou de novo, e não é elogio:** o formulário aceita perfil **sem nenhum
+  canal de contato** e aceita **cidade e UF que não combinam** (`Goiânia` com `AP` passou). Os
+  dois produzem um profissional aprovado que o produto não consegue entregar. **Virou o R-036** —
+  não é regressão desta task, é buraco que ela deixou visível.
 
 ### T-013 — Medir se o editor renderiza `select` que não é o último comando, e só então mexer nas três sondas
 - **Estado:** ✅ **concluída em 31/08/2026** — medida rodada pelo Elber, `42` apareceu, achado derrubado

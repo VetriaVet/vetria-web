@@ -207,6 +207,34 @@
   formato. Não vira card próprio: entra no primeiro card que tocar o arquivo de verificação.
 - **Prazo:** antes da `0004`. 🟡
 
+### R-036 — O onboarding aprova perfil que a busca não consegue entregar
+- **Descoberto:** 31/08/2026, pelo Elber, durante a prova de persistência da T-006. **Medido em
+  dado real na preview**, não deduzido do código.
+- **O quê:** a T-006 já barra o caso mais grave — concluir sem marcar **nenhuma** forma de
+  atendimento, porque aí o profissional não aparece em filtro nenhum. **Faltaram dois da mesma
+  família**, e os dois passaram na prova:
+  1. **Nenhum canal de contato é obrigatório.** `whatsapp` é opcional. Um veterinário conclui,
+     é validado por uma pessoa, entra na busca — e **não há como falar com ele**. Isso colide de
+     frente com o **DL-047**, que define o contato como o evento de servidor que o produto
+     entrega. `telefone` e `email_contato` nem campo em tela têm hoje.
+  2. **`cidade` e `estado` não se conferem.** Foi gravado `cidade = 'Goiânia'` com
+     `estado = 'AP'`, e `crmv = 'GO-0155'` com `crmv_uf = 'AL'`. Ninguém procurando em Goiânia/GO
+     encontra esse perfil, e ninguém procurando no Amapá espera achá-lo.
+- **O padrão é o mesmo nos três casos, e é o que importa:** o profissional preenche tudo, é
+  **aprovado por uma pessoa**, e some do produto sem erro em tela nenhuma. É o sintoma da SEC-044
+  outra vez — usuário legítimo sumindo sem entender por quê —, agora por dado incompleto em vez de
+  por guarda de banco.
+- **Não é regressão da T-006.** O código antigo não gravava nada, então nem chegava a ter o
+  problema. A task tornou o buraco visível, que é o que uma task boa faz.
+- ⚠️ **A T-007 herda os dois**, e no estabelecimento o item 2 é pior: lá `endereco` e `cep` são
+  vitrine, e CEP errado num mapa é mais visível que UF errada numa lista.
+- **Onde decidir, e o que NÃO fazer:** tornar `whatsapp` obrigatório é decisão de produto, não
+  conserto óbvio — pode derrubar conversão no funil. Amarrar cidade a uma lista por UF é trabalho
+  de verdade (base de municípios) e não cabe numa task de persistência. **Nenhum dos dois entra
+  na T-007 sem card próprio.**
+- **Prazo:** decisão escrita antes da busca da **F4/S6**, que é quando os dois viram sintoma real
+  para o usuário final. 🟡
+
 ### R-019 — O plano promete foto de perfil e horários, e não existe nem campo nem coluna para nenhum dos dois
 - **Descoberto:** 26/08/2026, na abertura da S2, conferindo o `01-PLANO.md` §S2 contra o código e o schema
 - **O quê:** o plano da S2 diz "foto" para o veterinário e "horários" para o estabelecimento. Na realidade: `vet_profiles` não tem coluna de foto, `clinic_profiles` não tem coluna de horários, o `ClinicOnboardingForm` **não coleta horário nenhum**, e o `VetOnboardingForm:229` já avisa honestamente "Upload de foto chega em breve".
