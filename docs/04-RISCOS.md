@@ -17,7 +17,7 @@
 - **Por que importa mais a partir de agora:** hoje as telas são casca e não mostram dado de ninguém. A partir da F3 elas mostram CRMV, CNPJ e documento. O custo do furo muda de categoria.
 - **Contradiz:** `VETRIA_PROJETO.md` §3 — "multi-persona com isolamento total, sem acesso cruzado".
 - **Corrige em:** F3 / S3 (reescrita do middleware)
-- **Task:** a criar na S3
+- **Task:** **T-016**, aberta em 09/09. Ela leva o R-001 junto: **uma reescrita de RBAC, não duas** — mexer no middleware duas vezes em duas semanas é como um furo passa despercebido
 
 ## 🟠 ABERTOS — ALTOS
 

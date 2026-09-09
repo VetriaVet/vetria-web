@@ -3,21 +3,28 @@
 > **Este é o primeiro arquivo que qualquer sessão ou agente lê.**
 > Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
 >
-> **Última atualização:** 31/08/2026 (5 cards fechados, PR #1 no ar) · **Fase:** F3 (S2) · **Commit base:** `423a823` na `main`
+> **Última atualização:** 09/09/2026 (abertura da S3; T-016 e T-017 abertos; T-007 liberada) · **Fase:** F3 (S3) · **Commit base:** `06eae2e` na `main`
 
 ---
 
 ## AGORA
 
-**Fase:** F3 — Núcleo de dados · **Semana:** 2 de 13 · **Entrega:** 25/11/2026
+**Fase:** F3 — Núcleo de dados · **Semana:** **S3 (3 de 13), aberta em 09/09** · **Entrega:** 25/11/2026
 
-**Em execução:** nada. **31/08 fechou 5 cards, e o PR #1 foi MERGEADO E ESTÁ NO AR**
-(`423a823`, `22cc5cc..423a823`).
+**Em execução:** nada. **A fila da S3 está montada:** **T-007 → T-008 → T-016**, com **T-017
+🔴 esperando sessão presencial com o Elber** e a T-003 em paralelo.
+
+⚠️ **Restam 13 dias até o fim da F3 (22/09), e o que está previsto para eles não cabe:** a
+dívida da S2 (T-007, T-008), a S3 inteira do plano e a S4 inteira. **Entre 01/09 e 08/09 não
+houve um único commit** — a S2 consumiu 15 dias de calendário para entregar pouco mais de meia
+semana de plano. O buffer da S13 ainda está intacto; o primeiro corte já está escrito no
+`03-TAREFAS.md`, com data: **se em 15/09 a T-008 não estiver fechada, os editores de perfil da
+S3 escorregam para a F6/S11.**
 
 🎉 **Marco: o produto guardou dado de um profissional de verdade pela primeira vez.** Até 31/08 as
 ~45 telas eram casca. Agora o "Concluir" do onboarding do veterinário grava os 13 campos em
 `vet_profiles`, o WhatsApp em `perfil_privado`, e o profissional **entra na fila de validação**.
-É o **item 1 do DoD da F3**, fechado e em produção.
+É o **item 1 do DoD da F3**, fechado e em produção, e o PR #1 está mergeado na `main` (`423a823`, `22cc5cc..423a823`).
 
 **O que fechou em 31/08, uma linha cada** (o detalhe está no Resultado de cada card):
 
@@ -29,14 +36,24 @@
 | **T-014** | Lint de 17 problemas para **0**, e o passo passou a **bloquear** no CI |
 | **T-015** | As rotas de admin pararam de devolver stack trace. **R-037 fechado no mesmo dia** |
 
-**Sobra na S2:** **T-007** (onboarding do estabelecimento) e **T-008** (upload do documento).
-⚠️ **A T-007 não começa antes do R-034:** a auditoria da T-006 existia só nos comentários do
-código e foi **reconstruída, não refeita** — e é esse `actions.ts` que a T-007 vai clonar.
+**Sobra da S2, e virou dívida da S3:** **T-007** (onboarding do estabelecimento) e **T-008**
+(upload do documento). ✅ **A T-007 está LIBERADA.** A revisão independente que o R-034 pedia
+saiu em 09/09 (`docs/relatorios/SEC-2026-09-09-T006-revisao-independente.md`) e o parecer é
+textual: *"Nada do que foi encontrado bloqueia a T-007, e T-016 e T-017 não são pré-requisitos
+dela."* A única condição já está cumprida no card — as quatro linhas da tabela "herda ou não"
+— e ela clona o `page.tsx` do **veterinário**, nunca o do estabelecimento.
 
-**Três achados novos, todos 🟡 e nenhum bloqueante:** **R-034** (auditoria reconstruída; SEC-053 e
-SEC-055 continuam sem dono), **R-035** (o arquivo de verificação afirmava uma medição que ninguém
-tinha feito), **R-036** (o onboarding aprova perfil sem canal de contato e com cidade e UF que não
-combinam).
+**Seis achados novos, R-038 a R-043:** dois 🟠 e quatro 🟡. **Nenhum 🔴, e
+nenhum é vazamento de dado de um usuário para outro.** Dois viraram card: **T-016** (R-038 — o
+portão de status da matriz §4 **não existe em lugar nenhum do código**; `requirePainel` seleciona
+só `role` e nenhuma das 8 páginas do painel lê `profiles.status`) e **T-017** (R-039 —
+constraints de conteúdo; **é migration, logo 🔴: precisa de sessão presencial com o Elber,
+agende**). Os outros quatro viraram linha dentro da T-007 e do card da T-008.
+
+**De 31/08, continuam abertos:** **R-035** (o arquivo de verificação afirmava uma medição que
+ninguém tinha feito) e **R-036** (o onboarding aprova perfil sem canal de contato e com cidade e
+UF que não combinam). ✅ **O R-034 fechou em 09/09, por cobertura, não por memória:** SEC-053 e
+SEC-055 seguem não recuperados como história, e os números ficam permanentemente vagos.
 
 ⚠️ **Armadilha que vai se repetir na T-007:** a confirmação de email do Supabase é montada a
 partir do **Site URL**, então ela **sempre** joga a pessoa em produção. Para testar onboarding em
