@@ -137,6 +137,15 @@
   **R-023** inteiro nascendo na criação em vez de na exclusão.
 - **O card da T-008 precisa dizer, por escrito, em que ordem os passos 7 e 8 rodam e quem apaga
   o objeto quando o 8 falha.** Hoje não diz nem uma coisa nem outra.
+- ✅ **09/09 — a pergunta FECHOU no card da T-008** (seção 🔒 *A ordem, a compensação e a
+  varredura*), pelo `vetria-maestro`: **ordem 7 → 8** (objeto antes da linha), **compensação na
+  própria rota** com o `service_role` do passo 7 e marca `DOCUMENTO_ORFAO` no log quando a
+  compensação também falha, e **varredura por `left join` de `storage.objects` com
+  `perfil_privado`**, possível só porque o caminho começa pelo uuid do dono (T-002). Custo
+  aceito, escrito no card: **o órfão continua possível** se o processo morrer entre o 7 e o 8.
+- ⚠️ **O risco continua ABERTO, e é honesto dizer por quê:** o que fechou foi o contrato. Nada
+  disso existe em código até a T-008 rodar, e o texto que a `0004` tem que carregar (R-031)
+  também não existe em arquivo nenhum ainda.
 
 ### R-043 — Nenhum registro de consentimento na coleta, e a T-007 coleta dado de TERCEIRO (SEC-064)
 - **Descoberto:** 09/09/2026, revisão independente da T-006 (R-034)
@@ -206,6 +215,10 @@
   `select count(*) from profiles where role='clinic' and onboarding_completed and status='incomplete';`
   **Zero** → fecha com a medição escrita. **Mais que zero** → é um `update` de uma linha, 🔴,
   sessão presencial. **Não é conserto de código.**
+- ✅ **09/09 — a medição virou linha em dois cards**, para não morrer aqui dentro: no da **T-007**
+  (bloco *Antes do deploy*, junto com o R-048) e no da **T-008** (item 5 da seção 🔒), este como
+  regra geral: **antes de qualquer deploy que mude roteamento de onboarding, conte primeiro.**
+  É o mesmo padrão do R-042 em outro lugar: falha que não tem sintoma só se descobre contando.
 
 ### R-048 — A sonda que prova a guarda em produção foi apagada da árvore de trabalho sem explicação (SEC-069)
 - **Descoberto:** 09/09/2026, na sessão e confirmado pela revisão do clone da T-007
@@ -255,7 +268,13 @@
 - **A saída existe e a mensagem não diz qual é:** um UPDATE que zere as três passa, porque aí a guarda sai no primeiro `if`.
 - **Correção:** uma frase na mensagem da exceção, mais a regra de que trocar role de `clinic` obriga a limpar `cnpj`, `razao_social` e `responsavel_tecnico`.
 - **26/08 — a guarda está no banco e funciona sem pegar caminho legítimo** (Sonda 13B: conta `vet` gravando `cnpj` levanta exceção; conta `clinic` grava normal; conta `vet` grava telefone normal). **O efeito colateral descrito aqui não foi corrigido, e agora é real e não hipotético.**
-- ⚠️ **Não existe card de `/api/admin/set-access` hoje.** Este item precisa entrar no **primeiro card que tocar essa rota** — o candidato natural é a reescrita de RBAC e middleware da S3 (ver R-001 e R-002). Enquanto esse card não existir, **este risco é o único lugar onde a regra está escrita.**
+- ✅ **09/09 — a metade que é da T-008 ficou com escopo fechado, e ele não cresce lá:** a rota trata a
+  recusa da guarda como **falha nomeada** (compensa o objeto, não cai para `service_role`, e diz que a
+  conta está travada e é caso de suporte), e **a frase da exceção fica escrita no card para a `0004`
+  levar** — a T-008 **não** faz `create or replace` da função, porque isso é migration e é 🔴.
+- ⚠️ **Não existe card de `/api/admin/set-access` hoje.** A outra metade — a regra de que trocar role
+  de `clinic` obriga a limpar as três colunas — **continua sem dono** e precisa entrar no **primeiro
+  card que tocar essa rota** — o candidato natural é a reescrita de RBAC e middleware da S3 (ver R-001 e R-002). Enquanto esse card não existir, **este risco é o único lugar onde a regra está escrita.**
 
 ### R-030 — O pré-voo 1.7 é tautológico para `carimbar_envio_documento`, e manda comparar o corpo com o texto errado (SEC-050)
 - **Descoberto:** 26/08/2026, 2ª auditoria da `0003`, antes de aplicar
@@ -280,6 +299,12 @@
   dizer com qual cliente o passo 8 grava, e é ele que a `0004` vai copiar. **Este risco só
   fecha quando o passo 8 estiver escrito no arquivo**, não quando a decisão foi tomada.
   A decisão entra no card da **T-008** como critério.
+- ✅ **09/09 — o texto existe, palavra por palavra, no card da T-008** (item 6 da seção 🔒),
+  pronto para a `0004` copiar, junto com o parágrafo da ordem 7 → 8, o da compensação e a frase
+  do R-029 para dentro da exceção da guarda. **A `0003` NÃO foi editada, de propósito:** está
+  aplicada em produção desde 26/08 e migration aplicada é histórico.
+- ⛔ **Continua ABERTO até esse texto estar num arquivo de migration aplicado.** Decisão
+  registrada em doc não vira contrato de código sozinha, e é o arquivo que a `0004` copia.
 
 ### R-023 — Excluir a conta apaga a linha e deixa o documento de identidade no bucket (SEC-039)
 - **Descoberto:** 26/08/2026, auditoria da `0003`
@@ -287,6 +312,10 @@
 - **Por que importa:** RG, CNH e comprovante de CRMV de quem pediu exclusão continuam no projeto, agora **órfãos**, sem nem a linha que dizia de quem eram. LGPD art. 18 VI atendido pela metade, e a metade que fica é a mais sensível.
 - **Onde entra:** card da exclusão de dados da **F6**, e citado no card da **T-008**, que é onde a convenção de caminho (`<uuid>/`) é fixada e é ela que torna a varredura possível. Não vira card agora.
 - **26/08 — o bucket existe e está VAZIO** (Sonda 1: zero objetos). É a janela mais barata que vai existir para escrever a rotina: hoje não há documento de gente real para ficar órfão.
+- ✅ **09/09 — o card de lá passou a existir: é a T-018**, em `03-TAREFAS.md` §*Plantadas para fases
+  futuras* (F6/S11, 🔴, LGPD ancorada em E1). Ele carrega o que este risco pede (apagar o objeto
+  antes da linha) **e** a varredura de órfãos escrita no card da T-008. Até 09/09 este risco
+  mandava anotar num card que não existia, e anotação em card que não existe é anotação perdida.
 
 ### R-024 — O CNPJ do estabelecimento viaja no `raw_user_meta_data` e no JWT (SEC-042)
 - **Descoberto:** 26/08/2026, auditoria da `0003`. **Confirmado no código.**

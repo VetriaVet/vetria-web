@@ -3,7 +3,7 @@
 > **Este é o primeiro arquivo que qualquer sessão ou agente lê.**
 > Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
 >
-> **Última atualização:** 09/09/2026 (abertura da S3; T-016 e T-017 abertos; T-007 liberada) · **Fase:** F3 (S3) · **Commit base:** `06eae2e` na `main`
+> **Última atualização:** 09/09/2026 (abertura da S3; T-016 e T-017 abertos; T-007 liberada e implementada na árvore; **a pergunta em aberto da T-008 foi fechada**) · **Fase:** F3 (S3) · **Commit base:** `3dad2d3` na `main`
 
 ---
 
@@ -13,6 +13,19 @@
 
 **Em execução:** nada. **A fila da S3 está montada:** **T-007 → T-008 → T-016**, com **T-017
 🔴 esperando sessão presencial com o Elber** e a T-003 em paralelo.
+
+**09/09, fim do dia — a T-007 está implementada na árvore de trabalho e espera aprovação do
+diff** (nada commitado, `build` e `lint` verdes), e **a T-008 deixou de ter pergunta em aberto**:
+o card agora diz, por escrito, que a **ordem é 7 → 8** (objeto no bucket antes da linha em
+`perfil_privado`), que **a própria rota apaga o objeto quando o passo 8 falha**, e **qual é o
+`select` que encontra órfão depois** — que só é possível porque o caminho começa pelo uuid do
+dono (T-002). **O custo está escrito e foi aceito:** se o processo morrer entre os dois passos,
+a compensação não roda e o órfão nasce; por isso a varredura não é opcional. Nasceu a **T-018**
+(F6/S11, plantada), que é onde o **R-023** finalmente tem card. **Nada disso é código ainda.**
+
+⚠️ **Duas medições de `select` antes de subir a T-007, e nenhuma é conserto de código:** contar
+as contas `clinic` órfãs da Action inline (**R-047**) e decidir a deleção não commitada em
+`supabase/verificar-apos-0003.sql` (**R-048**). Falha sem sintoma só se descobre contando.
 
 ⚠️ **Restam 13 dias até o fim da F3 (22/09), e o que está previsto para eles não cabe:** a
 dívida da S2 (T-007, T-008), a S3 inteira do plano e a S4 inteira. **Entre 01/09 e 08/09 não
