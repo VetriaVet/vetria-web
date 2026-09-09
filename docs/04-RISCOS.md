@@ -150,6 +150,86 @@
   é o primeiro ponto do produto em que a Vetria coleta dado pessoal de alguém que não está na
   tela.** Custa um parágrafo na tela agora.
 
+### R-044 — `perfil_privado.whatsapp` passa a ter dois formatos incompatíveis na mesma coluna (SEC-065)
+- **Descoberto:** 09/09/2026, revisão do clone da T-007 (`SEC-2026-09-09-T007-revisao.md`)
+- **Onde:** `estabelecimento/onboarding/actions.ts:110-113` e `117-149` contra
+  `veterinario/onboarding/actions.ts:154` e `293`
+- **O quê:** a T-007 corrigiu a SEC-062 do lado do estabelecimento e o veterinário continuou como
+  estava. A partir do merge a mesma coluna guarda **dígitos puros sem DDI** nas linhas `clinic` e
+  **a string crua digitada** nas linhas `vet`. O comentário do arquivo novo chama isso de
+  "contrato do que fica gravado", no singular — e ele vale pra metade da tabela.
+- **Como se manifesta:** a rota de contato do DL-047 monta `wa.me/55` + valor sem saber de que
+  tipo é a linha, e produz link quebrado pra todo vet que digitou `(63) 99999-9999`.
+- ⚠️ **É o mecanismo do R-034 outra vez:** garantia que existe só em comentário, e quem escrever a
+  rota da F4 vai acreditar nela.
+- **Direção:** aplicar `normalizarWhatsapp` também no vet e fazer backfill, ou mover a
+  normalização pro banco. Enquanto não: o comentário tem que dizer que vale só pra `clinic`.
+- **Prazo:** antes da rota de contato da F4. **Candidato a card próprio, 🟡, pequeno.**
+
+### R-045 — A declaração de autorização do responsável técnico não é registrada, e a tela promete remoção que não existe (SEC-066)
+- **Descoberto:** 09/09/2026, revisão do clone da T-007
+- **Onde:** `ClinicOnboardingForm.tsx:180-185`
+- **O quê:** a frase que o card pediu está lá e está bem escrita, mas é **copy**: sem checkbox,
+  sem coluna, sem versão de termo, sem linha em `audit_logs`, e o consentimento não é condição de
+  envio. E ela promete que o dado *"pode ser removido a pedido"* — **não existe rotina de remoção
+  (F6/S11) nem canal registrado pro pedido.**
+- **Não bloqueou o merge:** o card pediu uma frase e a frase foi entregue. Consentimento
+  versionado é F6 por decisão registrada.
+- **Direção:** o barato agora é a frase parar de prometer processo inexistente. Carimbar
+  `responsavel_tecnico_declarado_em` seria migration (🔴).
+
+### R-046 — `perfil_privado.cnpj` não tem unicidade: duas contas reivindicam a mesma empresa (SEC-067)
+- **Descoberto:** 09/09/2026, revisão do clone da T-007
+- **Onde:** `estabelecimento/onboarding/actions.ts:162-180` e `393` contra `0003:812-815`
+- **O quê:** `normalizarCnpj` confere formato e diz por escrito que não confere dígito
+  verificador. O que ninguém confere é se aquele CNPJ **já pertence a outra conta**: não há índice
+  único e não há checagem na Action. CNPJ é dado público na Receita.
+- **Como explorar:** conta `clinic` nova pelo funil público, CNPJ de um concorrente, concluir. A
+  conta entra na fila de validação com a identidade de outra empresa, ao lado da legítima.
+- **Não há exposição pública** enquanto ninguém está `active` — por isso 🟡. O controle que segura
+  é humano e ainda não existe: o admin da S4 conferindo o documento da T-008.
+- **Direção:** índice único parcial é migration (entra na conversa da **T-017**). O barato é uma
+  linha no card da S4: o admin compara CNPJ com documento, e a fila mostra se o CNPJ repete.
+
+### R-047 — Contas `clinic` órfãs da Action inline que a T-007 apaga (SEC-068)
+- **Descoberto:** 09/09/2026, revisão do clone da T-007
+- **Onde:** `app/app/page.tsx:20-24` (não tocado pela T-007) × o guard novo em
+  `estabelecimento/onboarding/page.tsx:70-73`
+- **O quê:** a Action inline que está em produção hoje escreve `onboarding_completed = true` e
+  **não move o `status`**. Uma conta `clinic` que clicou em "Concluir" depois de 26/08 está com
+  `onboarding_completed = true` **e** `status = 'incomplete'`, sem linha em `clinic_profiles`.
+  Depois do merge, `/app` lê `onboarding_completed`, vê `true`, e manda essa conta pro painel —
+  que não lê `status` (R-038) e renderiza. **Nada nunca a leva ao onboarding novo, e ela nunca
+  chega à fila de validação.**
+- **Por que dói:** é o objetivo declarado da T-007 falhando **sem erro, sem log e sem sintoma**.
+- ⚠️ **MEÇA ANTES DE SUBIR, é um `select`:**
+  `select count(*) from profiles where role='clinic' and onboarding_completed and status='incomplete';`
+  **Zero** → fecha com a medição escrita. **Mais que zero** → é um `update` de uma linha, 🔴,
+  sessão presencial. **Não é conserto de código.**
+
+### R-048 — A sonda que prova a guarda em produção foi apagada da árvore de trabalho sem explicação (SEC-069)
+- **Descoberto:** 09/09/2026, na sessão e confirmado pela revisão do clone da T-007
+- **Onde:** `supabase/verificar-apos-0003.sql:678-684`, deleção **não commitada**
+- **O quê:** a deleção remove o `select` sobre `pg_trigger` de `perfil_privado` e deixa os
+  comentários de "Esperado" órfãos logo acima. É a **única sonda do repositório** que provaria,
+  contra o banco, que `trg_perfil_privado_dado_de_estabelecimento` existe em produção — a guarda
+  de que o veredito da T-007 depende.
+- **Por que importa:** o R-006 ensinou que repo e produção divergem em silêncio, e esta era a
+  linha que fechava isso em dez segundos.
+- **Direção:** reverter a deleção, ou registrar por escrito por que ela saiu. **Não deve entrar
+  em commit por acidente.** Enquanto isso, o R-035 continua valendo pro cabeçalho do arquivo.
+
+### R-049 — A T-007 é o primeiro código que grava endereço e CEP possivelmente residenciais em tabela pública (SEC-070)
+- **Descoberto:** 09/09/2026, revisão do clone da T-007
+- **Onde:** `estabelecimento/onboarding/actions.ts:349-350` contra `0003:1283-1289`
+- **O quê:** os `comment on column` da `0003` dizem que `endereco` e `cep` são "PÚBLICA hoje" com
+  "PERGUNTA EM ABERTO (SEC-041)" — é o **R-032**, que nunca foi respondido em `05-DECISOES.md`.
+  Até hoje era teórico porque nenhum código gravava as colunas. **Este diff começa a gravá-las.**
+- **Impacto hoje: nenhum** (`clinic_profiles_select_publico` exige `active`, e ninguém está). O
+  custo aparece na F4/S7 com base já gravada: reverter vira migration mais backfill, não decisão.
+- **Crédito onde é devido:** o formulário **avisa** que o endereço é público, no passo 2.
+- **Direção:** é o R-032 ganhando data de vencimento real. A resposta escrita antes da F4/S7.
+
 ### R-027 — O pré-voo 1.2 aborta sobre uma condição que ninguém mediu, e manda consertar por um caminho que não existe (SEC-047)
 - **Descoberto:** 26/08/2026, 2ª auditoria da `0003`, antes de aplicar
 - **O quê:** a promoção de `raise warning` para `raise exception` em `storage.buckets` sem RLS **está certa**. O problema é o que sobra: `relrowsecurity` de `storage.buckets` **e** de `storage.objects` não foi medido, então as duas metades do pré-voo 1.2 abortam sobre uma condição que ninguém olhou. E a mensagem manda "ligue pelo painel": o painel tem UI para **policy** de storage, não para `alter table storage.buckets enable row level security` — comando que exige ser dono da tabela (`supabase_storage_admin`), que `postgres` não é.
