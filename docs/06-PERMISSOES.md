@@ -56,6 +56,14 @@
 
 🔶 = sujeito ao portão de status (§4).
 
+> ⚠️ **16/09/2026 — o código diverge desta tabela numa célula, e a tabela está certa.**
+> `/admin/usuarios` é **❌ para admin comum** e ✅ só para master, e
+> `app/admin/usuarios/page.tsx:24` exige apenas `role === 'admin'`. A página **renderiza**
+> para admin comum em vez de redirecionar. **Nenhum dado vaza** — o `AdminPanel` está dentro
+> do ramo `isMaster` — mas ❌ nesta matriz significa **bloqueado no servidor**, e hoje não
+> está. As rotas `/api/admin/*` estão corretas (T-015). **Registrado em `04-RISCOS.md` como
+> R-054.** A matriz não muda; o código é que vai mudar.
+
 > **A busca e o perfil público são abertos a todos, logado ou não** (DL-044).
 > Um veterinário com um cachorro em casa pesquisa e contata normalmente. O que ele
 > **não** ganha é o painel do responsável. O princípio "1 usuário = 1 role permanente"
@@ -99,13 +107,43 @@ incomplete ──onboarding concluído──> pending_validation ──admin apr
 | `status` | Alcança | Bloqueado | Aparece na busca |
 |---|---|---|---|
 | `incomplete` | `/onboarding` | todo o painel | não |
-| `pending_validation` | `/aguardando`, `/perfil`, `/configuracoes` | dashboard, contatos, agenda, avaliações, plano | **não** |
+| `pending_validation` | `/aguardando`, `/perfil`, `/configuracoes`, **`/ajuda`** | dashboard, contatos, agenda, avaliações, plano, equipe | **não** |
 | `active` | painel completo | — | **sim** |
-| `suspended` | tela de bloqueio com motivo | todo o resto | não |
+| `suspended` | `/bloqueado` (tela de bloqueio com motivo) | todo o resto | não |
 
 **Enquanto espera, ele edita o perfil** (DL-046). Continua melhorando o cadastro, o que
 acelera a aprovação e já prepara a gamificação do briefing. O resto é bloqueado **no
 servidor**, não escondido no menu.
+
+### ✅ 16/09/2026 — `/ajuda` entrou na linha de `pending_validation` (DL-058)
+
+Até hoje `/ajuda` **não estava em lugar nenhum desta tabela**, nem em "Alcança" nem em
+"Bloqueado". O `vetria-backend` aplicou **deny by default** na T-016 (`SO_ATIVO`), que é a
+regra certa para uma lacuna, e **registrou por escrito que era escolha e não leitura**. A
+lacuna era desta matriz, e quem a fecha é este arquivo.
+
+**A decisão é abrir `/ajuda` para `pending_validation`, e ela não é generosidade:**
+
+- **`/ajuda` não é benefício pago.** É FAQ mais o email `contato@vetriabrasil.com.br`
+  (`components/app/cascas.tsx:241-275`). Não expõe lead, contagem de contato, plano, agenda
+  nem exposição na busca. **Nada vaza de um painel pro outro**, que é o único motivo pelo
+  qual esta matriz existe.
+- **Quem espera validação é exatamente quem tem pergunta.** Fechar a tela de suporte para a
+  pessoa que está parada na fila é fechar a porta na cara de quem já mandou o documento. O
+  custo disso é email para o suporte por outro canal, ou desistência.
+
+**O que continua fechado, e de propósito:**
+
+- **`incomplete` continua alcançando só `/onboarding`.** Quem não preencheu o cadastro não
+  entra no chrome do painel para nada. O caminho de suporte dele é a própria tela de
+  onboarding.
+- **`suspended` continua alcançando só `/bloqueado`.** O motivo e o caminho de contato moram
+  lá dentro, e a tela de bloqueio tem que ser terminal: destino que redireciona para outro
+  destino bloqueado é laço de redirect.
+
+**Deny by default continua sendo a regra da casa.** O que mudou é que esta linha deixou de
+ser uma lacuna: rota de painel que não estiver nesta tabela **continua nascendo `SO_ATIVO`**,
+e a saída continua sendo escrever a linha aqui antes de mexer no código.
 
 ---
 

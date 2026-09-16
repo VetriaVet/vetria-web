@@ -66,7 +66,13 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
   - **Corrige o furo atual (R-001):** hoje um responsável logado alcança `/app/veterinario/*`.
   - Limpa o resíduo do R-002: código morto `NAV_BY_ROLE["master"]` e o `admin_level ?? "admin"` de `set-access`.
   - Codifica a matriz de `docs/06-PERMISSOES.md` §2 e §4, célula por célula.
-- Editores de perfil (`/app/*/perfil`) carregam e salvam de verdade.
+- ~~Editores de perfil (`/app/*/perfil`) carregam e salvam de verdade.~~ → ⛔ **CORTADO DA S3 EM
+  16/09/2026, decisão do Elber, e movido para a F6/S11** (card **T-019**, em *Plantadas* no
+  `03-TAREFAS.md`). O corte estava **escrito de antemão** no `03-TAREFAS.md` desde 09/09 — *"se em
+  15/09 a T-008 não estiver fechada, os editores de perfil da S3 escorregam para a F6/S11"* — a
+  condição foi atingida (a T-008 **não começou**) e o Elber acionou. **Não é corte de escopo
+  contratado:** o `00-ESCOPO.md` §2 não cita editor de perfil em nenhuma das seis capacidades, e
+  nenhum dos 6 itens do DoD da F3 depende dele. **Não há emenda a fazer.** Ver **DL-056**.
 
 ### S4 — Validação real pelo admin
 - `/admin/validacoes` lê a fila real (`status = pending_validation`).
@@ -153,6 +159,11 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 - Política de Privacidade e Termos de Uso publicados.
 - Headers de segurança, rate limit nos endpoints sensíveis, varredura de segredos.
 - Branch `main` protegida no GitHub.
+- ⬇️ **Recebido da S3 em 16/09/2026:** **T-019** — editores de perfil das 3 personas
+  (`/app/*/perfil`) carregam e salvam de verdade. Chega aqui e não na F4 porque é a fase em que
+  a auditoria de RLS toca exatamente as mesmas policies de UPDATE que o editor exercita. Ver
+  **DL-056**.
+- ⬇️ **Já estava aqui:** **T-018** (exclusão de conta apaga o documento do bucket, R-023).
 
 ### S12 — QA + performance
 - Passada completa de QA em todos os fluxos, em 3 larguras de tela.
