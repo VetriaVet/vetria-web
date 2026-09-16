@@ -23,6 +23,7 @@ type LinhaPrivada = {
   razao_social: string | null;
   cnpj: string | null;
   responsavel_tecnico: string | null;
+  documento_enviado_em: string | null;
 };
 
 export default async function ClinicOnboardingPage() {
@@ -87,9 +88,15 @@ export default async function ClinicOnboardingPage() {
   // técnico: são privados por decisão (DL-053) e não podem aparecer em nada
   // público, nem na busca, nem no perfil da F4/S7. Aqui aparecem para que quem
   // volta corrigir um campo não apague os outros três.
+  //
+  // ⚠️ T-008 — `documento_enviado_em` entra no mesmo `select`, e é só ele.
+  // `documento_path` e `documento_hash` NÃO vêm para a tela: o caminho é dado
+  // de servidor (quem precisa dele é a rota de leitura, que o busca de novo) e
+  // pôr a string no HTML seria convidar a próxima tela a montar URL com ela.
+  // O que a tela precisa saber é uma coisa só: existe documento, e de quando.
   const { data: privado } = await supabase
     .from("perfil_privado")
-    .select("whatsapp, razao_social, cnpj, responsavel_tecnico")
+    .select("whatsapp, razao_social, cnpj, responsavel_tecnico, documento_enviado_em")
     .eq("id", user.id)
     .maybeSingle<LinhaPrivada>();
 
@@ -118,6 +125,7 @@ export default async function ClinicOnboardingPage() {
     <ClinicOnboardingForm
       inicial={inicial}
       modo={profile.status === "pending_validation" ? "revisao" : "novo"}
+      documentoEnviadoEm={privado?.documento_enviado_em ?? null}
       action={salvarOnboardingClinic}
     />
   );

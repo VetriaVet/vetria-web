@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Select } from "@/components/ui/Select";
+import EnvioDeDocumento from "@/components/app/EnvioDeDocumento";
 import {
   ESPECIALIDADES,
   ESTADOS,
@@ -30,10 +31,15 @@ import {
 export default function VetOnboardingForm({
   inicial,
   modo,
+  documentoEnviadoEm,
   action,
 }: {
   inicial: VetOnboardingInicial;
   modo: "novo" | "revisao";
+  /** `perfil_privado.documento_enviado_em`, lido pelo Server Component. É o
+   *  sinal de que existe documento no bucket, e vem do BANCO: o cliente nunca
+   *  carimba essa data (o trigger `trg_perfil_privado_carimbo` carimba). */
+  documentoEnviadoEm: string | null;
   action: (
     payload: VetOnboardingPayload
   ) => Promise<ResultadoOnboarding | void>;
@@ -41,6 +47,9 @@ export default function VetOnboardingForm({
   const [step, setStep] = useState(1);
   const [isPending, startTransition] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
+  const [docEnviadoEm, setDocEnviadoEm] = useState<string | null>(
+    documentoEnviadoEm
+  );
 
   const [nome, setNome] = useState(inicial.nome);
   const [titulo, setTitulo] = useState(inicial.titulo);
@@ -67,6 +76,19 @@ export default function VetOnboardingForm({
   // conveniência, não autorização.
   const algumModo = modos.presencial || modos.domiciliar || modos.tele;
   const podeAvancar = step === 2 ? algumModo : true;
+
+  // T-008 — SEM DOCUMENTO NÃO HÁ CONCLUSÃO, e isso é o critério do card:
+  // "falha de upload impede a conclusão; o profissional não pode sair achando
+  // que enviou o documento quando não enviou".
+  //
+  // O sinal é `docEnviadoEm`, que só muda quando o SERVIDOR respondeu que a
+  // linha foi gravada com as três colunas do documento. Quem já enviou antes
+  // (revisão) chega aqui com o valor vindo do banco e não precisa reenviar.
+  //
+  // ⚠️ Isto é conveniência de tela, não autorização: a Server Action continua
+  // sendo quem valida e grava, e ela não recusa por falta de documento. Quem
+  // reprova cadastro sem documento é a fila do admin, na S4.
+  const temDocumento = Boolean(docEnviadoEm);
 
   function toggleEsp(e: string) {
     setEspecialidades((p) => (p.includes(e) ? p.filter((x) => x !== e) : [...p, e]));
@@ -286,11 +308,16 @@ export default function VetOnboardingForm({
                   : "Ao concluir, enviamos seu cadastro pra validação da equipe Vetria. Você recebe um email quando o perfil for aprovado."
               }
             >
-              <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center text-corpo-texto/60 mb-4">
-                {/* Upload do documento do CRMV é a T-008: o bucket privado
-                    `documentos` já existe e a rota de envio ainda não. */}
-                <p className="text-sm">Envio de documentos do CRMV chega em breve</p>
-              </div>
+              {/* T-008 — o envio de verdade. Os bytes vão por POST para
+                  `/api/documentos/upload`, que confere sessão, role e status,
+                  lê o tipo real pelos primeiros bytes, gera o nome do arquivo e
+                  só então grava a linha. Nada disso acontece aqui no cliente. */}
+              <EnvioDeDocumento
+                enviadoEmInicial={documentoEnviadoEm}
+                onEnviado={setDocEnviadoEm}
+                descricao="Envie uma foto ou o PDF do seu documento de CRMV. É por ele que a equipe confere que o número informado é seu."
+                exemplos="Foto da carteira do CRMV, certidão do conselho ou documento com foto."
+              />
               <div className="flex gap-3 rounded-xl bg-fundo-destaque p-4">
                 <span className="text-principal shrink-0 mt-0.5">
                   <LockIcon />
@@ -321,7 +348,9 @@ export default function VetOnboardingForm({
           {/* Ações */}
           <div className="flex items-center justify-between gap-3 mt-10 pt-6 border-t border-gray-100">
             <span className="text-[12px] text-corpo-texto/70">
-              {step * 25}% concluído
+              {step === 4 && !temDocumento
+                ? "Falta enviar o documento do CRMV."
+                : `${step * 25}% concluído`}
             </span>
             <div className="flex gap-3">
               {step > 1 && (
@@ -352,8 +381,13 @@ export default function VetOnboardingForm({
                 <button
                   type="button"
                   onClick={finish}
-                  disabled={isPending}
+                  disabled={isPending || !temDocumento}
                   aria-busy={isPending}
+                  title={
+                    temDocumento
+                      ? undefined
+                      : "Envie o documento do CRMV para concluir."
+                  }
                   className="inline-flex items-center gap-2 rounded-pill bg-principal text-white px-6 py-2.5 font-semibold text-sm hover:bg-[#142E33] transition disabled:opacity-50"
                 >
                   {isPending
