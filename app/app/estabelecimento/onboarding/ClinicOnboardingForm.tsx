@@ -2,53 +2,58 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
-import { Input } from "../../../../components/ui/Input";
-import { Label } from "../../../../components/ui/Label";
-import { Select } from "../../../../components/ui/Select";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Select } from "@/components/ui/Select";
+import {
+  ESTADOS,
+  LIMITES,
+  SERVICOS,
+  STEPS,
+  type ClinicOnboardingInicial,
+  type ClinicOnboardingPayload,
+  type ResultadoOnboarding,
+} from "./campos";
 
-// Onboarding clínica multi-step — casca fiel (DL-020), mesmo padrão do vet.
-// Campos só no estado client (clinic_profiles é migration 031). "Concluir"
-// chama a Server Action que apenas marca onboarding_completed (DL-016).
-
-const STEPS = [
-  { n: 1, title: "Dados do estabelecimento", desc: "Razão social, CNPJ" },
-  { n: 2, title: "Localização", desc: "Endereço e cidade" },
-  { n: 3, title: "Perfil público", desc: "Sobre, serviços, contato" },
-  { n: 4, title: "Validação", desc: "Documentos" },
-];
-
-const ESTADOS = [
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS",
-  "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC",
-  "SP", "SE", "TO",
-].map((uf) => ({ value: uf, label: uf }));
-
-const SERVICOS = [
-  "Emergência 24h", "Internação", "Centro cirúrgico", "Laboratório",
-  "Diagnóstico por imagem", "Vacinação", "Banho & tosa", "Pet shop", "Farmácia",
-];
+// Onboarding do estabelecimento, 4 passos. O estado vive no cliente e o
+// "Concluir" manda tudo pra Server Action, que valida de novo, grava o que é
+// público em `clinic_profiles`, o que é privado em `perfil_privado` e chama a
+// RPC da fila de validação (T-007).
+//
+// As listas de valores vivem em `campos.ts`, porque o servidor valida contra as
+// mesmas listas. Duas cópias divergem, e a que diverge é sempre a do servidor.
+//
+// DL-016: nenhum try/catch em volta da Action. O caminho de sucesso termina em
+// redirect() do servidor, e o caminho de falha volta como VALOR de retorno.
 
 export default function ClinicOnboardingForm({
-  initialName,
+  inicial,
+  modo,
   action,
 }: {
-  initialName: string;
-  action: () => Promise<void>;
+  inicial: ClinicOnboardingInicial;
+  modo: "novo" | "revisao";
+  action: (
+    payload: ClinicOnboardingPayload
+  ) => Promise<ResultadoOnboarding | void>;
 }) {
   const [step, setStep] = useState(1);
   const [isPending, startTransition] = useTransition();
+  const [erro, setErro] = useState<string | null>(null);
 
-  const [nomeFantasia, setNomeFantasia] = useState(initialName);
-  const [razaoSocial, setRazaoSocial] = useState("");
-  const [cnpj, setCnpj] = useState("");
-  const [responsavel, setResponsavel] = useState("");
-  const [endereco, setEndereco] = useState("");
-  const [cep, setCep] = useState("");
-  const [cidade, setCidade] = useState("");
-  const [estado, setEstado] = useState("");
-  const [sobre, setSobre] = useState("");
-  const [servicos, setServicos] = useState<string[]>([]);
-  const [whatsapp, setWhatsapp] = useState("");
+  const [nomeFantasia, setNomeFantasia] = useState(inicial.nomeFantasia);
+  const [razaoSocial, setRazaoSocial] = useState(inicial.razaoSocial);
+  const [cnpj, setCnpj] = useState(inicial.cnpj);
+  const [responsavel, setResponsavel] = useState(inicial.responsavelTecnico);
+  const [endereco, setEndereco] = useState(inicial.endereco);
+  const [cep, setCep] = useState(inicial.cep);
+  const [cidade, setCidade] = useState(inicial.cidade);
+  const [estado, setEstado] = useState(inicial.estado);
+  const [sobre, setSobre] = useState(inicial.sobre);
+  const [servicos, setServicos] = useState<string[]>(inicial.servicos);
+  const [whatsapp, setWhatsapp] = useState(inicial.whatsapp);
+
+  const emRevisao = modo === "revisao";
 
   function toggleServico(s: string) {
     setServicos((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
@@ -59,9 +64,27 @@ export default function ClinicOnboardingForm({
   function back() {
     setStep((s) => Math.max(1, s - 1));
   }
+
   function finish() {
-    startTransition(() => {
-      action(); // DL-016
+    setErro(null);
+    // DL-016: sem try/catch. O `await` existe só pra ler o erro que a Action
+    // devolve como valor; no sucesso ela redireciona e esta linha nunca resolve
+    // com objeto.
+    startTransition(async () => {
+      const r = await action({
+        nomeFantasia,
+        razaoSocial,
+        cnpj,
+        responsavelTecnico: responsavel,
+        endereco,
+        cep,
+        cidade,
+        estado,
+        sobre,
+        servicos,
+        whatsapp,
+      });
+      if (r && r.ok === false) setErro(r.mensagem);
     });
   }
 
@@ -73,11 +96,14 @@ export default function ClinicOnboardingForm({
         </div>
 
         <h1 className="font-bold text-[24px] leading-tight mb-3">
-          Vamos cadastrar o seu estabelecimento.
+          {emRevisao
+            ? "O cadastro está em validação."
+            : "Vamos cadastrar o seu estabelecimento."}
         </h1>
         <p className="text-[13px] text-white/70 leading-relaxed mb-8">
-          Em poucos minutos o cadastro fica pronto pra validação. Você pode
-          pausar e voltar quando quiser.
+          {emRevisao
+            ? "Você pode corrigir e completar os dados enquanto nossa equipe confere o cadastro. As alterações são salvas quando você chega ao fim."
+            : "Em poucos minutos o cadastro fica pronto pra validação. Você pode pausar e voltar quando quiser."}
         </p>
 
         <ol className="flex flex-col gap-1">
@@ -122,28 +148,41 @@ export default function ClinicOnboardingForm({
           {step === 1 && (
             <StepWrap
               title="Dados do estabelecimento."
-              desc="Informações institucionais que validam o estabelecimento. O CNPJ é usado só pra confirmação."
+              desc="Informações institucionais que validam o estabelecimento. CNPJ, razão social e responsável técnico não aparecem no seu perfil público: são usados só pela nossa equipe, na validação."
             >
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="nf">Nome fantasia</Label>
-                  <Input id="nf" value={nomeFantasia} onChange={(e) => setNomeFantasia(e.target.value)} placeholder="Como responsáveis conhecem o estabelecimento" />
+                  <Input id="nf" value={nomeFantasia} maxLength={LIMITES.nomeFantasia} onChange={(e) => setNomeFantasia(e.target.value)} placeholder="Como responsáveis conhecem o estabelecimento" />
                 </div>
                 <div>
                   <Label htmlFor="rs">Razão social</Label>
-                  <Input id="rs" value={razaoSocial} onChange={(e) => setRazaoSocial(e.target.value)} placeholder="Nome jurídico" />
+                  <Input id="rs" value={razaoSocial} maxLength={LIMITES.razaoSocial} onChange={(e) => setRazaoSocial(e.target.value)} placeholder="Nome jurídico" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4 mt-4">
                 <div>
                   <Label htmlFor="cnpj">CNPJ</Label>
-                  <Input id="cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" />
+                  <Input id="cnpj" value={cnpj} maxLength={LIMITES.cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" />
                 </div>
                 <div>
-                  <Label htmlFor="resp">Responsável técnico</Label>
-                  <Input id="resp" value={responsavel} onChange={(e) => setResponsavel(e.target.value)} placeholder="Veterinário responsável" />
+                  <Label htmlFor="resp">Responsável técnico (opcional)</Label>
+                  <Input id="resp" value={responsavel} maxLength={LIMITES.responsavelTecnico} onChange={(e) => setResponsavel(e.target.value)} placeholder="Veterinário responsável" />
                 </div>
               </div>
+
+              {/* ⚠️ R-043 / SEC-064 — o responsável técnico é uma PESSOA FÍSICA
+                  que pode nem ser a titular desta conta e não está nesta tela
+                  para consentir. Este é o primeiro ponto do produto em que a
+                  Vetria coleta dado pessoal de terceiro, e a frase abaixo é o
+                  que o card pede: uma declaração explícita de quem digita. Não
+                  é a rotina de consentimento versionado, que é F6/S11. */}
+              <p className="mt-3 text-[12px] text-corpo-texto/80 leading-relaxed">
+                Ao informar o responsável técnico, você declara ter autorização
+                dele para compartilhar o nome com a Vetria. Usamos o dado apenas
+                para validar o estabelecimento, ele não vai para o perfil
+                público e pode ser removido a pedido.
+              </p>
             </StepWrap>
           )}
 
@@ -151,16 +190,16 @@ export default function ClinicOnboardingForm({
             <StepWrap title="Onde fica o estabelecimento." desc="O endereço aparece pra responsáveis encontrarem vocês.">
               <div>
                 <Label htmlFor="end">Endereço</Label>
-                <Input id="end" value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Rua, número, complemento" />
+                <Input id="end" value={endereco} maxLength={LIMITES.endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Rua, número, complemento" />
               </div>
               <div className="grid sm:grid-cols-3 gap-4 mt-4">
                 <div>
                   <Label htmlFor="cep">CEP</Label>
-                  <Input id="cep" value={cep} onChange={(e) => setCep(e.target.value)} placeholder="00000-000" />
+                  <Input id="cep" value={cep} maxLength={LIMITES.cep} onChange={(e) => setCep(e.target.value)} placeholder="00000-000" />
                 </div>
                 <div>
                   <Label htmlFor="cid">Cidade</Label>
-                  <Input id="cid" value={cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Ex: Palmas" />
+                  <Input id="cid" value={cidade} maxLength={LIMITES.cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Ex: Palmas" />
                 </div>
                 <div>
                   <Label htmlFor="uf">Estado</Label>
@@ -175,7 +214,8 @@ export default function ClinicOnboardingForm({
               <div className="mb-4">
                 <Label>Logo do estabelecimento</Label>
                 <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center text-corpo-texto/60">
-                  {/* TODO: upload pra Supabase Storage (migration 031) */}
+                  {/* Logo está fora dos 3 meses (R-019): não existe coluna em
+                      `clinic_profiles` nem bucket público. Volta na F4/S7. */}
                   <p className="text-sm">Upload de logo chega em breve</p>
                 </div>
               </div>
@@ -184,13 +224,13 @@ export default function ClinicOnboardingForm({
                 <textarea
                   id="sobre"
                   rows={5}
-                  maxLength={600}
+                  maxLength={LIMITES.sobre}
                   value={sobre}
                   onChange={(e) => setSobre(e.target.value)}
                   placeholder="História, estrutura e diferenciais do estabelecimento."
                   className="w-full rounded-2xl bg-fundo-claro/40 border border-transparent px-5 py-3.5 text-[15px] text-titulo placeholder:text-corpo-texto/60 focus:bg-white focus:border-principal focus:ring-2 focus:ring-principal/20 focus:outline-none transition resize-none"
                 />
-                <div className="text-right text-[11px] text-corpo-texto/60 mt-1">{sobre.length} / 600</div>
+                <div className="text-right text-[11px] text-corpo-texto/60 mt-1">{sobre.length} / {LIMITES.sobre}</div>
               </div>
               <div className="mb-4">
                 <Label>Serviços e estrutura</Label>
@@ -214,18 +254,29 @@ export default function ClinicOnboardingForm({
               </div>
               <div>
                 <Label htmlFor="wpp">WhatsApp</Label>
-                <Input id="wpp" type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(00) 00000-0000" />
+                <Input id="wpp" type="tel" value={whatsapp} maxLength={LIMITES.whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(00) 00000-0000" />
+                <p className="mt-1.5 text-[12px] text-corpo-texto/70 leading-relaxed">
+                  Precisa ser um número com DDD que receba mensagem no WhatsApp.
+                  Números 0800 não servem. Guardamos só os dígitos, e o número
+                  nunca aparece na página: ele é revelado quando o responsável
+                  clica para falar com vocês.
+                </p>
               </div>
             </StepWrap>
           )}
 
           {step === 4 && (
             <StepWrap
-              title="Quase lá: validação."
-              desc="Ao concluir, enviamos o cadastro pra validação da equipe Vetria. Vocês recebem um email quando o estabelecimento for aprovado."
+              title={emRevisao ? "Revise e salve." : "Quase lá: validação."}
+              desc={
+                emRevisao
+                  ? "Ao salvar, os dados são atualizados e o cadastro segue na fila de validação da equipe Vetria. Vocês recebem um email quando o estabelecimento for aprovado."
+                  : "Ao concluir, enviamos o cadastro pra validação da equipe Vetria. Vocês recebem um email quando o estabelecimento for aprovado."
+              }
             >
               <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center text-corpo-texto/60 mb-4">
-                {/* TODO: upload de documentos da clínica (migration 031) */}
+                {/* Upload de documentos do estabelecimento é a T-008: o bucket
+                    privado `documentos` já existe e a rota de envio ainda não. */}
                 <p className="text-sm">Envio de documentos chega em breve</p>
               </div>
               <div className="flex gap-3 rounded-xl bg-fundo-destaque p-4">
@@ -234,10 +285,27 @@ export default function ClinicOnboardingForm({
                 </span>
                 <p className="text-[13px] text-corpo-texto leading-relaxed">
                   <strong className="text-titulo">Dados protegidos pela LGPD.</strong>{" "}
-                  As informações são usadas apenas para validação do estabelecimento.
+                  CNPJ, razão social e o nome do responsável técnico ficam
+                  guardados fora do perfil público e são usados apenas na
+                  validação do estabelecimento.
                 </p>
               </div>
             </StepWrap>
+          )}
+
+          {/* Erro honesto: o que o servidor recusou, dito com todas as letras.
+              Nada é perdido, o estado do formulário continua na tela. */}
+          {erro && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-4 text-[13px] text-red-800 leading-relaxed"
+            >
+              <strong className="block font-semibold mb-0.5">
+                Não deu pra salvar.
+              </strong>
+              {erro}
+            </div>
           )}
 
           <div className="flex items-center justify-between gap-3 mt-10 pt-6 border-t border-gray-100">
@@ -269,7 +337,11 @@ export default function ClinicOnboardingForm({
                   aria-busy={isPending}
                   className="inline-flex items-center gap-2 rounded-pill bg-principal text-white px-6 py-2.5 font-semibold text-sm hover:bg-[#142E33] transition disabled:opacity-50"
                 >
-                  {isPending ? "Enviando..." : "Concluir cadastro"}
+                  {isPending
+                    ? "Salvando..."
+                    : emRevisao
+                      ? "Salvar alterações"
+                      : "Concluir cadastro"}
                 </button>
               )}
             </div>

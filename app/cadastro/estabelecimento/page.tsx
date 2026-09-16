@@ -12,6 +12,11 @@ import { createClient } from "@/lib/supabase/browser";
 // Cadastro da clínica (TASK-006). signUp LIGADO (padrão /login, role=clinic no
 // metadata → trigger grava o role, migration 0001). Email confirmation ON (DL-009).
 // Após confirmar e logar → /app/estabelecimento/onboarding.
+//
+// ⚠️ O campo de CNPJ saiu desta tela na T-007, e a decisão tem duas partes:
+// ele nunca mais vai no `signUp` (R-024), e coletar um identificador da empresa
+// aqui só para descartá-lo seria pior do que não coletar. O CNPJ é pedido uma
+// única vez, no passo 1 do onboarding, e gravado em `perfil_privado`.
 
 const FEATURES = [
   "Perfil do estabelecimento na busca pública",
@@ -21,7 +26,6 @@ const FEATURES = [
 
 export default function CadastroClinicaPage() {
   const [nomeFantasia, setNomeFantasia] = useState("");
-  const [cnpj, setCnpj] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmar, setConfirmar] = useState("");
@@ -44,7 +48,15 @@ export default function CadastroClinicaPage() {
       email,
       password: senha,
       options: {
-        data: { full_name: nomeFantasia, cnpj, cidade, role: "clinic" },
+        // ⚠️ R-024 / SEC-042 — NADA de identificador aqui.
+        // `cnpj` viajava neste `data` e ficava PARA SEMPRE em
+        // `auth.users.raw_user_meta_data`, dentro do JWT de toda sessão e
+        // fora do alcance da rotina de exportação e exclusão da F6. Os
+        // funis de veterinário e de responsável nunca mandaram identificador
+        // nenhum, e este era o único outlier. O CNPJ é coletado no
+        // onboarding (T-007) e gravado em `perfil_privado`, que só o dono e
+        // o admin leem.
+        data: { full_name: nomeFantasia, cidade, role: "clinic" },
         emailRedirectTo: `${siteUrl}/auth/callback`,
       },
     });
@@ -100,10 +112,6 @@ export default function CadastroClinicaPage() {
               <div>
                 <Label htmlFor="nomeFantasia">Nome do estabelecimento</Label>
                 <Input id="nomeFantasia" value={nomeFantasia} onChange={(e) => setNomeFantasia(e.target.value)} required placeholder="Nome fantasia" />
-              </div>
-              <div>
-                <Label htmlFor="cnpj">CNPJ</Label>
-                <Input id="cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} required placeholder="00.000.000/0000-00" />
               </div>
               <div>
                 <Label htmlFor="email">Email</Label>
