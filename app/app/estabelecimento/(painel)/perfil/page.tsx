@@ -1,31 +1,20 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requirePainel } from "@/lib/auth/painel";
+import { ESPERANDO_OU_ATIVO } from "@/lib/auth/status";
 import ClinicProfileForm from "./ClinicProfileForm";
 
 export const metadata = {
   title: "Perfil do estabelecimento",
 };
 
+// Gêmea da do veterinário: guard inline de role virou lista de permitidos.
+// `pending_validation` entra (DL-046, matriz §4); `incomplete` volta para o
+// onboarding; `suspended` vai para a tela de bloqueio.
+
 export default async function ClinicPerfilPage() {
-  const supabase = await createClient();
-
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role !== "clinic") redirect("/app");
-
-  const meta = (user.user_metadata ?? {}) as {
-    full_name?: string;
-    name?: string;
-  };
-  const displayName = (meta.full_name ?? meta.name ?? "").trim();
+  const { name: displayName } = await requirePainel(
+    "clinic",
+    ESPERANDO_OU_ATIVO
+  );
 
   return (
     <div className="flex flex-col gap-6">

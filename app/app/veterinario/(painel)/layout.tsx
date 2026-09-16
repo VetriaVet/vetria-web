@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requirePainel } from "@/lib/auth/painel";
+import { ESPERANDO_OU_ATIVO } from "@/lib/auth/status";
 import AppShell, { type ShellSection } from "@/components/app/AppShell";
 
 // Shell premium do painel veterinário (DL-032). Route group `(painel)` =
@@ -27,28 +27,26 @@ const SECTIONS: ShellSection[] = [
   },
 ];
 
+// ⚠️ O guard do layout é o piso, não o teto: nenhuma página deste grupo é
+// alcançável por `incomplete` (a tela dele é `/onboarding`, que fica FORA do
+// grupo) nem por `suspended` (a dele é `/bloqueado`, também fora). O portão
+// fino, tela a tela, continua em cada `page.tsx` — layout em Next não é
+// garantia de guard de página, e a matriz §4 distingue `/aguardando`,
+// `/perfil` e `/configuracoes` do resto do painel.
+
 export default async function VetPainelLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-  if (!user) redirect("/login");
+  const { user, name: nomeDaSessao } = await requirePainel(
+    "vet",
+    ESPERANDO_OU_ATIVO
+  );
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (!profile || profile.role !== "vet") redirect("/app");
-
-  const meta = (user.user_metadata ?? {}) as {
-    full_name?: string;
-    name?: string;
-  };
-  const name = (meta.full_name ?? meta.name ?? user.email?.split("@")[0] ?? "Veterinário").trim();
+  const name = (
+    nomeDaSessao || user.email?.split("@")[0] || "Veterinário"
+  ).trim();
   const initial = name.charAt(0).toUpperCase();
 
   return (

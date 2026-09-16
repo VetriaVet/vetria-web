@@ -1,13 +1,25 @@
 import { requirePainel } from "@/lib/auth/painel";
+import { SO_ESPERANDO } from "@/lib/auth/status";
 import { AguardandoCasca } from "@/components/app/cascas";
 
 export const metadata = { title: "Aguardando validação" };
 
-// Estado "aguardando validação do CRMV" (pending_validation, CONTEXT §4.3).
-// Casca: acessível pra qualquer vet logado; gating real é a TASK-032.
+// Estado "aguardando validação do CRMV" — a única tela do painel que
+// `pending_validation` alcança de verdade, junto com `/perfil` e
+// `/configuracoes` (matriz §4 de `docs/06-PERMISSOES.md`).
+//
+// ⚠️ O comentário que estava aqui dizia "casca: acessível pra qualquer vet
+// logado; gating real é a TASK-032", e a TASK-032 vive em `BACKLOG.md`, que é
+// arquivo CONGELADO da fase visual. Era o R-034 em miniatura: controle que
+// existe só em comentário de código não existe. O gating é a T-016 e está em
+// `lib/auth/status.ts`, aplicado pelo `middleware.ts` e por `requirePainel`.
+//
+// Quem já foi aprovado NÃO entra aqui: ler "estamos validando seu cadastro"
+// depois de ativo é mentira de tela. `SO_ESPERANDO` devolve o `active` para o
+// painel e o `incomplete` para o onboarding.
 
 export default async function VetAguardandoPage() {
-  await requirePainel("vet");
+  await requirePainel("vet", SO_ESPERANDO);
   return (
     <AguardandoCasca
       headline="Estamos validando seu cadastro."

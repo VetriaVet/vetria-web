@@ -1,13 +1,22 @@
 import { requirePainel } from "@/lib/auth/painel";
+import { SO_ESPERANDO } from "@/lib/auth/status";
 import { AguardandoCasca } from "@/components/app/cascas";
 
 export const metadata = { title: "Aguardando validação" };
 
-// Estado "aguardando validação" da clínica (pending_validation, CONTEXT §4.3).
-// Casca: acessível pra qualquer clínica logada; gating real é a TASK-032.
+// Estado "aguardando validação" do estabelecimento — a única tela do painel
+// que `pending_validation` alcança de verdade, junto com `/perfil` e
+// `/configuracoes` (matriz §4 de `docs/06-PERMISSOES.md`).
+//
+// ⚠️ Mesma correção da gêmea do veterinário: o comentário anterior apontava o
+// gating para a TASK-032, que vive em `BACKLOG.md`, arquivo CONGELADO. O
+// gating é a T-016 e está em `lib/auth/status.ts`.
+//
+// É esta a tela em que o estabelecimento que concluiu o onboarding da T-007
+// passa a cair. Antes ele caía no painel, aprovado sem ter sido (R-050).
 
 export default async function ClinicAguardandoPage() {
-  await requirePainel("clinic");
+  await requirePainel("clinic", SO_ESPERANDO);
   return (
     <AguardandoCasca
       headline="Estamos validando o cadastro do estabelecimento."

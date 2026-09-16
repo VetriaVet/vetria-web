@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requirePainel } from "@/lib/auth/painel";
+import { SO_ATIVO } from "@/lib/auth/status";
 import { EmptyState, Skeleton } from "@/components/ui/EmptyState";
 import { Users, UserPlus } from "lucide-react";
 
@@ -12,20 +12,12 @@ export const metadata = {
   title: "Equipe",
 };
 
+// A nona página do painel do estabelecimento, e a única que o veterinário não
+// tem. Entra no padrão da matriz §4: só `active`. Equipe é benefício de plano,
+// e quem ainda não foi validado não compra benefício nenhum.
+
 export default async function ClinicEquipePage() {
-  const supabase = await createClient();
-
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role !== "clinic") redirect("/app");
+  await requirePainel("clinic", SO_ATIVO);
 
   return (
     <div className="flex flex-col gap-6">
