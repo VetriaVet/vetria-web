@@ -31,6 +31,48 @@ test.describe("portas trancadas (middleware)", () => {
   }
 });
 
+test.describe("as rotas de documento nao aceitam visitante (T-008 / SEC-079)", () => {
+  // ⚠️ O `matcher` do `middleware.ts` é `["/app/:path*", "/admin/:path*"]`, e
+  // `/api/documentos/*` está FORA dele. Ou seja: o portão de rota que protege
+  // as telas não passa nem perto destas duas rotas, e elas conferem sessão por
+  // conta própria. É o tipo de proteção que se apaga num refactor sem ninguém
+  // perceber, porque nenhuma tela quebra quando ela some.
+  //
+  // Sem credencial nenhuma, então roda em toda máquina e em todo CI.
+  test("POST em /api/documentos/upload sem sessao devolve 401", async ({
+    request,
+  }) => {
+    const resposta = await request.post("/api/documentos/upload", {
+      multipart: {
+        arquivo: {
+          name: "qualquer.pdf",
+          mimeType: "application/pdf",
+          buffer: Buffer.from("%PDF-1.4 nem chega a ser lido\n", "utf8"),
+        },
+      },
+    });
+
+    // 401 ANTES de ler um byte do corpo: o arquivo acima tem assinatura de PDF
+    // válida de propósito, para que a recusa não possa ser confundida com a
+    // recusa de tipo. Quem barra aqui é a falta de sessão.
+    expect(resposta.status()).toBe(401);
+  });
+
+  test("POST em /api/documentos/abrir sem sessao devolve 401", async ({
+    request,
+  }) => {
+    const resposta = await request.post("/api/documentos/abrir", {
+      headers: { "Content-Type": "application/json" },
+      data: {},
+    });
+
+    // Esta é a rota que devolve URL assinada do documento de validação. Um 200
+    // aqui para visitante seria a base inteira de documentos de identidade
+    // acessível a quem soubesse o caminho.
+    expect(resposta.status()).toBe(401);
+  });
+});
+
 test.describe("telas publicas sobem", () => {
   test("home responde 200", async ({ page }) => {
     const resposta = await page.goto("/");

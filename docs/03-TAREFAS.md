@@ -445,7 +445,7 @@ Elber, e é o mais barato dos três que faltam.
   **Commits:** **nenhum, de propósito.** Tudo na árvore de trabalho.
 
 ### T-008 — Upload do documento de validação
-- **Estado:** ⬜ fila _(desbloqueada em 26/08: o bucket `documentos` existe em produção)_ · ✅ **09/09 — a pergunta em aberto do R-042 (SEC-063) FOI FECHADA**, pelo `vetria-maestro`, na seção **A ORDEM, A COMPENSAÇÃO E A VARREDURA** logo abaixo. **Nenhuma linha de código foi escrita:** isto é contrato, e existe para que quem pegar a task não decida isso às onze da noite, sozinho, dentro de um `try/catch`
+- **Estado:** 🔵 **escrita na árvore de trabalho em 16/09, build e lint verdes, NADA COMMITADO.** Espera, nesta ordem: **(1)** o diff aprovado pelo Elber (é 🟡), **(2)** a auditoria do `vetria-seguranca`, **(3)** a prova em tela com conta logada, que nenhum agente faz sozinho. Ver Resultado _(desbloqueada em 26/08: o bucket `documentos` existe em produção)_ · ✅ **09/09 — a pergunta em aberto do R-042 (SEC-063) FOI FECHADA**, pelo `vetria-maestro`, na seção **A ORDEM, A COMPENSAÇÃO E A VARREDURA** logo abaixo. **Nenhuma linha de código foi escrita:** isto é contrato, e existe para que quem pegar a task não decida isso às onze da noite, sozinho, dentro de um `try/catch`
 - **Fase / Semana:** F3 / S2, **executando na S3** (dívida carregada; ver o cabeçalho da fila)
 - **Capacidade:** E1
 - **Nível:** 🟡
@@ -566,7 +566,71 @@ Elber, e é o mais barato dos três que faltam.
   ⚠️ **Enquanto esse texto não estiver num arquivo de migration aplicado, o R-031 continua ABERTO.** A decisão do DL-055 existe, o card existe, e o arquivo que a `0004` vai copiar continua omisso. **Decisão registrada em doc não vira contrato de código sozinha.**
 
 - **Não fazer:** não construir a tela de leitura do documento pelo admin (S4). Não usar `next/image` em nada vindo de usuário (R-004). Não aceitar arquivo checando só a extensão. **Não editar a `0003`** (aplicada; o texto do item 6 é para a `0004`). **Não fazer `create or replace` de função nenhuma** — é 🔴. **Não apagar o objeto anterior no reenvio** (a `0003` §3 decidiu que ele fica). **Não cair para `service_role` no passo 8** em circunstância nenhuma, nem "só quando a policy falhar". **Não escrever cron nem job de varredura:** a varredura é `select` operado por gente, e é assim de propósito.
-- **Resultado:** _(a preencher)_
+- **Resultado:**
+
+  ## HANDOFF — vetria-backend — T-008 — 16/09/2026
+
+  **Fiz:**
+  - `app/api/documentos/upload/route.ts` (novo, 🟡) — a rota de escrita, os oito passos da
+    seção 2.b da `0003` na ordem, mais a seção 🔒 deste card. Sessão (`:191`), role e status
+    por conta própria (`:216-265`, SEC-079), bytes com teto de 10485760 medido **duas vezes**
+    no servidor (`:277-300`), tipo real por assinatura mágica (`:71-100`), extensão derivada do
+    tipo detectado, caminho `<uuid>/documento-<epoch ms>.<ext>` gerado no servidor e conferido
+    contra a mesma regex do CHECK **antes** do upload (`:117-127`), sha256 hex dos bytes,
+    passo 7 com `service_role` e `upsert: false`, passo 8 **com a sessão do usuário** e as três
+    colunas juntas (DL-055).
+  - `compensarObjetoOrfao()` **dentro do arquivo da rota** (`:150-183`), recebendo o mesmo
+    cliente `service_role` do passo 7 por parâmetro. Toda falha do passo 8 apaga o objeto e só
+    então responde erro; quando a remoção também falha, sai a marca fixa `DOCUMENTO_ORFAO` com
+    caminho e código.
+  - Falhas nomeadas do passo 8: **P0001** → a mensagem do R-029 (conta travada por dado de
+    estabelecimento em linha de pessoa física, caso de suporte); **42501/PGRST301** → falha
+    ruidosa, sem nenhum plano B com `service_role`.
+  - `app/api/documentos/abrir/route.ts` (novo, 🟡) — a rota de leitura, os cinco passos: sessão,
+    autorização explícita (dono **ou** admin), caminho lido da tabela e nunca do cliente,
+    `audit_logs` (`documento_visualizado`, `alvo_id` = dono, `actor_id` explícito, por
+    `service_role`) **antes** da URL, e só então `createSignedUrl` de 60 segundos. Sem trilha,
+    sem URL. Objeto ausente devolve "Documento não encontrado no armazenamento" com o caminho
+    (SEC-033), não 404 mudo.
+  - `components/app/EnvioDeDocumento.tsx` (novo) — o passo 4 deixou de ser aviso. **Um
+    componente para as duas personas**; o que muda entre elas é texto, por prop.
+  - `VetOnboardingForm.tsx` e `ClinicOnboardingForm.tsx` — placeholder substituído, e o botão
+    de conclusão só habilita com documento gravado.
+  - `veterinario/onboarding/page.tsx` e `estabelecimento/onboarding/page.tsx` — passam a ler
+    `documento_enviado_em` (e **só** ele: `documento_path` e `documento_hash` não vão para o
+    HTML).
+
+  **Não fiz:** nenhuma migration, nenhuma policy, nenhum `.env`, nenhum
+  `create or replace`. Nada em `middleware.ts`, `lib/`, `app/cadastro/*` ou `tests/`. Não
+  construí `/admin/validacoes` (S4). As Server Actions de onboarding **não** foram tocadas:
+  a obrigatoriedade do documento é regra de tela, e quem reprova cadastro sem documento é a
+  fila do admin.
+
+  **Estado agora:** o bucket deixa de estar vazio quando alguém enviar. O passo 4 do onboarding
+  envia de verdade, nas **duas** personas, com o mesmo componente e o mesmo comportamento.
+  **Nada foi provado em tela ainda** (precisa de conta logada). `npm run lint` e `npm run build`
+  verdes. **Nada commitado.**
+
+  **Descobri:**
+  1. **A linha de `perfil_privado` pode não existir na hora do envio.** Nada a cria no cadastro,
+     e o passo 4 vem antes do "Concluir". Um `update` que não alcança linha volta **sem erro**,
+     o que seria resposta de sucesso sem linha gravada. Por isso o passo 8 é `upsert` por `id`,
+     ainda **uma escrita**, com as três colunas juntas e sob as mesmas policies.
+  2. **Teto de corpo da plataforma.** O bucket aceita 10 MiB, mas função serverless na Vercel
+     recusa corpo acima de ~4,5 MB **antes** de a rota rodar. Foto de celular passa disso. O
+     cliente trata o 413 com mensagem honesta, mas **o teto real de produção não é 10 MB**.
+  3. O `try/catch` do passo 8 não é estilo: sem ele, uma exceção (e não um `error`) pularia a
+     compensação e criaria órfão em silêncio.
+
+  **Bloqueios:** nenhum bloqueio de schema. Precisa de (1) diff aprovado pelo Elber, (2)
+  auditoria do `vetria-seguranca`, (3) prova em tela com conta logada.
+
+  **Próximo passo óbvio:** provar em tela com a conta `clinic` da T-007 e rodar a varredura de
+  órfãos do item 3 desta seção 🔒 (esperado: `VERSAO ANTERIOR DE REENVIO` ou zero linha).
+
+  **Docs que atualizei:** `03-TAREFAS.md` (este card).
+
+  **Commits:** **nenhum, de propósito.** Tudo na árvore de trabalho.
 
 ### T-016 — O portão de status passa a existir no servidor (R-038 / SEC-059)
 - **Estado:** 🔵 **escrita na árvore de trabalho em 16/09, build e lint verdes, NADA COMMITADO.** Espera três coisas, nesta ordem: **(1)** o diff aprovado pelo Elber (é 🟡), **(2)** a auditoria do `vetria-seguranca`, **(3)** a prova executada com conta logada, que nenhum agente consegue fazer sozinho. Ver Resultado

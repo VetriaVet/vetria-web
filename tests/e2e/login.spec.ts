@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { credencialVet, SEM_CREDENCIAL } from "../apoio/credenciais";
+import { alertaDeErro } from "../apoio/sessao";
 
 // Camada 2: o primeiro teste que exige credencial.
 //
@@ -26,7 +27,16 @@ test.describe("login com credencial real", () => {
     await page.getByRole("button", { name: /fazer login/i }).click();
 
     // A tela mostra o erro do Supabase no <p role="alert">.
-    await expect(page.getByRole("alert")).toBeVisible();
+    //
+    // ⚠️ 16/09/2026 — ESTA LINHA ESTAVA QUEBRADA E NINGUÉM SABIA, porque o
+    // teste nunca rodou: ele pula desde 31/08 por falta de credencial. Com os
+    // secrets criados hoje ele ia rodar pela primeira vez e falhar por
+    // "strict mode violation: resolved to 2 elements".
+    //
+    // O segundo elemento é o `__next-route-announcer__` do App Router, que
+    // também é `role="alert"` e é vazio. Ver a medição em
+    // `tests/apoio/sessao.ts`. `alertaDeErro()` filtra por conteúdo.
+    await expect(alertaDeErro(page)).toBeVisible();
 
     // E a porta continua trancada: o que importa não é a mensagem, é que
     // nenhuma sessão nasceu.
