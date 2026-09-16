@@ -11,12 +11,19 @@
 //
 // A matriz §4, na íntegra:
 //
-//   | status             | alcança                                | bloqueado          |
-//   |--------------------|----------------------------------------|--------------------|
-//   | incomplete         | /onboarding                            | todo o painel      |
-//   | pending_validation | /aguardando, /perfil, /configuracoes    | o resto do painel  |
-//   | active             | painel completo                        | —                  |
-//   | suspended          | tela de bloqueio com motivo            | todo o resto       |
+//   | status             | alcança                                        | bloqueado          |
+//   |--------------------|------------------------------------------------|--------------------|
+//   | incomplete         | /onboarding                                    | todo o painel      |
+//   | pending_validation | /aguardando, /perfil, /configuracoes, /ajuda   | o resto do painel  |
+//   | active             | painel completo                                | —                  |
+//   | suspended          | tela de bloqueio com motivo                    | todo o resto       |
+//
+// ⚠️ `/ajuda` entrou na linha de `pending_validation` pelo **DL-058**
+// (16/09/2026), e esta tabela ficou um tempo sem ele enquanto o mapa lá
+// embaixo já tinha (SEC-090). Se você mudar `ALCANCE_POR_SEGMENTO`, mude esta
+// tabela no mesmo gesto: ela se apresenta como fonte, e um arquivo que se
+// contradiz consigo mesmo a 130 linhas de distância ensina errado quem chegar
+// depois. A ordem continua sendo matriz primeiro, código depois.
 //
 // E o DL-046 diz onde o bloqueio mora: *"o bloqueio vive no `middleware.ts`
 // por prefixo de rota, não espalhado por página, justamente pra não depender
@@ -127,11 +134,27 @@ const ALCANCE_POR_SEGMENTO: Record<string, readonly StatusUsuario[]> = {
   perfil: ESPERANDO_OU_ATIVO,
   configuracoes: ESPERANDO_OU_ATIVO,
   bloqueado: SO_SUSPENSO,
+  // ⚠️ DL-058 (16/09/2026) — `/ajuda` alcança quem espera validação.
+  //
+  // Esta linha ALARGA permissão, então ela só existe porque a matriz mudou
+  // PRIMEIRO: `docs/06-PERMISSOES.md` §4 passou a listar `/ajuda` em "Alcança"
+  // para `pending_validation`. A ordem importa e não é burocracia — quando o
+  // código anda na frente da matriz, a matriz deixa de ser fonte única e vira
+  // documentação de intenção.
+  //
+  // O motivo de produto: quem está esperando validação é justamente quem tem
+  // pergunta, e a tela é FAQ mais email de suporte, sem nada de painel.
+  //
+  // `incomplete` e `suspended` continuam FORA, de propósito: o caminho de quem
+  // está incompleto é o onboarding, e `/bloqueado` precisa ser terminal, senão
+  // o suspenso entra em laço de redirect. `ContaBloqueada.tsx` já põe o email
+  // de contato na tela dele.
+  ajuda: ESPERANDO_OU_ATIVO,
 };
 
-/** Dashboard, contatos, agenda, avaliações, plano, ajuda, equipe — e qualquer
- *  página nova que alguém acrescente amanhã sem mexer neste arquivo. Padrão
- *  fechado: a página nova nasce protegida. */
+/** Dashboard, contatos, agenda, avaliações, plano, equipe — e qualquer página
+ *  nova que alguém acrescente amanhã sem mexer neste arquivo. Padrão fechado:
+ *  a página nova nasce protegida. */
 const ALCANCE_PADRAO = SO_ATIVO;
 
 /**
