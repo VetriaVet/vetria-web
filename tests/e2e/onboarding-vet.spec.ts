@@ -106,13 +106,33 @@ const ESPECIALIDADES_EM_TELA = [
 // ---------------------------------------------------------------------------
 
 function passo(page: Page, n: number) {
-  return page.getByText(new RegExp(`Passo ${n} de 4`));
+  // A flag `i` pelo mesmo motivo do `passoAtual` abaixo: o rótulo é escrito em
+  // caixa mista no JSX e sobe em caixa alta por CSS.
+  return page.getByText(new RegExp(`Passo ${n} de 4`, "i"));
 }
 
-/** Em qual passo o formulário está agora, lido da própria tela. */
+/** Em qual passo o formulário está agora, lido da própria tela.
+ *
+ * ⚠️ `textContent()`, NÃO `innerText()`, e a diferença derrubou o CI na
+ * primeira execução real desta suíte (21/09/2026).
+ *
+ * O DOM diz `Passo 2 de 4 · Localização & atendimento`, mas o elemento tem
+ * `className="uppercase"` (`VetOnboardingForm.tsx:192`), e `innerText()`
+ * devolve o texto **renderizado**, já transformado pelo CSS:
+ * `PASSO 2 DE 4 · LOCALIZAÇÃO & ATENDIMENTO`. O `getByText()` encontrava o
+ * elemento (ele casa contra o texto do DOM), e o `.match()` seguinte não
+ * encontrava nada, porque era sensível a maiúscula. O erro que saía era
+ * `nao consegui ler o passo atual em "PASSO 2 DE 4 ..."`, que parecia bug de
+ * produto e não era.
+ *
+ * `textContent()` lê o DOM cru e é imune a `text-transform`. A flag `i` na
+ * regex é cinto e suspensório: se alguém amanhã escrever "PASSO" no JSX, o
+ * teste continua lendo.
+ */
 async function passoAtual(page: Page): Promise<number> {
-  const texto = await page.getByText(/Passo \d de 4/).innerText();
-  const achado = texto.match(/Passo (\d) de 4/);
+  const texto =
+    (await page.getByText(/Passo \d de 4/i).textContent()) ?? "";
+  const achado = texto.match(/Passo (\d) de 4/i);
   if (!achado) throw new Error(`nao consegui ler o passo atual em "${texto}"`);
   return Number(achado[1]);
 }
