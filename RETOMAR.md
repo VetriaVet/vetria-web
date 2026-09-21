@@ -25,17 +25,23 @@ a S4 da F3. Me diga o que está pendente e o que eu preciso fazer.
 ## 1. Estado do git, e ele é a primeira coisa a conferir
 
 ```
-4a355b0  feat(T-023): /admin/validacoes le a fila real     ← LOCAL, não empurrado
-1fbabcb  docs: a S3 fechou, a S4 abriu                     ← LOCAL, não empurrado
-eb6e2d6  Merge pull request #2  (F3/S3)                    ← este está na origin
+040ab24  docs: o estado para de contar commits locais       ← LOCAL (T-021)
+3c7e672  docs: o card da T-021 e o DL-060 citam o hash       ← LOCAL (T-021)
+53fa96c  docs: a varredura entrega dado, nao veredito        ← LOCAL (T-021, DL-060)
+4147a5d  docs: o card da T-023 para de dizer nao commitada   ← LOCAL
+b14a33a  docs: RETOMAR.md                                    ← LOCAL
+4a355b0  feat(T-023): /admin/validacoes le a fila real       ← LOCAL, espera prova em tela
+1fbabcb  docs: a S3 fechou, a S4 abriu                       ← LOCAL
+eb6e2d6  Merge pull request #2  (F3/S3)                      ← este está na origin
 ```
 
-**Dois commits locais que nunca foram empurrados**, e foi de propósito: push na `main` dispara
-deploy em produção, e os dois esperam prova em tela. A árvore está **limpa**.
+**Sete commits locais que nunca foram empurrados**, e foi de propósito: push na `main` dispara
+deploy em produção, e o único de código entre eles (`4a355b0`, a T-023) espera prova em tela. Os
+outros seis são doc. A árvore está **limpa**.
 
-Confira ao voltar:
+⚠️ **Não confira por contagem, que envelhece a cada commit.** Confira por conteúdo:
 ```bash
-git log --oneline origin/main..HEAD    # esperado: 2 commits
+git log --oneline origin/main..HEAD    # o topo da origin tem que ser eb6e2d6
 git status --short                      # esperado: vazio
 ```
 
@@ -61,11 +67,18 @@ tomadas (seção 4 abaixo).
 
 ---
 
-## 3. O que o Elber precisa fazer — **4 coisas, ~7 minutos**
+## 3. O que o Elber precisa fazer — **5 coisas, ~8 minutos**
+
+> A quinta nasceu em 21/09, quando a T-021 fechou e destravou a varredura de órfãos: está no fim
+> da seção 3.4.
 
 > Nada disto depende de código novo. Tudo já está escrito e esperando prova.
 
-### 3.1 · Abrir `/admin/validacoes` no preview · 2 min
+### 3.1 · Abrir `/admin/validacoes` · 2 min
+
+⚠️ **NÃO existe preview pra isso, e é fácil perder tempo procurando:** a T-023 está num commit
+**local** (`4a355b0`), nunca empurrado, e branch que não sobe não gera preview na Vercel. **É
+`npm run dev` e `localhost:3000/admin/validacoes`.**
 
 Com a conta **admin**, no preview da branch (ou local com `npm run dev`). As contas criadas em
 20/09 têm que aparecer, e o documento tem que abrir.
@@ -79,8 +92,14 @@ policy derrubada e um dia sem fila **produzem exatamente a mesma tela**. Enquant
 O card inteiro da T-017 nasceu de **leitura de policy e nunca foi executado contra o banco**, e ele
 mesmo diz: *"se o PATCH for recusado, este card encolhe ou morre."*
 
-Peça ao Claude o `curl` exato. O teste é mandar um `PATCH` direto na API do Supabase, com conta de
-teste no preview, tentando gravar `estado = 'ZZ'` em `vet_profiles`.
+O teste é mandar um `PATCH` direto na API do Supabase, com a conta `vet` **de teste**, tentando
+gravar `estado = 'ZZ'` em `vet_profiles`. Peça ao Claude o script, que já foi escrito uma vez com a
+restauração do valor original embutida num `finally`.
+
+⚠️ **Duas coisas que o card não diz e mudam como se lê o resultado.** (1) Não há banco de preview:
+o `.env.local` aponta pro mesmo Supabase de produção (é o R-033), então **só com conta de teste**.
+(2) **`200` com `[]` não é sucesso, é recusa**, porque RLS devolve zero linha em vez de erro — e só
+se distingue de "não existe linha" se a leitura da própria linha for conferida **antes** do PATCH.
 
 - **Recusado** → a T-017 encolhe ou morre, e não precisa de sessão presencial
 - **Aceito** → é 🔴 de verdade, e aí a sessão vale, já sabendo o que consertar
@@ -102,8 +121,19 @@ select p.role, count(*) from perfil_privado pp
 join profiles p on p.id = pp.id group by 1;
 ```
 
-⚠️ **A varredura de órfãos da T-008 NÃO deve ser rodada ainda.** Rode só **depois da T-021**: hoje
-a consulta do card classifica órfão real como "esperado" (SEC-083).
+✅ **A trava da varredura de órfãos CAIU em 21/09: a T-021 fechou** (`53fa96c`, **DL-060**). A
+consulta do card da T-008 parou de classificar e passou a devolver dado: `dono_ainda_existe`,
+`caminho_atual_da_linha` e `enviado_em_da_linha`, **e quem lê decide**. O cast para `uuid` foi para
+dentro de uma CTE filtrada, então um objeto fora da convenção `<uuid>/` **não derruba mais a query**
+(ele passou a sair numa segunda consulta, que existe só pra isso).
+
+**Então virou um quinto item de 30 segundos pra você:** rodar as **duas** consultas do item 3 da
+seção 🔒 do card da **T-008**, no SQL Editor. ⚠️ **Ler o resultado não é automático, de
+propósito:** `dono_ainda_existe = false` é conta apagada (R-023) e `caminho_atual_da_linha is null`
+é órfão do passo 8 (R-042), as duas pedem ação. Com as **duas** colunas preenchidas, órfão do passo
+8 e reenvio legítimo **têm a mesma aparência no banco de hoje** — e **mais velho não quer dizer
+esperado**, que era justamente o erro que a T-021 tirou. ⛔ **Apagar o que ela achar é 🔴 e não
+acontece sem sessão presencial.**
 
 ---
 
@@ -149,7 +179,7 @@ Uma linha em `lib/supabase/admin.ts`, o arquivo que carrega a chave de `service_
 | **T-023** | a fila real do admin | ✅ escrita, auditada, **aguardando prova em tela** |
 | **T-024** | aprovar/reprovar + motivo + email + `audit_logs` · **fecha o item 3** | ⬜ travada pelas decisões 4.1 e 4.2 |
 | **T-025** | o link de volta ao onboarding, que não existe em lugar nenhum | ⬜ |
-| **T-021** | corrigir a varredura de órfãos nos cards da T-008 e T-018 · é doc | ⬜ |
+| **T-021** | corrigir a varredura de órfãos nos cards da T-008 e T-018 · é doc | ✅ **fechada em 21/09** (`53fa96c`, DL-060). Achou uma **terceira** cópia da promessa errada, no item 6 da T-008, que a `0004` ia copiar palavra por palavra pra dentro de uma migration |
 
 **Por fora:** T-020 (🟠 teto do bucket, trava antes do primeiro profissional de fora) · T-017 (🔴,
 ver 3.2) · T-026 (WhatsApp legado, só se o `select` der mais que zero) · SEC-093 (migration, 🔴,
