@@ -626,7 +626,7 @@ impede a T-023 de começar hoje.
 # ✅ CONCLUÍDAS
 
 ### T-021 — A varredura de órfãos para de classificar órfão real como "esperado" (SEC-083)
-- **Estado:** ✅ **CONCLUÍDA em 21/09/2026**, commitada na `main` (🟢 doc). **Só `docs/`**, nenhuma linha de código de produção tocada. ⚠️ **A varredura continua sem ter sido RODADA** — rodar é do Elber, é 🟢, e está na lista de medições da S4. **O que esta task entrega é uma consulta que não mente; a medição é outro gesto.** Nem o **R-042** nem o **R-023** fecham aqui
+- **Estado:** ✅ **CONCLUÍDA em 21/09/2026**, commitada na `main` local em `53fa96c` (🟢 doc, **não empurrada**). **Só `docs/`**, nenhuma linha de código de produção tocada. ⚠️ **A varredura continua sem ter sido RODADA** — rodar é do Elber, é 🟢, e está na lista de medições da S4. **O que esta task entrega é uma consulta que não mente; a medição é outro gesto.** Nem o **R-042** nem o **R-023** fecham aqui
 - **Fase / Semana:** F3 / S4
 - **Capacidade:** **E1** — núcleo de dados: o que sobe para o Storage tem que ser rastreável
 - **Nível:** 🟢 — **não é código.** São dois cards em `docs/03-TAREFAS.md` — e **três cópias** da mesma promessa errada, não duas: a terceira apareceu durante a execução
@@ -725,7 +725,7 @@ impede a T-023 de começar hoje.
   **Docs que atualizei:** `docs/03-TAREFAS.md` (cards T-008, T-018 e T-021), `docs/04-RISCOS.md`
   (R-042 e R-023), `docs/02-ESTADO.md`, `docs/05-DECISOES.md` (**DL-060**).
 
-  **Commits:** `(este)`
+  **Commits:** `53fa96c` (os quatro docs). ⚠️ **Não empurrado para a `origin/main`:** push na `main` dispara deploy em produção e é gesto do Elber.
 
 
 ### T-007 — Onboarding do estabelecimento passa a persistir

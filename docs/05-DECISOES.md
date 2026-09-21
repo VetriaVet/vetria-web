@@ -582,7 +582,7 @@ semana que faltava dentro dela.
 ---
 
 ### DL-060 — A varredura de órfãos entrega dado, não veredito, e vive num lugar só
-**Data:** 21/09/2026 · **Fase/Task:** F3/S4 · T-021 / SEC-083 · **Commit:** _(este)_
+**Data:** 21/09/2026 · **Fase/Task:** F3/S4 · T-021 / SEC-083 · **Commit:** `53fa96c` _(na `main` local, não empurrado)_
 **Contexto:** a única rede sob o buraco que a T-008 aceitou por escrito — o processo morrer entre
 o passo 7 (objeto no bucket) e o passo 8 (linha no banco) — é um `select` operado por gente, sem
 cron, escrito no card da T-008. Esse `select` tinha uma coluna `classe` que decidia por comparação
