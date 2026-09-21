@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { normalizarWhatsapp } from "@/lib/contato/whatsapp";
 import {
   ESPECIALIDADES,
   EXPERIENCIA,
@@ -151,7 +152,7 @@ export async function salvarOnboardingVet(
   const estado = limpar(entrada?.estado).toUpperCase();
   const bairro = limpar(entrada?.bairro);
   const bio = typeof entrada?.bio === "string" ? entrada.bio.trim() : "";
-  const whatsapp = limpar(entrada?.whatsapp);
+  const whatsappBruto = limpar(entrada?.whatsapp);
   const titulo = limpar(entrada?.titulo);
   const experiencia = limpar(entrada?.experiencia);
 
@@ -232,8 +233,25 @@ export async function salvarOnboardingVet(
   if (bio.length > LIMITES.bio)
     return erro(`Passo 3: a bio passa de ${LIMITES.bio} caracteres.`);
 
-  if (whatsapp.length > LIMITES.whatsapp)
+  if (whatsappBruto.length > LIMITES.whatsapp)
     return erro(`Passo 3: o WhatsApp passa de ${LIMITES.whatsapp} caracteres.`);
+
+  // ⚠️ R-041 / SEC-062 — a normalização que faltava DESTE lado.
+  //
+  // A T-007 escreveu a normalização dentro do onboarding do estabelecimento e
+  // o veterinário ficou sem. O defeito só apareceu na prova em tela de
+  // 20/09/2026: a mesma consulta devolveu `62992653278` para o estabelecimento
+  // e `62 992653278`, COM ESPAÇO, para o veterinário. Mesmo número, mesma
+  // coluna, dois formatos, por dois caminhos que deviam ser idênticos.
+  //
+  // A função mora em `lib/contato/whatsapp.ts` e é a MESMA para os dois, de
+  // propósito: o bug nasceu de duplicação e não se conserta duplicando melhor.
+  let whatsapp = "";
+  if (whatsappBruto) {
+    const normalizado = normalizarWhatsapp(whatsappBruto);
+    if (!normalizado.ok) return erro(normalizado.motivo);
+    whatsapp = normalizado.valor;
+  }
 
   // -------------------------------------------------------------------------
   // 3. O QUE É PÚBLICO → vet_profiles

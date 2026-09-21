@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { normalizarWhatsapp } from "@/lib/contato/whatsapp";
 import {
   LIMITES,
   MAX_SERVICOS,
@@ -99,54 +100,17 @@ function mensagemDoBanco(
   );
 }
 
-// ⚠️ R-041 / SEC-062 — o WhatsApp é normalizado para dígitos NA ESCRITA.
+// ⚠️ R-041 / SEC-062 — a normalização do WhatsApp SAIU deste arquivo em
+// 20/09/2026 e mora em `lib/contato/whatsapp.ts`.
 //
-// Sem isto, `(63) 99999-9999`, `63999999999` e `+55 63 9 9999-9999` são três
-// linhas diferentes no banco para o mesmo número. Pelo DL-047 é este valor que
-// o servidor devolve no evento de contato e que conta como lead entregue: a
-// rota de contato da F4 vai precisar montar um `wa.me` a partir dele, e
-// normalizar depois de existir base gravada em três formatos custa muito mais.
+// Ela nasceu aqui, na T-007, e o onboarding do veterinário ficou sem — o que
+// só foi descoberto na prova em tela: a mesma consulta devolveu
+// `62992653278` para o estabelecimento e `62 992653278`, COM ESPAÇO, para o
+// veterinário. O motivo de mover é esse, e não estética: o defeito nasceu de
+// duplicação, e duplicação não se conserta copiando com mais cuidado.
 //
-// ⚠️ CONTRATO DO QUE FICA GRAVADO, para quem escrever a rota de contato da F4:
-// dígitos, DDD + número, SEM o código do país. `55` é acrescentado por quem
-// monta o `wa.me`, não por quem grava. Guardar sem o `55` é o que faz o campo
-// reabrir legível nesta mesma tela.
-//
-// O que isto NÃO é: verificação de posse. Ninguém confirmou que o número é do
-// estabelecimento. Código por SMS está fora dos 3 meses.
-function normalizarWhatsapp(
-  bruto: string
-): { ok: true; valor: string } | { ok: false; motivo: string } {
-  let d = bruto.replace(/\D+/g, "");
-
-  // `+55 63 ...` e `55 63 ...` chegam com o código do país colado.
-  if ((d.length === 12 || d.length === 13) && d.startsWith("55")) {
-    d = d.slice(2);
-  }
-
-  if (d.startsWith("0")) {
-    return {
-      ok: false,
-      motivo:
-        "Passo 3: o WhatsApp precisa ser um número com DDD. Números 0800 e 0300 não recebem mensagem no WhatsApp.",
-    };
-  }
-
-  if (d.length !== 10 && d.length !== 11) {
-    return {
-      ok: false,
-      motivo:
-        "Passo 3: informe o WhatsApp com DDD, no formato (00) 00000-0000. Só o número, sem ramal.",
-    };
-  }
-
-  const ddd = Number(d.slice(0, 2));
-  if (ddd < 11 || ddd > 99) {
-    return { ok: false, motivo: "Passo 3: o DDD do WhatsApp não é válido." };
-  }
-
-  return { ok: true, valor: d };
-}
+// O contrato do que fica gravado (dígitos, DDD + número, sem o `55`) está
+// escrito lá, junto com o porquê.
 
 // CNPJ normalizado: 14 caracteres, sem pontuação, em maiúsculas.
 //
