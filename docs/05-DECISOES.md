@@ -578,3 +578,55 @@ semana que faltava dentro dela.
   semana seguida, e o prazo duro dela é **dentro da F3**. Se a F3 terminar sem ela, isso vira
   decisão nova e explícita, não silêncio.
 **Status:** ✅ decidida
+
+---
+
+### DL-060 — A varredura de órfãos entrega dado, não veredito, e vive num lugar só
+**Data:** 21/09/2026 · **Fase/Task:** F3/S4 · T-021 / SEC-083 · **Commit:** _(este)_
+**Contexto:** a única rede sob o buraco que a T-008 aceitou por escrito — o processo morrer entre
+o passo 7 (objeto no bucket) e o passo 8 (linha no banco) — é um `select` operado por gente, sem
+cron, escrito no card da T-008. Esse `select` tinha uma coluna `classe` que decidia por comparação
+de tempo: se o objeto era mais novo que `documento_enviado_em`, era órfão; se era mais velho, era
+*"versão anterior de reenvio (esperado)"*. **O caso normal de falha produz o órfão mais VELHO**
+(sobe A às 10:00, o processo morre, sobe B às 10:05 e o 8 grava o caminho de B), então a rede
+rotulava como esperado exatamente o que ela existe para pegar. A causa não é o `case`: **é que
+nenhuma tabela do projeto guarda histórico de caminhos**, e tempo é tudo que a consulta tem.
+**Decisão:** a varredura **parou de classificar**. A coluna `classe` saiu e a consulta devolve
+`caminho`, `dono_uuid`, `created_at`, `bytes`, `dono_ainda_existe`, `caminho_atual_da_linha` e
+`enviado_em_da_linha`. Duas leituras continuam mecânicas e ficaram escritas no card (conta apagada
+é `dono_ainda_existe = false`; órfão do passo 8 é `caminho_atual_da_linha is null`); **a terceira
+é humana e fica humana**, porque órfão do passo 8 e versão anterior de reenvio têm a mesma
+aparência no banco de hoje. E **a consulta passou a viver num lugar só**, o item 3 da seção 🔒 do
+card da T-008: quem precisa dela aponta, ninguém copia.
+**Alternativas descartadas:**
+- **Criar tabela de histórico de caminhos** (a saída (b) da SEC-083), que tornaria a classificação
+  correta de verdade. Recusada aqui, não para sempre: **é migration, logo 🔴**, e a T-021 era 🟢 de
+  doc. Fica escrita nos cards da T-008 e da T-018 como a **única** saída possível, sem virar card:
+  criar tabela é decisão do Elber.
+- **Consertar o `case` — inverter a comparação ou somar uma tolerância.** Recusada: qualquer regra
+  de tempo continua sendo palpite apresentado como rótulo, e **rótulo errado é pior que coluna
+  ausente**, porque quem varre confia nele e para de olhar.
+- **Corrigir as duas cópias da consulta**, uma em cada card. Recusada: é o **R-039** e o **R-017**
+  pela quarta vez. Clone herda defeito; duas cópias certas hoje são duas cópias divergentes em
+  seis semanas.
+**Implicações:**
+- **Consulta de operação não afirma o que o schema não sustenta**, e isso passa a valer para as
+  próximas: a coluna que o banco não consegue provar **não existe**, e a leitura vai escrita em
+  prosa ao lado do SQL.
+- **O cast sai do `left join`.** `split_part(o.name,'/',1)::uuid` num `join` era avaliado sem
+  garantia de ordem contra o filtro de `bucket_id`, e **um objeto fora da convenção derrubava a
+  varredura inteira**. Agora o cast vive numa CTE `materialized` cujo `where` filtra `bucket_id` e
+  um `~*` de uuid. **Isso cria um ponto cego** — objeto fora da convenção some da lista — e por
+  isso a varredura virou **duas** consultas: a segunda, de uma linha, lista o que a primeira
+  esconde. **Zero linha nas duas é a medição; uma sem a outra não é.**
+- ⚠️ **Havia uma TERCEIRA cópia, e ela era a pior:** o item 6 do card da T-008, que é o texto que
+  a **`0004` tem que copiar palavra por palavra** para dentro de uma migration, afirmava *"a
+  consulta classifica, e quem varre não confunde as duas coisas"*. A SEC-083 apontou duas cópias e
+  o card da T-021 pediu duas. **Se a `0004` tivesse sido escrita antes desta task, a promessa
+  errada estaria hoje num arquivo aplicado em produção**, e migration aplicada é histórico: não se
+  edita. **Doc que vira comentário de migration tem prazo de validade, e o prazo é o próximo
+  deploy de banco.**
+- **O R-042 e o R-023 continuam ABERTOS.** Esta decisão conserta a consulta, não o bucket:
+  **ninguém rodou a varredura**, e neste projeto risco fecha por medição, não por texto.
+**Status:** ✅ aplicada nos dois cards · ⬜ **a medição que ela habilita continua pendente** (Elber,
+SQL Editor, lista de medições da S4)

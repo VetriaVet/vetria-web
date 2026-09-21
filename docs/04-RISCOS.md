@@ -170,9 +170,31 @@ trava escrita: **antes do primeiro profissional de fora.**
   compensação também falha, e **varredura por `left join` de `storage.objects` com
   `perfil_privado`**, possível só porque o caminho começa pelo uuid do dono (T-002). Custo
   aceito, escrito no card: **o órfão continua possível** se o processo morrer entre o 7 e o 8.
-- ⚠️ **O risco continua ABERTO, e é honesto dizer por quê:** o que fechou foi o contrato. Nada
-  disso existe em código até a T-008 rodar, e o texto que a `0004` tem que carregar (R-031)
-  também não existe em arquivo nenhum ainda.
+- ✅ **20/09 — a parte de código do contrato EXISTE.** A T-008 subiu em `eb6e2d6`:
+  `app/api/documentos/upload/route.ts:184` tem `compensarObjetoOrfao`, chamada no `:456` com o
+  `service_role` do passo 7, e a marca `DOCUMENTO_ORFAO` no `:197` quando a própria compensação
+  falha. **A frase "nada disso existe em código" abaixo era verdade até 20/09 e deixou de ser.**
+- ✅ **21/09 — a VARREDURA parou de mentir (SEC-083 / T-021).** A consulta escrita no card da
+  T-008 classificava por comparação de tempo e rotulava *"versão anterior de reenvio
+  (esperado)"* justamente o órfão **mais velho** que o último envio bem-sucedido — que é **o
+  caso normal deste risco**: o passo 7 grava, o processo morre, a pessoa reenvia e o 8 grava o
+  caminho novo. **A rede deste risco mandava ignorar exatamente o que ela existe para pegar.**
+  A coluna `classe` saiu, a consulta devolve `dono_uuid`, `created_at` e `enviado_em_da_linha`, e
+  o cast de uuid saiu do `left join` (um objeto fora da convenção derrubava a varredura inteira).
+  **Três cópias da mesma promessa errada foram consertadas**, e a terceira estava no texto que a
+  `0004` deve copiar palavra por palavra.
+- ⚠️ **O risco continua ABERTO, e é honesto dizer por quê.** O que fechou foi o contrato, e
+  agora também o código da compensação e o texto da varredura. **Faltam duas coisas, e nenhuma
+  é texto:** (1) **a varredura nunca foi rodada** — ninguém sabe se existe órfão no bucket, e
+  neste projeto risco não fecha porque o doc mudou, fecha quando o comportamento muda ou quando
+  a medição é feita; (2) o texto que a `0004` tem que carregar (**R-031**) continua sem arquivo:
+  `supabase/migrations/` tem `0000` a `0003` e mais nada. E o buraco de origem **segue aberto por
+  escolha**: o processo pode morrer entre o 7 e o 8, e aí a compensação nem roda.
+- ⚠️ **E o que a varredura corrigida NÃO resolve:** ela não distingue órfão do passo 8 de
+  versão anterior de reenvio legítima, porque **nenhuma tabela guarda histórico de caminhos**.
+  A saída honesta foi entregar dado e deixar a leitura para o humano. **Distinguir com certeza é
+  tabela nova, logo migration, logo 🔴, e não tem card** — está escrito nos cards da T-008 e da
+  T-018 como a única saída possível, e a decisão de criar a tabela é do Elber.
 
 ### R-043 — Nenhum registro de consentimento na coleta, e a T-007 coleta dado de TERCEIRO (SEC-064)
 - **Descoberto:** 09/09/2026, revisão independente da T-006 (R-034)
@@ -487,6 +509,11 @@ trava escrita: **antes do primeiro profissional de fora.**
   futuras* (F6/S11, 🔴, LGPD ancorada em E1). Ele carrega o que este risco pede (apagar o objeto
   antes da linha) **e** a varredura de órfãos escrita no card da T-008. Até 09/09 este risco
   mandava anotar num card que não existia, e anotação em card que não existe é anotação perdida.
+- ✅ **21/09 — a consulta que acha conta apagada com documento no bucket foi corrigida (T-021 /
+  SEC-083)**, e a coluna que este risco usa passou a ser explícita: `dono_ainda_existe = false`
+  significa **conta apagada com objeto vivo**, que é este risco acontecendo, e pede ação. **O
+  risco continua aberto:** a consulta existe desde 09/09, ninguém a rodou, e a rotina de exclusão
+  da T-018 continua na F6/S11.
 
 ### R-024 — O CNPJ do estabelecimento viaja no `raw_user_meta_data` e no JWT (SEC-042)
 - **Descoberto:** 26/08/2026, auditoria da `0003`. **Confirmado no código.**

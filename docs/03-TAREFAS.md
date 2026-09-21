@@ -126,7 +126,8 @@ mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
 
 # ⬜ FILA — F3 / S4 (aberta 21/09/2026) · a última semana da fase
 
-> **Semana aberta pelo `vetria-maestro` em 21/09.** **4 cards na fila**, mais quatro que correm
+> **Semana aberta pelo `vetria-maestro` em 21/09.** **4 cards na fila** (a **T-021** já fechou;
+> sobram três), mais quatro que correm
 > por fora e não disputam ordem com ninguém. **O item 3 do DoD está no topo, e é o único motivo
 > pelo qual esta semana existe.**
 >
@@ -137,7 +138,7 @@ mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
 > | 1 | **T-023** a fila real do admin | **sem ela nada do item 3 existe.** É a tela que lê `pending_validation` e abre o documento que a T-008 acabou de tornar possível | 🟡 |
 > | 2 | **T-024** aprovar e reprovar com motivo, e o email | **fecha o item 3 do DoD da F3**, o único que falta. Leva junto o **R-051**, o motivo da reprova que hoje ninguém lê | 🟡 |
 > | 3 | **T-025** o caminho de volta ao onboarding existe na interface | o **DL-046** promete por escrito que *"enquanto espera, ele edita"*, os dois portões deixam entrar, e **só chega lá quem digita a URL**. É um link, não é arquitetura | 🟡 |
-> | 4 | **T-021** a varredura de órfãos para de chamar órfão de esperado | é **doc**, é o conserto de dois cards, e é a única rede sob o buraco que a T-008 admitiu por escrito | 🟢 |
+> | ~~4~~ | ✅ **T-021** a varredura de órfãos para de chamar órfão de esperado | **FEITA em 21/09.** Era **doc**, e consertou **três** cópias da mesma promessa errada, não duas. O card está em ✅ CONCLUÍDAS | 🟢 |
 >
 > **Por que T-023 antes de T-024, e não um card só:** são leitura e escrita, e a escrita dispara
 > email e escreve `audit_logs` em linha de gente real. **Task que cresce, para** (regra 4): um
@@ -158,8 +159,9 @@ mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
 >    **Fecha o item 4 do DoD ao pé da letra.** Hoje ele está provado pelo mecanismo, não pela
 >    frase.
 > 2. **A varredura de órfãos** do item 3 da seção 🔒 da T-008, que o card manda rodar **ao
->    fechar a T-008** e que ninguém rodou. ⚠️ Rode **depois** da T-021: hoje a consulta
->    classifica órfão real como "esperado".
+>    fechar a T-008** e que ninguém rodou. ✅ **A T-021 fechou em 21/09, então a trava caiu:
+>    a consulta não classifica mais, e são duas** — a varredura e o complemento de uma linha
+>    que lista objeto fora da convenção `<uuid>/`. **Zero linha nas duas fecha o assunto.**
 > 3. **O `select` do WhatsApp sujo** (T-026), que diz se isso é dado de teste ou dado de gente.
 
 ### T-023 — `/admin/validacoes` lê a fila real e o detalhe abre o documento
@@ -222,22 +224,6 @@ mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
   - [ ] **Sem travessão** no texto visível (DL-038). Sem dado fake. Estado vazio honesto
   - [ ] O link **não aparece** para quem a matriz §4 não deixa entrar: `suspended` vai para `/bloqueado` e fica lá, que é o que impede laço de redirect
 - **Não fazer:** **não construir o editor de perfil** — é a **T-019**, cortada para a F6/S11 por decisão do Elber em 16/09 (DL-056), e ressuscitá-la por inércia é exatamente o que o corte existe para impedir. Não mexer em `lib/auth/status.ts`: o portão já deixa passar; o que falta é o link.
-- **Resultado:** _(a preencher)_
-
-### T-021 — A varredura de órfãos para de classificar órfão real como "esperado" (SEC-083)
-- **Estado:** ⬜ fila
-- **Fase / Semana:** F3 / S4
-- **Capacidade:** **E1** — núcleo de dados: o que sobe para o Storage tem que ser rastreável
-- **Nível:** 🟢 — **não é código.** São dois cards em `docs/03-TAREFAS.md`
-- **Agente dono:** vetria-escriba
-- **Depende de:** nada
-- **Por quê:** **SEC-083.** A coluna `classe` do `select` decide por comparação de tempo e só reconhece o órfão **mais novo** que o último envio bem-sucedido. O órfão **mais velho** — que é o caso normal de falha: envia A às 10:00, o processo morre entre o passo 7 e o 8, reenvia B às 10:05 e o 8 grava — cai no `else` e é rotulado **"VERSÃO ANTERIOR DE REENVIO (esperado)"**. **A única rede sob o buraco que o backend admitiu por escrito não pega o caso mais provável dele**, e a medição que *"fecha o assunto no dia"* fecha errado. Segundo defeito no mesmo `select`: `split_part(o.name,'/',1)::uuid` num `left join` — **um objeto com primeiro segmento que não seja uuid derruba a query inteira**
-- **Feito quando:**
-  - [ ] O `select` do item 3 da seção 🔒 da **T-008** para de prometer classificação que o dado não sustenta: devolve `dono_uuid`, `created_at` e `enviado_em_da_linha` e **deixa o humano decidir**. É a saída (a) do relatório, e é **uma linha a menos**, não a mais
-  - [ ] O cast para `uuid` acontece **depois** do filtro de `bucket_id` e de um `~` de uuid, numa subconsulta
-  - [ ] **A mesma correção no card da T-018** (F6/S11), que copia a consulta. Duas cópias divergindo em silêncio é o defeito de origem do R-039
-  - [ ] Fica escrito, nos dois cards, que **criar histórico de caminhos é migration, é 🔴, e é outro card** — não se resolve aqui
-- **Não fazer:** não escrever migration. Não escrever cron. Não rodar a varredura — rodar é do Elber e é 🟢; **apagar o que ela achar é 🔴**.
 - **Resultado:** _(a preencher)_
 
 ### T-020 — Teto de volume, cota e limpeza do bucket `documentos` (SEC-081) 🟠
@@ -627,16 +613,120 @@ impede a T-023 de começar hoje.
 - **Por quê:** **R-023 / SEC-039.** `perfil_privado.id` tem `on delete cascade` para `profiles`: apagar a conta derruba a linha e o `documento_path` junto. **O objeto no bucket não é tocado por cascade nenhum** — `storage` é outro serviço. Resultado: RG, CNH e comprovante de CRMV de quem **pediu exclusão** continuam no projeto, agora órfãos, sem nem a linha que dizia de quem eram. LGPD art. 18 VI atendido pela metade, e a metade que fica é a mais sensível.
 - **Feito quando** — direção, não desenho fechado:
   - [ ] A rotina de exclusão **apaga o objeto do bucket antes de apagar a linha**, com `service_role`, e falha ruidosamente se não conseguir. Depois do cascade o caminho já não existe em lugar nenhum: **a ordem aqui é o inverso da T-008, e é de propósito**
-  - [ ] **A varredura de órfãos entra na rotina**, e é a mesma consulta escrita no card da **T-008**, item 3 da seção 🔒 (`left join` de `storage.objects` com `perfil_privado` por `documento_path`, classificando conta apagada · órfão do passo 8 · versão anterior de reenvio). Ela é o segundo par de olhos sobre a T-008 e a única rede quando o processo morre entre os passos 7 e 8
+  - [ ] **A varredura de órfãos entra na rotina**, e a consulta **NÃO é copiada para cá**: ela vive num lugar só, o card da **T-008**, item 3 da seção 🔒. É um `left join` de `storage.objects` com `perfil_privado` por `documento_path`, mais uma segunda consulta de uma linha que lista os objetos fora da convenção `<uuid>/`. **Ela não classifica:** devolve `caminho`, `dono_uuid`, `created_at`, `bytes`, `dono_ainda_existe`, `caminho_atual_da_linha` e `enviado_em_da_linha`, e **quem lê decide**. Ela é o segundo par de olhos sobre a T-008 e a única rede quando o processo morre entre os passos 7 e 8
+  - [ ] ⚠️ **O que esta rotina NÃO pode supor:** que a varredura diga qual objeto é órfão e qual é versão anterior de reenvio legítima. **Nada no banco de hoje distingue os dois** (nenhuma tabela guarda histórico de caminhos), e quem escrever esta rotina vai querer essa distinção para decidir o que apagar. **Distinguir com certeza exige tabela de histórico: é MIGRATION, é 🔴, e é OUTRO CARD** — não se resolve aqui nem na T-008. Sem ela, apagar é decisão humana caso a caso, com o Elber presente
   - [ ] **Rodar a varredura é 🟢** (`select`). **Apagar o que ela encontrar é 🔴** e só com o Elber presente
   - [ ] Decidir e registrar em `05-DECISOES.md` o que acontece com o documento de quem é excluído **enquanto ainda está na fila de validação**, e por quanto tempo o objeto sobrevive à conta (retenção). Hoje não há resposta escrita
-- ⚠️ **21/09 — o pressuposto deste card MUDOU: o bucket deixou de estar vazio em 20/09.** A T-008 subiu e há documento de identidade real dentro de `documentos` (conta de teste, mas real: 64 hex de hash, 15683 bytes). O *"hoje o bucket está vazio"* de baixo **descreve um mundo que acabou** — fica registrado como a data em que este risco deixou de ser preventivo e virou retenção. A convenção `<uuid>/` **foi cumprida** pela T-008, que é o que torna a varredura possível. ⚠️ **A consulta copiada neste card tem o defeito da SEC-083** e é corrigida pela **T-021**, na S4: até lá ela classifica órfão real como "esperado".
+- ⚠️ **21/09 — o pressuposto deste card MUDOU: o bucket deixou de estar vazio em 20/09.** A T-008 subiu e há documento de identidade real dentro de `documentos` (conta de teste, mas real: 64 hex de hash, 15683 bytes). O *"hoje o bucket está vazio"* de baixo **descreve um mundo que acabou** — fica registrado como a data em que este risco deixou de ser preventivo e virou retenção. A convenção `<uuid>/` **foi cumprida** pela T-008, que é o que torna a varredura possível. ✅ **21/09 — a SEC-083 foi corrigida pela T-021, e este card deixou de ter cópia própria da consulta.** Onde estava escrito que a varredura classifica *conta apagada · órfão do passo 8 · versão anterior de reenvio*, agora está escrito que ela **não classifica** e que o card da T-008 é o único lugar onde o SQL existe.
 - **Não fazer:** não escrever cron. Não antecipar esta task para a F3 — ~~**hoje o bucket está vazio** e não há documento de gente real para ficar órfão~~ (verdade até 20/09) — o que a T-008 tinha que garantir era que a convenção de caminho continuasse sendo `<uuid>/`, **e garantiu**.
 - **Resultado:** _(a preencher na F6)_
 
 ---
 
 # ✅ CONCLUÍDAS
+
+### T-021 — A varredura de órfãos para de classificar órfão real como "esperado" (SEC-083)
+- **Estado:** ✅ **CONCLUÍDA em 21/09/2026**, commitada na `main` (🟢 doc). **Só `docs/`**, nenhuma linha de código de produção tocada. ⚠️ **A varredura continua sem ter sido RODADA** — rodar é do Elber, é 🟢, e está na lista de medições da S4. **O que esta task entrega é uma consulta que não mente; a medição é outro gesto.** Nem o **R-042** nem o **R-023** fecham aqui
+- **Fase / Semana:** F3 / S4
+- **Capacidade:** **E1** — núcleo de dados: o que sobe para o Storage tem que ser rastreável
+- **Nível:** 🟢 — **não é código.** São dois cards em `docs/03-TAREFAS.md` — e **três cópias** da mesma promessa errada, não duas: a terceira apareceu durante a execução
+- **Agente dono:** vetria-escriba
+- **Depende de:** nada
+- **Por quê:** **SEC-083.** A coluna `classe` do `select` decide por comparação de tempo e só reconhece o órfão **mais novo** que o último envio bem-sucedido. O órfão **mais velho** — que é o caso normal de falha: envia A às 10:00, o processo morre entre o passo 7 e o 8, reenvia B às 10:05 e o 8 grava — cai no `else` e é rotulado **"VERSÃO ANTERIOR DE REENVIO (esperado)"**. **A única rede sob o buraco que o backend admitiu por escrito não pega o caso mais provável dele**, e a medição que *"fecha o assunto no dia"* fecha errado. Segundo defeito no mesmo `select`: `split_part(o.name,'/',1)::uuid` num `left join` — **um objeto com primeiro segmento que não seja uuid derruba a query inteira**
+- **Feito quando:**
+  - [x] O `select` do item 3 da seção 🔒 da **T-008** para de prometer classificação que o dado não sustenta: devolve `dono_uuid`, `created_at` e `enviado_em_da_linha` e **deixa o humano decidir**. É a saída (a) do relatório, e é **uma linha a menos**, não a mais
+  - [x] O cast para `uuid` acontece **depois** do filtro de `bucket_id` e de um `~` de uuid, numa subconsulta
+  - [x] **A mesma correção no card da T-018** (F6/S11), que copia a consulta. Duas cópias divergindo em silêncio é o defeito de origem do R-039
+  - [x] Fica escrito, nos dois cards, que **criar histórico de caminhos é migration, é 🔴, e é outro card** — não se resolve aqui
+- **Não fazer:** não escrever migration. Não escrever cron. Não rodar a varredura — rodar é do Elber e é 🟢; **apagar o que ela achar é 🔴**.
+- **Resultado:**
+
+  ## HANDOFF — vetria-escriba — T-021 — 21/09/2026
+
+  **Fiz:** três lugares em `docs/03-TAREFAS.md`, e um deles ninguém tinha visto.
+
+  **1. O `select` da T-008 (item 3 da seção 🔒) parou de classificar.** A coluna `classe`
+  **saiu inteira** — eram 6 linhas de `case`, é a saída (a) da SEC-083, e é uma linha a menos.
+  No lugar dela entraram três colunas de **fato**, não de juízo: `dono_ainda_existe`
+  (`pf.id is not null`), `caminho_atual_da_linha` (`pp2.documento_path`) e `enviado_em_da_linha`
+  (`pp2.documento_enviado_em`), junto com `caminho`, `dono_uuid`, `created_at` e `bytes`.
+  **O que o `case` afirmava e o banco não sustenta:** que `o.created_at > documento_enviado_em`
+  separa órfão de reenvio legítimo. Só separa o órfão **mais novo** que o último envio
+  bem-sucedido. O órfão **mais velho** — sobe A às 10:00, o processo morre entre o 7 e o 8,
+  sobe B às 10:05 e o 8 grava — caía no `else` e saía rotulado *"VERSAO ANTERIOR DE REENVIO
+  (esperado)"*. **O caso normal de falha, e o único que a varredura existe para pegar, era
+  justamente o que ela mandava ignorar.**
+
+  **2. O cast saiu do `left join`.** `split_part(o.name,'/',1)::uuid` aparecia em **dois**
+  `left join`, avaliado sem garantia de que o filtro de `bucket_id` viesse antes: um objeto com
+  primeiro segmento que não fosse uuid derrubava a varredura inteira com
+  `invalid input syntax for type uuid`. Agora ele está dentro de uma CTE
+  **`with objetos as materialized`** cujo `where` filtra `bucket_id = 'documentos'` **e** um
+  `~*` de uuid; `materialized` é barreira de otimização no Postgres 12+, então o cast só vê
+  linha que passou pelos dois filtros. Os `join` passaram a usar `ob.dono_uuid`, já castado
+  uma vez, em vez de repetir o `split_part` três vezes.
+
+  **3. O filtro de uuid esconde algo, e agora tem uma consulta que o mostra.** Ao filtrar por
+  `~*` de uuid, todo objeto **fora** da convenção `<uuid>/` desaparece da varredura — e uma
+  varredura que existe para achar o que ninguém aponta não pode ter ponto cego por desenho.
+  Entrou uma segunda consulta de **uma linha** (`!~*` do mesmo padrão), com a regra escrita:
+  **zero linha nas duas é a medição; uma sem a outra não é.**
+
+  **4. O card da T-018 deixou de ter cópia.** Ele não carregava o SQL, carregava a **descrição**
+  dele — *"classificando conta apagada · órfão do passo 8 · versão anterior de reenvio"* —, que
+  é a mesma promessa errada em prosa. Em vez de corrigir a cópia, **a cópia foi eliminada:** o
+  card agora **aponta** para o item 3 da T-008 e diz que a consulta não classifica. É o que o
+  **R-039** e o **R-017** ensinaram três vezes: **clone herda defeito, e corrigir os dois clones
+  é só adiar a terceira divergência.** Um lugar, uma verdade.
+
+  **5. ⚠️ HAVIA UMA TERCEIRA CÓPIA, e ela era a pior.** O **item 6 deste mesmo card da T-008**
+  — o texto que a **`0004` tem que copiar palavra por palavra** para dentro de uma migration —
+  dizia *"a consulta classifica, e quem varre não confunde as duas coisas"*. Ninguém tinha
+  contado essa cópia: a SEC-083 aponta duas (T-008 e T-018), e o card da T-021 pedia duas.
+  **Se a `0004` tivesse sido escrita antes desta task, a promessa errada teria virado comentário
+  de migration aplicada em produção** — e migration aplicada é histórico, não se edita
+  (é a regra que o item 6 gasta três linhas defendendo sobre a `0003`). Corrigida também.
+
+  **6. Ficou escrito nos dois cards que a saída (b) é outro card.** Distinguir órfão de versão
+  anterior **com certeza** exige tabela de histórico de caminhos: **é migration, é 🔴, e não se
+  resolve nem aqui nem na T-018.** Na T-018 isso está como critério próprio, porque é lá que
+  alguém vai querer a distinção para decidir o que apagar.
+
+  **O que a consulta agora deixa EXPLICITAMENTE para o humano decidir:** duas leituras são
+  mecânicas e ficaram escritas como tal — `dono_ainda_existe = false` é **conta apagada**
+  (R-023) e `caminho_atual_da_linha is null` é **órfão do passo 8** (R-042), e as duas pedem
+  ação. **A terceira não é:** com as duas colunas preenchidas, o objeto pode ser órfão do
+  passo 8 **ou** versão anterior de reenvio legítima, e **as duas têm a mesma aparência no
+  banco de hoje**. O card manda comparar `created_at` com `enviado_em_da_linha` **sabendo que
+  mais velho não quer dizer esperado** e contar quantos objetos existem sob o mesmo
+  `dono_uuid`. A consulta entrega **dado, não veredito**.
+
+  **Não fiz:** não rodei a varredura (é do Elber, é 🟢, e está na lista de medições da S4).
+  Não escrevi migration nem cron. Não toquei em `.ts`/`.tsx`. Não plantei card para a tabela de
+  histórico: criar tabela é decisão do Elber, e a saída (a) foi escolhida para não precisar
+  dela — fica escrito nos dois cards, não na fila.
+
+  **Estado agora:** a consulta do card **não mente mais** e pode ser rodada. **O bucket
+  continua exatamente como estava**: um documento real dentro, nenhum órfão conhecido, nenhum
+  órfão descartado — porque **ninguém contou ainda**.
+
+  **Descobri:** (1) a terceira cópia, no texto destinado à `0004`, que a SEC-083 não viu;
+  (2) que a correção do cast **cria** um ponto cego (objeto fora da convenção some da lista) e
+  que ele precisa da consulta complementar para não ficar silencioso; (3) que a T-018 não
+  copiava SQL, copiava **prosa** — o que é pior, porque prosa não dá erro de sintaxe e ninguém
+  a executa para descobrir que está errada.
+
+  **Bloqueios:** nenhum para código. Para **fechar o assunto órfão**, falta um gesto de 30
+  segundos do Elber: rodar as duas consultas no SQL Editor e colar o resultado no item 3.
+
+  **Próximo passo óbvio:** a **T-024**, que é o item 3 do DoD da F3 e o único que falta. A
+  varredura é do Elber e não disputa ordem com card nenhum.
+
+  **Docs que atualizei:** `docs/03-TAREFAS.md` (cards T-008, T-018 e T-021), `docs/04-RISCOS.md`
+  (R-042 e R-023), `docs/02-ESTADO.md`, `docs/05-DECISOES.md` (**DL-060**).
+
+  **Commits:** `(este)`
+
 
 ### T-007 — Onboarding do estabelecimento passa a persistir
 - **Estado:** ✅ **CONCLUÍDA em 20/09/2026.** Mergeada na `main` pelo **PR #2** (`eb6e2d6`) e **provada em tela pelo Elber** com conta de estabelecimento real — o último critério que estava aberto neste card. As três travas caíram, e as três por medição: ver o **adendo de fechamento** no fim deste card.
@@ -867,33 +957,63 @@ impede a T-023 de começar hoje.
   - **Não é o admin.** Não existe tela de Storage para o admin nos 3 meses, o bucket é privado, e mandar um humano caçar objeto no painel é como se perde documento de identidade de gente real.
   - **Não é cron.** Não há infraestrutura de job agendado neste projeto, e criar uma não está no `00-ESCOPO.md` §2. A varredura é **procedimento**, com dono e data, no item 3.
 
-  **3. Como um órfão é detectado depois de nascer: um `select` no SQL Editor — e ele só é possível porque a T-002 fixou o caminho `<uuid>/`.**
+  **3. Como um órfão é detectado depois de nascer: DOIS `select` no SQL Editor — e eles só são possíveis porque a T-002 fixou o caminho `<uuid>/`.**
   `storage.objects` é tabela, e `perfil_privado.documento_path` guarda exatamente o `name` do objeto (é o que o CHECK `perfil_privado_documento_do_dono` amarra). Então a varredura é um `left join`:
+
+  ⚠️ **Esta consulta vive AQUI e em lugar nenhum mais.** Nenhum outro card a copia: o card da
+  **T-018** aponta para este item em vez de repetir o SQL, porque duas cópias divergindo em
+  silêncio é o defeito de origem do **R-039**, e o **R-017** já apareceu três vezes neste projeto
+  por isso. **Corrigida em 21/09 pela T-021 (SEC-083).**
 
   ```sql
   -- VARREDURA DE ÓRFÃOS do bucket `documentos`. Só leitura. SQL Editor, produção.
-  select o.name                        as caminho,
-         split_part(o.name, '/', 1)    as dono_uuid,
-         o.created_at,
-         (o.metadata->>'size')::bigint as bytes,
-         case
-           when pf.id is null then 'CONTA APAGADA (R-023)'
-           when pp2.documento_path is null then 'ORFAO DO PASSO 8 (R-042)'
-           when o.created_at > pp2.documento_enviado_em then 'ORFAO DO PASSO 8, em reenvio (R-042)'
-           else 'VERSAO ANTERIOR DE REENVIO (esperado)'
-         end as classe
-    from storage.objects o
-    left join public.perfil_privado pp  on pp.documento_path = o.name
-    left join public.profiles       pf  on pf.id  = split_part(o.name, '/', 1)::uuid
-    left join public.perfil_privado pp2 on pp2.id = split_part(o.name, '/', 1)::uuid
-   where o.bucket_id = 'documentos'
-     and pp.id is null
-   order by o.created_at;
+  -- NÃO CLASSIFICA, de propósito (SEC-083 / T-021): devolve o que o dado sustenta
+  -- e quem lê decide. O cast para uuid roda DEPOIS do filtro, dentro da CTE.
+  with objetos as materialized (
+    select o.name                           as caminho,
+           split_part(o.name, '/', 1)::uuid as dono_uuid,
+           o.created_at,
+           (o.metadata->>'size')::bigint    as bytes
+      from storage.objects o
+     where o.bucket_id = 'documentos'
+       and split_part(o.name, '/', 1)
+           ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+  )
+  select ob.caminho,
+         ob.dono_uuid,
+         ob.created_at,
+         ob.bytes,
+         (pf.id is not null)      as dono_ainda_existe,
+         pp2.documento_path       as caminho_atual_da_linha,
+         pp2.documento_enviado_em as enviado_em_da_linha
+    from objetos ob
+    left join public.perfil_privado pp  on pp.documento_path = ob.caminho
+    left join public.profiles       pf  on pf.id  = ob.dono_uuid
+    left join public.perfil_privado pp2 on pp2.id = ob.dono_uuid
+   where pp.id is null
+   order by ob.dono_uuid, ob.created_at;
   ```
 
-  - **Zero linha = zero órfão.** É essa a medição que fecha o assunto no dia.
-  - ⚠️ **A classificação não é enfeite:** a `0003` §3 decidiu, por escrito, que **o caminho antigo NÃO é apagado no reenvio** (o admin pode precisar comparar o que aprovou com o que chegou depois). Logo, **todo reenvio legítimo aparece nesta varredura**. Sem a coluna `classe`, a varredura vira ruído e, três meses depois, ninguém a roda. `VERSAO ANTERIOR DE REENVIO` é esperado; as outras três classes são para agir.
+  **E o complemento, que é uma linha e mede o que a consulta acima esconde:** o filtro de uuid
+  deixa de fora todo objeto cujo primeiro segmento não seja uuid, e objeto fora da convenção
+  é **invisível** para a varredura. **Tem que dar zero.**
+
+  ```sql
+  -- O QUE A VARREDURA NÃO VÊ. Zero linha = convenção `<uuid>/` respeitada por todos.
+  select o.name, o.created_at
+    from storage.objects o
+   where o.bucket_id = 'documentos'
+     and split_part(o.name, '/', 1)
+         !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+  ```
+
+  - **Zero linha nas duas = zero órfão, e as duas juntas são a medição.** Uma sem a outra não é: a primeira lista o que nenhuma linha aponta, a segunda lista o que a primeira nem enxerga.
+  - ⚠️ **Por que NÃO existe coluna `classe`, e é isto que a T-021 corrigiu:** a `0003` §3 decidiu, por escrito, que **o caminho antigo NÃO é apagado no reenvio** (o admin pode precisar comparar o que aprovou com o que chegou depois). Logo **todo reenvio legítimo aparece nesta varredura** — e **nada no banco distingue "versão anterior de reenvio" de "órfão do passo 8"**, porque nenhuma tabela guarda histórico de caminhos. Tempo é tudo que há, e tempo não basta. A versão anterior desta consulta classificava por tempo e **errava exatamente o caso mais provável**: 10:00 sobe A, o processo morre entre o 7 e o 8; 10:05 sobe B e o 8 grava. A é **mais velho** que `documento_enviado_em`, caía no `else` e era rotulado *"VERSAO ANTERIOR DE REENVIO (esperado)"*. **O único órfão que a varredura existe para pegar era o que ela mandava ignorar.** Agora ela devolve `dono_uuid`, `created_at` e `enviado_em_da_linha` e **quem lê decide** — é a saída (a) da SEC-083, e é **uma linha a menos**, não a mais.
+  - **Como ler o resultado sem inventar certeza:** `dono_ainda_existe = false` → **conta apagada**, é o **R-023** e pede ação. `caminho_atual_da_linha is null` → a linha não aponta para documento nenhum, então **o objeto é órfão**, é o **R-042** e pede ação. **Com as duas preenchidas, o dado não diz qual é qual:** olhe `created_at` contra `enviado_em_da_linha` sabendo que **mais velho não quer dizer esperado**, e conte quantos objetos existem sob o mesmo `dono_uuid`. Órfão do passo 8 e versão anterior de reenvio **têm a mesma aparência no banco de hoje**, e a consulta não finge o contrário.
+  - ⚠️ **Distinguir os dois com certeza é MIGRATION, é 🔴, e é OUTRO CARD.** É a saída (b) da SEC-083: uma tabela que registre todo caminho gerado, escrita no passo 6 ou 7 da rota. Ela **não existe**, não se resolve nesta seção nem na T-018, e enquanto não existir **a varredura entrega dado, não veredito.** A T-021 **não a plantou como task de propósito:** criar tabela é decisão do Elber, e a saída (a) foi escolhida justamente para não precisar dela.
+  - **Por que o cast está dentro da CTE:** `split_part(o.name,'/',1)::uuid` dentro de um `left join` é avaliado sem garantia nenhuma de que o filtro de `bucket_id` veio antes, e **um único objeto com primeiro segmento que não seja uuid derrubava a query inteira** (`invalid input syntax for type uuid`) — a varredura inteira, não a linha. Filtrar por `bucket_id` **e** pelo `~*` de uuid numa CTE `materialized`, que é barreira de otimização no Postgres 12+, é o que faz o cast só ver linha que já passou pelos dois filtros.
   - **Quem roda e quando:** o Elber, no SQL Editor. **(a)** uma vez ao fechar a T-008, com o resultado colado no Resultado do card; **(b)** toda vez que a fila do admin da S4 mostrar *"documento não encontrado no armazenamento"*; **(c)** dentro da **T-018**, antes de a rotina de exclusão da F6/S11 existir.
+  - ⚠️ **A passada (a) NÃO foi feita.** A T-008 fechou em 20/09 e ninguém rodou a varredura; ela está na lista de medições da S4, em `02-ESTADO.md`. **Ela esperava a T-021 de propósito:** rodar a consulta antiga rotularia órfão real como esperado, e a medição que *"fecha o assunto no dia"* fecharia errado. Agora a consulta está corrigida e a medição pode ser feita.
   - **Rodar é 🟢** (é `select`). **Apagar o que ela encontrar é 🔴:** é destrutivo, é documento de identidade, e não acontece sem o Elber presente.
 
   **4. R-029 — o escopo, em uma frase, e ele não cresce aqui.** **A T-008 trata a recusa da guarda como falha nomeada** — compensa o objeto, não cai para `service_role`, e devolve mensagem dizendo que a conta está travada por dado de estabelecimento em linha de pessoa física e que isso é caso de suporte — **e escreve, no item 6, a frase que a `0004` tem que levar para dentro da exceção**. A T-008 **não** faz `create or replace` de `recusar_dado_de_estabelecimento_em_pessoa_fisica`: isso é migration, e migration é 🔴. E a regra de que trocar role de `clinic` obriga a limpar as três colunas **continua sendo do primeiro card que tocar `/api/admin/set-access`** — não é desta.
@@ -934,11 +1054,13 @@ impede a T-023 de começar hoje.
   --   compensação nem chega a rodar. Por isso ele tem que ser DETECTÁVEL, e é: o
   --   primeiro segmento do caminho é o uuid do dono (seção 3), então a varredura
   --   é um `left join` de `storage.objects` com `perfil_privado` por
-  --   `documento_path`. A consulta está no card da T-008 e no card da exclusão de
-  --   dados da F6 (T-018 / SEC-039). Reenvio legítimo aparece nela, porque o
-  --   caminho antigo não é apagado: a consulta classifica, e quem varre não
-  --   confunde as duas coisas. APAGAR o que ela encontrar é destrutivo e só
-  --   acontece com o Elber presente.
+  --   `documento_path`. A consulta vive num lugar só, o item 3 da seção "A ordem,
+  --   a compensação e a varredura" do card da T-008, e nenhum outro card a copia.
+  --   Reenvio legítimo aparece nela, porque o caminho antigo não é apagado, e ela
+  --   NÃO tenta classificar: nada no banco de hoje distingue "versão anterior de
+  --   reenvio" de "órfão do passo 8", então ela devolve `created_at` e
+  --   `documento_enviado_em` e quem varre decide (SEC-083 / T-021). APAGAR o que
+  --   ela encontrar é destrutivo e só acontece com o Elber presente.
   ```
 
   E, dentro da exceção da guarda `recusar_dado_de_estabelecimento_em_pessoa_fisica`, a `0004` acrescenta **esta frase** (R-029): *"Para destravar esta linha, um UPDATE que zere `cnpj`, `razao_social` e `responsavel_tecnico` passa: trocar o role de `clinic` para outro obriga a limpar as três."*

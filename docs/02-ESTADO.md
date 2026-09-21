@@ -4,8 +4,9 @@
 > Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
 >
 > **Última atualização:** 21/09/2026 (**PR #2 mergeado**; S3 fechada; **S4 aberta**; **R-001,
-> R-038, R-047 e R-053 fechados por medição**; **DL-059**) · **Fase:** F3 (S4) · **Commit base:**
-> `eb6e2d6` na `main`
+> R-038, R-047 e R-053 fechados por medição**; **T-023 commitada**; **T-021 fechada**;
+> **DL-059, DL-060**) · **Fase:** F3 (S4) · **Commit base:** `eb6e2d6` na `main`,
+> mais 5 commits locais **não empurrados** (push na `main` faz deploy e é gesto do Elber)
 
 ---
 
@@ -42,10 +43,11 @@ Elber). O **item 3** — *admin aprova, o profissional entra no dashboard e rece
 `01-PLANO.md` sempre o colocou. **Forçar o item 3 em dois dias é repetir o que gerou a dívida da
 S2, e chamar a fase de "concluída" com 5 de 6 é o R-034 outra vez.**
 
-**Fila da S4, nesta ordem:** **T-023** (a fila real do admin) → **T-024** (aprovar e reprovar
-com motivo, o email, `audit_logs` — **fecha o item 3**) → **T-025** (o caminho de volta ao
-onboarding, que o DL-046 promete e a interface **não oferece**: não existe um único `href` para
-`/onboarding` no código) → **T-021** (a varredura de órfãos parar de chamar órfão de esperado).
+**Fila da S4:** ✅ **T-021 fechada em 21/09** (doc) e 🟨 **T-023 commitada em 21/09** (`4a355b0`,
+auditada e aprovada, **esperando a prova em tela**). **Sobram duas:** **T-024** (aprovar e
+reprovar com motivo, o email, `audit_logs` — **fecha o item 3 do DoD**) → **T-025** (o caminho de
+volta ao onboarding, que o DL-046 promete e a interface **não oferece**: não existe um único
+`href` para `/onboarding` no código).
 **Correm por fora:** **T-017** 🔴, **T-020** 🟠, **T-022** (decisão) e **T-026**.
 
 🔴 **A T-017 continua sem data, pela quarta semana seguida, e o prazo duro dela é dentro da F3.
@@ -63,9 +65,11 @@ porque normalização vale na escrita — **R-055** e card **T-026**.
 sem E2E e o estabelecimento segue sem prova), **R-039**/**T-017**, **R-057** (origem do pedido
 nas rotas de documento), **R-036**, **R-032**, **R-054**, **R-055**.
 
-📏 **Três medições de 30 s, todas do Elber, que fecham item aberto:** a passada com conta `tutor`
-em `/app/veterinario` (fecha o item 4 do DoD ao pé da letra) · a varredura de órfãos da T-008
-(**depois** da T-021) · o `select` do WhatsApp sujo (T-026).
+📏 **Três medições de 30 s, todas do Elber, e nenhuma foi feita:** a passada com conta `tutor` em
+`/app/veterinario` (fecha o item 4 do DoD) · a **varredura de órfãos** (card da T-008, item 3 da
+seção 🔒) — **destravada pela T-021 em 21/09: a consulta parou de rotular órfão real como
+"esperado" (DL-060), são duas consultas, e zero linha nas duas é a medição; enquanto ninguém
+roda, R-042 e R-023 ficam abertos** · o `select` do WhatsApp sujo (T-026).
 
 ---
 
