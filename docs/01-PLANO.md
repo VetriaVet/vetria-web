@@ -35,6 +35,12 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 
 **Objetivo:** matar a casca. Tudo que a tela mostra passa a vir do banco.
 
+> ⚠️ **Estado em 21/09/2026: EM ANDAMENTO, 5 de 6 itens do DoD.** A S3 fechou em 20/09 com o
+> **PR #2** (`eb6e2d6`), que pôs T-007, T-016 e T-008 em produção. **O item 3 do DoD — admin
+> aprova, o profissional entra e recebe o email — não tem uma linha escrita** e é a S4 inteira.
+> **A fase não se declara concluída** (**DL-059**). O detalhe item por item, com a prova de cada
+> um, está em `03-TAREFAS.md`, no bloco de fechamento da S3.
+
 ### S1 — Fundação do schema 🔴
 - `0000_baseline.sql`: dump do schema que já existe em produção, versionado (fecha R-006).
 - Migration `0002`: `profiles.status` (enum) + `vet_profiles` + `clinic_profiles` + `contatos` + `audit_logs` + RLS + trigger `updated_at`.
@@ -58,7 +64,13 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 - Ao concluir: `status` vai de `incomplete` → `pending_validation` **no servidor**.
 - Playwright + CI (T-003, herdada da S1), em paralelo.
 
-### S3 — Portão de status
+### S3 — Portão de status ✅ **entregue em 20/09/2026** (`eb6e2d6`)
+> **O que a S3 entregou de fato:** **T-007** (o onboarding do estabelecimento persiste),
+> **T-016** (o portão de status e o isolamento de role por prefixo, fechando **R-001** e
+> **R-038** por prova em tela) e **T-008** (o upload do documento, e o bucket deixou de estar
+> vazio). Mais o `/ajuda` do DL-058, o pré-voo do `ci.yml` e a suíte de **15 para 40 testes**,
+> verdes no CI. ⚠️ **O onboarding do responsável** (primeiro item abaixo) **não foi feito** — não
+> tem item de DoD, e nenhum card da S3 o carregava. Continua casca, e continua sem card.
 - Onboarding do responsável passa a gravar nome e cidade em `profiles`, e o animal em `animais`
   (veio da S2).
 - `middleware.ts` reescrito: isolamento de role por prefixo de rota + bloqueio por `status`.
@@ -75,12 +87,27 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
   nenhum dos 6 itens do DoD da F3 depende dele. **Não há emenda a fazer.** Ver **DL-056**.
 
 ### S4 — Validação real pelo admin
+> **Aberta em 21/09/2026.** É **a última semana da F3** e carrega o **único item do DoD que
+> falta**, o 3. Os quatro bullets abaixo viraram dois cards por dependência real — **T-023**
+> (ler a fila e abrir o documento) e **T-024** (aprovar, reprovar com motivo, email e trilha) —
+> mais **T-025** (o caminho de volta ao onboarding, que o DL-046 promete e a interface não
+> oferece) e **T-021** (a varredura de órfãos parar de classificar órfão real como esperado).
+> ⬇️ **Recebidos de fora do plano original:** o **R-054** (`/admin/usuarios` para admin comum)
+> entra dentro da **T-023**, porque esta é a semana que cria a persona "admin comum"; e o
+> **R-051** (o motivo da reprova, que hoje ninguém lê) entra dentro da **T-024**, junto com quem
+> produz a reprova.
 - `/admin/validacoes` lê a fila real (`status = pending_validation`).
 - Detalhe da validação: vê os dados, abre o documento (URL assinada), aprova ou reprova com motivo.
 - Aprovar → `status = active` + email de aprovação. Reprovar → volta pra `incomplete` + email com o motivo.
 - `audit_logs`: toda ação de admin fica registrada.
 
 ### ✅ Definition of Done da F3 (verificável, não opinião)
+
+> **CONFERIDO ITEM POR ITEM EM 20/09/2026, com prova de cada um: 5 fechados, 1 aberto.**
+> **1** ✅ (as duas personas) · **2** ✅ (9 navegações em tela) · **3** ❌ **não tem uma linha
+> escrita, vai para a S4** · **4** ✅ o mecanismo, ⚠️ falta a passada literal com conta `tutor`
+> · **5** 🟡 parcial (40 testes verdes, mas o item 1 segue sem E2E — R-033) · **6** ✅ zero 🔴
+> em três relatórios. **A tabela com a medição de cada item está em `03-TAREFAS.md`.**
 1. Cadastro novo de veterinário → onboarding preenchido → sair e voltar → **os dados estão lá**.
 2. Esse veterinário vê a tela "aguardando" e **não consegue** entrar no dashboard.
 3. Admin aprova → o veterinário entra no dashboard e recebe o email.

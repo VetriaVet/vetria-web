@@ -531,3 +531,50 @@ continua alcançando **só** `/bloqueado`.
   continua nascendo `SO_ATIVO`, e a saída continua sendo escrever a linha na matriz antes de
   mexer no código. O que mudou é que esta linha deixou de ser lacuna.
 **Status:** ✅ decidida na matriz · ⬜ **código ainda não alterado** — critério no card da T-016
+
+---
+
+### DL-059 — A F3 fecha com 5 de 6 itens do DoD, e o roadmap diz "em andamento", não "concluída"
+**Data:** 20/09/2026 · **Fase/Task:** F3 / fechamento de fase · **Commit:** `eb6e2d6` (o código);
+esta passagem de docs, para o registro
+**Contexto:** o PR #2 entrou na `main` em 20/09 com T-007, T-016 e T-008, e o `vetria-maestro`
+percorreu o Definition of Done da F3 item por item, exigindo prova de cada um. **Cinco fecharam
+com medição escrita** — prova em tela do Elber com conta real (9 navegações do portão, upload
+ponta a ponta, `select` das três colunas do documento, R-047 medido zero) e o CI rodando **40
+testes verdes** pela primeira vez. **O item 3 — *admin aprova, o profissional entra no dashboard
+e recebe o email* — não tem uma linha escrita.** `/admin/validacoes` continua casca. A pergunta
+que sobrou foi: a F3 se declara concluída assim mesmo, ou não?
+**Decisão do Elber, com recomendação do `vetria-maestro`: a F3 NÃO se declara concluída.** Ela
+fica **em andamento, 5 de 6**, e o item 3 vai para a **S4** — que é exatamente onde o
+`01-PLANO.md` §S4 sempre o colocou. **Não é escorregão de escopo:** é a fase acabando com a
+semana que faltava dentro dela.
+**Por quê, nas duas razões que sustentam isto:**
+1. **Forçar o item 3 em dois dias é repetir o que produziu a dívida da S2.** Código escrito no
+   limite, sem tempo de prova, parado na árvore. O custo disso está medido: **a `main` ficou 20
+   dias sem receber código**, de `e07f967` (31/08) a `eb6e2d6` (20/09). O item 3 escreve
+   `profiles.status` de terceiro e dispara email — é o tipo de coisa que não se prova com pressa.
+2. **Declarar "concluída" com 5 de 6 é o R-034 outra vez.** Doc que afirma mais do que aconteceu
+   é o mecanismo pelo qual este projeto já perdeu duas auditorias de vista e dimensionou task
+   errada. **Fase não fecha por gentileza.**
+**Alternativas descartadas:**
+- **Empurrar o item 3 para a F4.** Recusada: a F4 é o motor B2C, e **busca sem validação é busca
+  vazia** — o `00-ESCOPO.md` §2 E4 diz *"só aparece quem tem `status = active`"*, e hoje **nada
+  no produto move alguém para `active`**. Adiar o item 3 é adiar a F4 inteira, sem dizer isso.
+- **Declarar a fase concluída e abrir um "card residual".** Recusada pelo nome: card residual é
+  como item de DoD vira dívida sem dono.
+- **Cortar o email e fechar o item 3 só com o `status`.** Recusada: o item 3 diz *"e recebe o
+  email"*, os 3 emails do app já estão versionados esperando esta fase, e o Resend já está
+  verificado. Cortar aqui economizaria horas e custaria o critério.
+**Implicações:**
+- **O `/roadmap`, que é a janela dos donos, passa a dizer F3 EM ANDAMENTO — 5 de 6, item 3 na
+  S4.** A regra da casa manda ressincronizar o roadmap a cada fechamento de fase; **esta fase não
+  fechou**, então o que muda é o andamento, não o carimbo. **É código (`app/roadmap/page.tsx`) e
+  não foi editado nesta passagem** — está no handoff, com o texto sugerido.
+- **A S4 abre com o item 3 no topo**, partido em dois cards por dependência real: **T-023** (ler
+  a fila e abrir o documento) e **T-024** (aprovar, reprovar com motivo, email e `audit_logs`).
+- **O buffer da S13 continua intacto.** Nada foi empurrado para fora da F3 por esta decisão: o
+  item 3 estava na S4 desde o `01-PLANO.md` original.
+- ⚠️ **O que esta decisão NÃO resolve:** a **T-017** (🔴, migration) continua sem data pela quarta
+  semana seguida, e o prazo duro dela é **dentro da F3**. Se a F3 terminar sem ela, isso vira
+  decisão nova e explícita, não silêncio.
+**Status:** ✅ decidida
