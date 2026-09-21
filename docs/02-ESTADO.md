@@ -5,8 +5,9 @@
 >
 > **Última atualização:** 21/09/2026 (**PR #2 mergeado**; S3 fechada; **S4 aberta**; **R-001,
 > R-038, R-047 e R-053 fechados por medição**; **T-023 commitada**; **T-021 fechada**;
-> **DL-059, DL-060**) · **Fase:** F3 (S4) · **Commit base:** `eb6e2d6` na `main`,
-> mais 5 commits locais **não empurrados** (push na `main` faz deploy e é gesto do Elber)
+> **DL-059, DL-060**) · **Fase:** F3 (S4) · **Último commit em produção:** `eb6e2d6`.
+> ⚠️ **A `main` local está à frente da `origin/main` e nada foi empurrado:** push na `main`
+> dispara deploy, e o gesto é do Elber. `git log origin/main..HEAD --oneline` diz quanto.
 
 ---
 
