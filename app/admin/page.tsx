@@ -1,40 +1,32 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "../../lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/admin";
 
 export const metadata = {
   title: "Admin",
 };
 
+// ⚠️ R-054 (T-023) — `soMaster` existe porque a matriz §2 dá ❌ a admin comum
+// em `/admin/usuarios`. A página já recusa no servidor (`requireMaster`); este
+// filtro é só honestidade de interface: cartão que leva a um redirect é um
+// botão morto com outro nome.
 const SECOES = [
-  { href: "/admin/usuarios", label: "Usuários", desc: "Gerencie role e nível de acesso." },
-  { href: "/admin/validacoes", label: "Validações", desc: "Aprove CRMV de veterinários e estabelecimentos." },
-  { href: "/admin/moderacao", label: "Moderação", desc: "Avaliações e conteúdo reportado." },
-  { href: "/admin/conteudo", label: "Conteúdo", desc: "Especialidades e textos da plataforma." },
+  { href: "/admin/usuarios", label: "Usuários", desc: "Gerencie role e nível de acesso.", soMaster: true },
+  { href: "/admin/validacoes", label: "Validações", desc: "Veterinários e estabelecimentos esperando validação.", soMaster: false },
+  { href: "/admin/moderacao", label: "Moderação", desc: "Avaliações e conteúdo reportado.", soMaster: false },
+  { href: "/admin/conteudo", label: "Conteúdo", desc: "Especialidades e textos da plataforma.", soMaster: false },
 ];
 
 export default async function AdminPage() {
-  const supabase = await createClient();
-
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, admin_level, admin_team")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role !== "admin") redirect("/app");
+  const { adminLevel, adminTeam, ehMaster } = await requireAdmin();
+  const secoes = SECOES.filter((s) => !s.soMaster || ehMaster);
 
   return (
     <div>
       <header className="bg-[#0F1F22]/90 backdrop-blur border-b border-white/[0.06] px-6 py-4 sticky top-0 z-10 flex items-center justify-between">
         <h1 className="font-bold text-lg text-white">Dashboard administrativo</h1>
         <span className="text-[12px] text-white/50">
-          level: <b className="text-white/80">{profile.admin_level ?? "-"}</b> · team:{" "}
-          <b className="text-white/80">{profile.admin_team ?? "-"}</b>
+          level: <b className="text-white/80">{adminLevel ?? "-"}</b> · team:{" "}
+          <b className="text-white/80">{adminTeam ?? "-"}</b>
         </span>
       </header>
 
@@ -49,7 +41,7 @@ export default async function AdminPage() {
 
         {/* Seções */}
         <div className="grid sm:grid-cols-2 gap-3">
-          {SECOES.map((s) => (
+          {secoes.map((s) => (
             <Link
               key={s.href}
               href={s.href}

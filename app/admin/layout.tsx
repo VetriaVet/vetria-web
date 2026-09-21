@@ -1,22 +1,44 @@
 import Link from "next/link";
 import Image from "next/image";
 import LogoutButton from "../app/LogoutButton";
+import { createClient } from "@/lib/supabase/server";
 
 // Admin tem layout próprio (dark/denso, DL-022 não se aplica — linguagem distinta).
 
+// ⚠️ R-054 (T-023) — `soMaster` é a última linha da matriz de rotas (§2):
+// `/admin/usuarios` é ❌ para admin comum. Quem recusa de verdade é o
+// `requireMaster()` da própria página; esconder o item aqui é só não deixar no
+// menu um link que leva a um redirect.
 const NAV_OPERACAO = [
-  { label: "Dashboard", href: "/admin", enabled: true },
-  { label: "Usuários", href: "/admin/usuarios", enabled: true },
-  { label: "Validações", href: "/admin/validacoes", enabled: true },
-  { label: "Moderação", href: "/admin/moderacao", enabled: true },
-  { label: "Conteúdo", href: "/admin/conteudo", enabled: true },
+  { label: "Dashboard", href: "/admin", enabled: true, soMaster: false },
+  { label: "Usuários", href: "/admin/usuarios", enabled: true, soMaster: true },
+  { label: "Validações", href: "/admin/validacoes", enabled: true, soMaster: false },
+  { label: "Moderação", href: "/admin/moderacao", enabled: true, soMaster: false },
+  { label: "Conteúdo", href: "/admin/conteudo", enabled: true, soMaster: false },
 ];
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Uma leitura de `admin_level`, só para desenhar o menu. Ela NÃO autoriza
+  // nada: quem autoriza é o `requireMaster()` de `/admin/usuarios`. Se a
+  // leitura falhar, o item some (errar fechado) e a página continua sendo a
+  // única dona da decisão.
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const { data: perfil } = userData.user
+    ? await supabase
+        .from("profiles")
+        .select("admin_level")
+        .eq("id", userData.user.id)
+        .single<{ admin_level: string | null }>()
+    : { data: null };
+
+  const ehMaster = perfil?.admin_level === "master";
+  const navegacao = NAV_OPERACAO.filter((item) => !item.soMaster || ehMaster);
+
   return (
     <div className="grid lg:grid-cols-[240px_1fr] min-h-screen bg-[#0F1F22] text-gray-200">
       <aside className="bg-[#0A1517] border-r border-white/[0.06] p-4 flex flex-col">
@@ -31,7 +53,7 @@ export default function AdminLayout({
           Operação
         </div>
         <nav className="flex flex-col gap-px">
-          {NAV_OPERACAO.map((item) =>
+          {navegacao.map((item) =>
             item.enabled && item.href ? (
               <Link
                 key={item.label}
