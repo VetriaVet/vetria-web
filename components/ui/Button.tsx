@@ -1,4 +1,6 @@
-import { ButtonHTMLAttributes } from "react";
+"use client";
+
+import { ButtonHTMLAttributes, ReactNode, useSyncExternalStore } from "react";
 
 // Variantes extraídas das telas de produção (login/onboarding):
 // - primary: botão de CTA (submit) — bg-principal
@@ -9,12 +11,20 @@ type Variant = "primary" | "google";
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   loading?: boolean;
+  /** Estado final: o botão vira um check. Mantém o botão desabilitado. */
+  success?: boolean;
+  /** Encolhe o botão para um disco enquanto envia (opt-in, funis de cadastro). */
+  collapse?: boolean;
 }
 
-// Classes EXATAS das telas (sem `mt-2`, que é espaçamento contextual do form).
+// Altura travada: é exatamente a altura que o botão tinha com `py-3.5`
+// (14 + 22 + 14). Sem ela, empilhar rótulo/spinner/check em `absolute`
+// zeraria o conteúdo em fluxo e o botão perderia altura no meio do clique.
+const DISCO = 51;
+
 const variantClasses: Record<Variant, string> = {
   primary:
-    "w-full rounded-pill bg-principal text-white py-3.5 font-semibold text-[15px] hover:bg-[#142E33] transition disabled:opacity-50",
+    "relative w-full overflow-hidden rounded-pill text-white px-6 py-3.5 min-h-[51px] inline-flex items-center justify-center font-semibold text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-principal/40 focus-visible:ring-offset-2",
   google:
     "w-full rounded-pill bg-titulo text-white py-3.5 px-6 inline-flex items-center justify-center gap-3 font-medium hover:bg-black/90 disabled:opacity-60 transition",
 };
@@ -22,30 +32,105 @@ const variantClasses: Record<Variant, string> = {
 export function Button({
   variant = "primary",
   loading = false,
+  success = false,
+  collapse = false,
   disabled,
   className = "",
   children,
   type = "button",
+  style,
   ...props
 }: ButtonProps) {
+  const semMovimento = usePrefersReducedMotion();
+
+  if (variant === "google") {
+    return (
+      <button
+        type={type}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
+        className={[variantClasses.google, className].filter(Boolean).join(" ")}
+        style={style}
+        {...props}
+      >
+        {!loading && <GoogleIcon />}
+        {loading ? <Spinner girando={!semMovimento} /> : children}
+      </button>
+    );
+  }
+
+  // Com `prefers-reduced-motion`, nada encolhe e nada gira: só o estado troca.
+  const encolhe = collapse && !semMovimento;
+  const disco = encolhe && (loading || success);
+
+  const classes = [
+    variantClasses.primary,
+    success
+      ? "bg-success"
+      : "bg-principal hover:bg-principal-deep",
+    disabled && !loading && !success ? "opacity-50" : "",
+    encolhe ? "mx-auto" : "",
+    semMovimento
+      ? "transition-colors duration-200"
+      : "transition-[max-width,padding,background-color] duration-[420ms] ease-[var(--ease-vetria)]",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <button
       type={type}
-      disabled={disabled || loading}
+      disabled={disabled || loading || success}
       aria-busy={loading || undefined}
-      className={[variantClasses[variant], className].filter(Boolean).join(" ")}
+      className={classes}
+      style={
+        encolhe
+          ? {
+              maxWidth: disco ? `${DISCO}px` : "100%",
+              paddingInline: disco ? 0 : undefined,
+              ...style,
+            }
+          : style
+      }
       {...props}
     >
-      {variant === "google" && !loading && <GoogleIcon />}
-      {loading ? <Spinner /> : children}
+      {/* As três camadas ficam empilhadas para que a largura do botão não
+          dependa do conteúdo: quem manda na largura é só a animação. */}
+      <Camada visivel={!loading && !success}>{children}</Camada>
+      <Camada visivel={loading}>
+        <Spinner girando={!semMovimento} />
+      </Camada>
+      <Camada visivel={success}>
+        <Check desenhado={success} animar={!semMovimento} />
+      </Camada>
     </button>
   );
 }
 
-function Spinner() {
+function Camada({
+  visivel,
+  children,
+}: {
+  visivel: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className={[
+        "absolute inset-0 flex items-center justify-center gap-2 px-5 whitespace-nowrap pointer-events-none transition-opacity duration-200 ease-[var(--ease-vetria)] motion-reduce:transition-none",
+        visivel ? "opacity-100" : "opacity-0",
+      ].join(" ")}
+    >
+      {children}
+    </span>
+  );
+}
+
+function Spinner({ girando = true }: { girando?: boolean }) {
   return (
     <svg
-      className="animate-spin"
+      className={girando ? "animate-spin" : undefined}
       width="18"
       height="18"
       viewBox="0 0 24 24"
@@ -68,6 +153,50 @@ function Spinner() {
         className="opacity-90"
       />
     </svg>
+  );
+}
+
+// O traço tem ~23 unidades; 24 de dasharray cobre o caminho inteiro.
+// Sem animação (`prefers-reduced-motion`) o check já nasce inteiro: quem o
+// esconde é a opacidade da camada, nunca o dash. Escondê-lo pelo dash aqui
+// deixava o botão verde e VAZIO para quem pediu menos movimento.
+function Check({ desenhado, animar }: { desenhado: boolean; animar: boolean }) {
+  const porDesenhar = animar && !desenhado;
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 12 9 17 20 6"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{
+          strokeDasharray: 24,
+          strokeDashoffset: porDesenhar ? 24 : 0,
+          transition: animar
+            ? "stroke-dashoffset 320ms var(--ease-vetria) 140ms"
+            : undefined,
+        }}
+      />
+    </svg>
+  );
+}
+
+const CONSULTA_MOVIMENTO = "(prefers-reduced-motion: reduce)";
+
+function assinarMovimento(aoMudar: () => void) {
+  const mq = window.matchMedia(CONSULTA_MOVIMENTO);
+  mq.addEventListener("change", aoMudar);
+  return () => mq.removeEventListener("change", aoMudar);
+}
+
+// Lido pelo `useSyncExternalStore` para não virar setState dentro de efeito.
+// No servidor a resposta é `false`: a animação só existe depois da hidratação.
+function usePrefersReducedMotion() {
+  return useSyncExternalStore(
+    assinarMovimento,
+    () => window.matchMedia(CONSULTA_MOVIMENTO).matches,
+    () => false,
   );
 }
 

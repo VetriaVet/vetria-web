@@ -17,7 +17,7 @@
 - **Por que importa mais a partir de agora:** hoje as telas são casca e não mostram dado de ninguém. A partir da F3 elas mostram CRMV, CNPJ e documento. O custo do furo muda de categoria.
 - **Contradiz:** `VETRIA_PROJETO.md` §3 — "multi-persona com isolamento total, sem acesso cruzado".
 - **Corrige em:** F3 / S3 (reescrita do middleware)
-- **Task:** a criar na S3
+- **Task:** **T-016**, aberta em 09/09. Ela leva o R-001 junto: **uma reescrita de RBAC, não duas** — mexer no middleware duas vezes em duas semanas é como um furo passa despercebido
 
 ## 🟠 ABERTOS — ALTOS
 
@@ -52,9 +52,359 @@
 - **Regra:** **nunca** servir SVG de origem de usuário por `next/image`. Upload de imagem de usuário aceita só raster (jpg/png/webp).
 - **Corrige em:** F3 / S2 — **T-008**, como validação de MIME no upload. O CHECK de `documento_path` já barra `.svg` no banco (SEC-026); falta barrar no servidor, antes de o arquivo existir.
 
+### R-038 — O portão de status da matriz §4 não existe em lugar nenhum do código (SEC-059)
+- **Descoberto:** 09/09/2026, revisão independente da T-006 (R-034)
+- **Onde:** `lib/auth/painel.ts:13-18` · `middleware.ts:31-51` ·
+  `app/app/veterinario/(painel)/aguardando/page.tsx:6`
+- **O quê:** `requirePainel` seleciona **uma** coluna, `role`. Nenhuma das 8 páginas do painel do
+  vet lê `profiles.status`. A matriz §4 diz que `incomplete` alcança só `/onboarding` e que
+  `pending_validation` alcança só `/aguardando`, `/perfil` e `/configuracoes`, **bloqueado no
+  servidor**. Hoje um vet `incomplete` digita `/app/veterinario/contatos` e a página renderiza.
+- **Agravante:** `actions.ts:366` faz `depois?.status ?? perfil.status`; se a releitura falhar,
+  o próprio caminho de sucesso deposita no painel quem acabou de entrar na fila.
+- **Impacto hoje: nenhum** (as 8 páginas são casca). **Vira 🔴 no dia em que `/contatos` mostrar
+  lead real e `/plano` mostrar cobrança.**
+- ⚠️ **É o R-034 se repetindo:** o único registro deste controle é um comentário de código
+  apontando para **TASK-032**, em `BACKLOG.md`, que está **congelado**. Não havia card nem risco.
+- **T-007 herda integralmente** (`(painel)/` do estabelecimento é idêntico, mais `equipe`).
+- **Task:** **T-016**. Junta com R-001 na reescrita de RBAC da S3.
+
+### R-039 — A Server Action é a única que valida conteúdo, e não é a única que escreve (SEC-060)
+- **Descoberto:** 09/09/2026, revisão independente da T-006 (R-034)
+- **Onde:** `campos.ts:1-15` e `actions.ts:184-236` contra `0002_nucleo.sql:238-262` e `:517-524`
+- **O quê:** `campos.ts:5-8` declara que a whitelist mora no servidor porque "senão a busca herda
+  lixo". As colunas de `vet_profiles` **não têm um único CHECK**, e o WITH CHECK de
+  `vet_profiles_update_own` pina **só `id` e `slug`**. O dono faz PATCH direto pelo PostgREST
+  (anon key e token estão no bundle, `lib/supabase/browser.ts:5-6`) e grava `estado = 'ZZ'`,
+  milhares de especialidades e megabytes de `bio` — **em tabela de leitura pública** — e, como o
+  trigger de revalidação vigia só `crmv`/`crmv_uf`/`nome_exibicao`, **continua `active` e sem
+  `audit_logs`**.
+- **Não é escalada:** `status`, `role`, `admin_level` e `slug` seguem pinados. Ninguém entra na
+  busca sem validação por esta porta, e nenhum dado cruza usuário. Por isso 🟠 e não 🔴.
+- ⚠️ **T-007 herda e piora:** `clinic_profiles` tem a policy gêmea e tem **`site`**, declarada
+  *"PÚBLICA por decisão. É vitrine"* (`0003:1301`) — **URL escrita pelo dono, sem validação de
+  esquema, destinada a virar link na F4/S7. `javascript:` passa.**
+- **Correção é migration (🔴, presencial):** CHECK/domain nas colunas de faceta e teto nas de
+  texto, **ou** revogar UPDATE do dono e escrever tudo por RPC `SECURITY DEFINER`.
+- **Task:** **T-017**
+
 ---
 
 ## 🟡 ABERTOS — MÉDIOS
+
+### R-040 — `onboarding_completed` é escrito pelo próprio usuário e é o sinal em que o app roteia (SEC-061)
+- **Descoberto:** 09/09/2026, revisão independente da T-006 (R-034)
+- **Onde:** `0000_baseline.sql:193-207` · `app/app/page.tsx:20` ·
+  `app/app/estabelecimento/onboarding/page.tsx:23,45`
+- **O quê:** a policy `profiles_update_own_safe_fields` pina role, admin_level, admin_team,
+  status e status_motivo, e **não pina `onboarding_completed`** — de propósito, quando a coluna
+  era autodeclaração de tela casca. Só que `admin_definir_status` a usa como **mecanismo de
+  reprova** (`0002:697-711`), e o `/app` roteia por ela. **O próprio repo é a prova de conceito:**
+  `estabelecimento/onboarding/page.tsx:45` escreve a coluna com a sessão do usuário, hoje, em
+  produção.
+- **Nada cruza usuário e nada entra na busca** (o `status` segue pinado). O que cai é o canal
+  pelo qual o admin comunica a reprova. **Por isso 🟡.**
+- **Correção barata, sem migration:** `app/app/page.tsx:20` passa a rotear por `profiles.status`,
+  que é o que a T-006 já fez no guard dela (`onboarding/page.tsx:42-79`).
+- ⚠️ **A T-007 decide isto sem perceber:** o arquivo que ela reescreve tem os dois usos. Clonar o
+  `page.tsx` do veterinário resolve; "preservar a lógica existente" perpetua. **E a Server Action
+  inline daquele arquivo (linhas 33-59) confere sessão e NÃO confere role** — a T-007 tem que
+  apagar esse padrão, não clonar.
+
+### R-041 — `whatsapp` gravado sem formato, sem normalização e sem verificação (SEC-062)
+- **Descoberto:** 09/09/2026, revisão independente da T-006 (R-034)
+- **Onde:** `actions.ts:154,235-236,293` · `campos.ts:64` · coluna `text` sem CHECK
+  (`0002:294`)
+- **O quê:** a única regra é o teto de 24 caracteres. Sem dígitos obrigatórios, sem normalização
+  (o mesmo número vira três strings), sem posse. Pelo **DL-047** o servidor **devolve esse valor**
+  no evento de contato e conta a linha em `contatos` como lead entregue.
+- **Não confundir com R-036:** aquele diz que o campo é opcional (decisão de produto). Este diz
+  que, **quando preenchido, ninguém olha o que é.**
+- **Vence quando a rota de contato da F4 precisar montar um `wa.me`** a partir de string que pode
+  não ser dígito. Normalizar depois de haver base gravada em três formatos custa muito mais.
+- **T-007 herda** (mesmas colunas, e no estabelecimento há fixo, 0800 e ramal).
+
+### R-042 — Três escritas, nenhuma transação, e a T-008 é onde isso vira documento órfão (SEC-063)
+- **Descoberto:** 09/09/2026, revisão independente da T-006 (R-034)
+- **Onde:** `actions.ts:247-269`, `287-297`, `313-351`
+- **O quê:** a Action faz três idas ao banco sem transação e sem compensação. **Na T-006 o efeito
+  é baixo e autocorrigível** (linha em `vet_profiles` sem `perfil_privado`, status ainda
+  `incomplete`, a pessoa volta e conclui). **Por isso 🟡.**
+- ⚠️ **A T-008 herda MUITO pior.** Pelo **DL-055** (ver R-031), o passo 7 escreve o objeto no
+  bucket com `service_role` e o passo 8 grava a linha com a sessão do usuário: **dois sistemas
+  diferentes.** Passo 7 grava, passo 8 é recusado (CHECK all-or-nothing, guarda da SEC-044, hash
+  malformado) = **documento de identidade órfão no bucket, sem linha dizendo de quem é.** É o
+  **R-023** inteiro nascendo na criação em vez de na exclusão.
+- **O card da T-008 precisa dizer, por escrito, em que ordem os passos 7 e 8 rodam e quem apaga
+  o objeto quando o 8 falha.** Hoje não diz nem uma coisa nem outra.
+- ✅ **09/09 — a pergunta FECHOU no card da T-008** (seção 🔒 *A ordem, a compensação e a
+  varredura*), pelo `vetria-maestro`: **ordem 7 → 8** (objeto antes da linha), **compensação na
+  própria rota** com o `service_role` do passo 7 e marca `DOCUMENTO_ORFAO` no log quando a
+  compensação também falha, e **varredura por `left join` de `storage.objects` com
+  `perfil_privado`**, possível só porque o caminho começa pelo uuid do dono (T-002). Custo
+  aceito, escrito no card: **o órfão continua possível** se o processo morrer entre o 7 e o 8.
+- ⚠️ **O risco continua ABERTO, e é honesto dizer por quê:** o que fechou foi o contrato. Nada
+  disso existe em código até a T-008 rodar, e o texto que a `0004` tem que carregar (R-031)
+  também não existe em arquivo nenhum ainda.
+
+### R-043 — Nenhum registro de consentimento na coleta, e a T-007 coleta dado de TERCEIRO (SEC-064)
+- **Descoberto:** 09/09/2026, revisão independente da T-006 (R-034)
+- **Onde:** `VetOnboardingForm.tsx:294-302` contra `actions.ts:247-304`
+- **O quê:** a tela afirma *"Seus dados são protegidos pela LGPD"* e não há checkbox, versão de
+  termo, coluna nem linha em `audit_logs`. **Não é explorável: é lacuna de conformidade**, e a
+  rotina de exportação da F6 não vai ter o que exportar sobre consentimento.
+- ⚠️ **Na T-007 muda de natureza, e por isso não espera a F6:** o formulário do estabelecimento
+  coleta `responsavel_tecnico`, que o `comment on column` da `0003:1290` descreve como *"PESSOA
+  FÍSICA, que pode nem ser a titular da conta e nunca consentiu em virar dado público"*. **A T-007
+  é o primeiro ponto do produto em que a Vetria coleta dado pessoal de alguém que não está na
+  tela.** Custa um parágrafo na tela agora.
+
+### R-044 — `perfil_privado.whatsapp` passa a ter dois formatos incompatíveis na mesma coluna (SEC-065)
+- **Descoberto:** 09/09/2026, revisão do clone da T-007 (`SEC-2026-09-09-T007-revisao.md`)
+- **Onde:** `estabelecimento/onboarding/actions.ts:110-113` e `117-149` contra
+  `veterinario/onboarding/actions.ts:154` e `293`
+- **O quê:** a T-007 corrigiu a SEC-062 do lado do estabelecimento e o veterinário continuou como
+  estava. A partir do merge a mesma coluna guarda **dígitos puros sem DDI** nas linhas `clinic` e
+  **a string crua digitada** nas linhas `vet`. O comentário do arquivo novo chama isso de
+  "contrato do que fica gravado", no singular — e ele vale pra metade da tabela.
+- **Como se manifesta:** a rota de contato do DL-047 monta `wa.me/55` + valor sem saber de que
+  tipo é a linha, e produz link quebrado pra todo vet que digitou `(63) 99999-9999`.
+- ⚠️ **É o mecanismo do R-034 outra vez:** garantia que existe só em comentário, e quem escrever a
+  rota da F4 vai acreditar nela.
+- **Direção:** aplicar `normalizarWhatsapp` também no vet e fazer backfill, ou mover a
+  normalização pro banco. Enquanto não: o comentário tem que dizer que vale só pra `clinic`.
+- **Prazo:** antes da rota de contato da F4. **Candidato a card próprio, 🟡, pequeno.**
+
+### R-045 — A declaração de autorização do responsável técnico não é registrada, e a tela promete remoção que não existe (SEC-066)
+- **Descoberto:** 09/09/2026, revisão do clone da T-007
+- **Onde:** `ClinicOnboardingForm.tsx:180-185`
+- **O quê:** a frase que o card pediu está lá e está bem escrita, mas é **copy**: sem checkbox,
+  sem coluna, sem versão de termo, sem linha em `audit_logs`, e o consentimento não é condição de
+  envio. E ela promete que o dado *"pode ser removido a pedido"* — **não existe rotina de remoção
+  (F6/S11) nem canal registrado pro pedido.**
+- **Não bloqueou o merge:** o card pediu uma frase e a frase foi entregue. Consentimento
+  versionado é F6 por decisão registrada.
+- **Direção:** o barato agora é a frase parar de prometer processo inexistente. Carimbar
+  `responsavel_tecnico_declarado_em` seria migration (🔴).
+
+### R-046 — `perfil_privado.cnpj` não tem unicidade: duas contas reivindicam a mesma empresa (SEC-067)
+- **Descoberto:** 09/09/2026, revisão do clone da T-007
+- **Onde:** `estabelecimento/onboarding/actions.ts:162-180` e `393` contra `0003:812-815`
+- **O quê:** `normalizarCnpj` confere formato e diz por escrito que não confere dígito
+  verificador. O que ninguém confere é se aquele CNPJ **já pertence a outra conta**: não há índice
+  único e não há checagem na Action. CNPJ é dado público na Receita.
+- **Como explorar:** conta `clinic` nova pelo funil público, CNPJ de um concorrente, concluir. A
+  conta entra na fila de validação com a identidade de outra empresa, ao lado da legítima.
+- **Não há exposição pública** enquanto ninguém está `active` — por isso 🟡. O controle que segura
+  é humano e ainda não existe: o admin da S4 conferindo o documento da T-008.
+- **Direção:** índice único parcial é migration (entra na conversa da **T-017**). O barato é uma
+  linha no card da S4: o admin compara CNPJ com documento, e a fila mostra se o CNPJ repete.
+
+### R-047 — Contas `clinic` órfãs da Action inline que a T-007 apaga (SEC-068)
+- **Descoberto:** 09/09/2026, revisão do clone da T-007
+- **Onde:** `app/app/page.tsx:20-24` (não tocado pela T-007) × o guard novo em
+  `estabelecimento/onboarding/page.tsx:70-73`
+- **O quê:** a Action inline que está em produção hoje escreve `onboarding_completed = true` e
+  **não move o `status`**. Uma conta `clinic` que clicou em "Concluir" depois de 26/08 está com
+  `onboarding_completed = true` **e** `status = 'incomplete'`, sem linha em `clinic_profiles`.
+  Depois do merge, `/app` lê `onboarding_completed`, vê `true`, e manda essa conta pro painel —
+  que não lê `status` (R-038) e renderiza. **Nada nunca a leva ao onboarding novo, e ela nunca
+  chega à fila de validação.**
+- **Por que dói:** é o objetivo declarado da T-007 falhando **sem erro, sem log e sem sintoma**.
+- ⚠️ **MEÇA ANTES DE SUBIR, é um `select`:**
+  `select count(*) from profiles where role='clinic' and onboarding_completed and status='incomplete';`
+  **Zero** → fecha com a medição escrita. **Mais que zero** → é um `update` de uma linha, 🔴,
+  sessão presencial. **Não é conserto de código.**
+- ✅ **09/09 — a medição virou linha em dois cards**, para não morrer aqui dentro: no da **T-007**
+  (bloco *Antes do deploy*, junto com o R-048) e no da **T-008** (item 5 da seção 🔒), este como
+  regra geral: **antes de qualquer deploy que mude roteamento de onboarding, conte primeiro.**
+  É o mesmo padrão do R-042 em outro lugar: falha que não tem sintoma só se descobre contando.
+- ⚠️ **15/09 — este risco ficou SOZINHO como condição pré-deploy da T-007.** O R-048, que era o
+  outro par, **caiu por medição** (ver ✅ FECHADOS). Fora das duas travas que são do Elber por
+  natureza (aprovar o diff e a prova de persistência), **o R-047 é a única coisa que segura o
+  deploy** — e continua sendo um `select` de dez segundos. **Ele não foi medido até hoje.**
+- 🚢 **16/09 — O CONSERTO 🔴 DEIXOU DE SER NECESSÁRIO, POR ORDEM DE DEPLOY. A MEDIÇÃO NÃO.**
+  Decisão do `vetria-maestro`, **DL-057**, tabela de custo no cabeçalho da fila da S3 em
+  `03-TAREFAS.md`.
+  - **O que mudou:** o `vetria-backend` descobriu na T-016 que o órfão daqui é órfão **porque
+    `/app` lia a coluna errada**. Com `app/app/page.tsx` roteando por `profiles.status`, a
+    conta órfã é mandada para o **onboarding**, e não mais para o painel; o guard da T-007
+    aceita `incomplete`; ela conclui e entra na fila. **O conserto vira código já escrito, e
+    acontece sozinho no próximo login da pessoa.**
+  - **A condição para isso valer: T-007 e T-016 sobem JUNTAS, no mesmo push.** Se a T-007
+    subir sozinha, **o `update` 🔴 continua necessário** e volta a ser sessão presencial.
+    ⛔ **Trava com data: 18/09.** Se a revisão da T-016 não tiver fechado até lá, vale o plano
+    B e o 🔴 volta para a mesa.
+  - 🚫 **A T-016 sozinha ANTES da T-007 é proibida, e é achado deste risco:** o onboarding do
+    estabelecimento em produção ainda é a página velha, com a Server Action inline que grava
+    `onboarding_completed` sem mover o `status`. Roteando por `status` contra ela, a conta
+    conclui, volta para `/app`, é mandada de novo para o onboarding, e **gira**. A ordem
+    inversa troca uma conta parada por uma conta em laço, e alcança **toda** conta `clinic`
+    incompleta, não só as órfãs.
+  - ⚠️ **A medição continua valendo, e não foi dispensada.** Ela deixou de decidir *como se
+    conserta* e passou a dizer *quantas contas dependem do conserto*. **Zero** fecha este risco
+    na hora, em qualquer ordem. **Mais que zero** é o tamanho do conjunto que se cura no
+    próximo login — e sem o número, "se cura sozinho" é fé, que é exatamente o modo de falha do
+    **R-035**. **Muito mais que zero** levanta uma pergunta que hoje não tem dono: avisar essas
+    pessoas por email é card, e card ninguém abriu, porque ninguém contou.
+  - **O `vetria-backend` tentou rodar o `select` em 16/09 e o ambiente recusou acesso a dado de
+    produção.** Não há caminho de agente para esta linha. **É do Elber.**
+  - **Este risco não fecha porque a T-016 existe.** Fecha quando a contagem for feita e, se der
+    mais que zero, quando as duas tasks estiverem no ar. Regra do R-006: fechado exige o efeito,
+    não a intenção.
+
+### R-049 — A T-007 é o primeiro código que grava endereço e CEP possivelmente residenciais em tabela pública (SEC-070)
+- **Descoberto:** 09/09/2026, revisão do clone da T-007
+- **Onde:** `estabelecimento/onboarding/actions.ts:349-350` contra `0003:1283-1289`
+- **O quê:** os `comment on column` da `0003` dizem que `endereco` e `cep` são "PÚBLICA hoje" com
+  "PERGUNTA EM ABERTO (SEC-041)" — é o **R-032**, que nunca foi respondido em `05-DECISOES.md`.
+  Até hoje era teórico porque nenhum código gravava as colunas. **Este diff começa a gravá-las.**
+- **Impacto hoje: nenhum** (`clinic_profiles_select_publico` exige `active`, e ninguém está). O
+  custo aparece na F4/S7 com base já gravada: reverter vira migration mais backfill, não decisão.
+- **Crédito onde é devido:** o formulário **avisa** que o endereço é público, no passo 2.
+- **Direção:** é o R-032 ganhando data de vencimento real. A resposta escrita antes da F4/S7.
+
+### R-050 — O handoff da T-007 descrevia errado para onde vai o estabelecimento que concluiu, e o destino real é a lacuna da T-016 (SEC-071)
+- **Descoberto:** 15/09/2026, segunda revisão independente do clone da T-007
+  (`docs/relatorios/SEC-2026-09-15-T007-revisao-do-clone.md`)
+- **Onde:** `docs/03-TAREFAS.md`, Resultado da T-007, *Descobri 1* · contra `app/app/page.tsx:20-24`
+  e `supabase/migrations/0002_nucleo.sql:753-755`
+- **O quê:** o handoff afirmava que um `clinic` que concluiu e depois digita `/app` *"volta pro
+  onboarding em modo revisao em vez de ir pra `/aguardando`"*. **Não volta, e foi conferido no
+  SQL:** `concluir_onboarding_profissional()` escreve `status = 'pending_validation'` **e**
+  `onboarding_completed = true` no **mesmo `update`**, e `app/app/page.tsx:20` só manda pro
+  onboarding quem tem `onboarding_completed` **falso**. O destino real é **`/app/estabelecimento`,
+  o painel**, que não lê `profiles.status` (**R-038**) e renderiza para quem está em
+  `pending_validation`.
+- **Impacto: nenhum dado vaza** — as páginas do painel são casca hoje. O custo é de
+  **dimensionamento**: quem lesse o card para dimensionar a T-016 leria um sintoma cosmético
+  ("volta pro formulário") onde está exatamente a lacuna que a T-016 existe para fechar.
+- ⚠️ **É o mecanismo do R-034 de novo, em outro suporte:** garantia escrita em doc que o código não
+  cumpre, e que a próxima sessão vai ler como se fosse medida.
+- ✅ **15/09 — a frase foi corrigida no card da T-007** pelo `vetria-escriba`, com os dois ponteiros
+  de `arquivo:linha`, e o comportamento real ficou registrado também no card da **T-006** — que
+  **nunca chegou a carregar a frase errada**, ao contrário do que o relatório supôs.
+- **O risco continua ABERTO porque o comportamento continua:** `/app` roteia por
+  `onboarding_completed`. **Dono: T-016**, onde *"`app/app/page.tsx:20` passa a rotear por
+  `profiles.status`"* já é item do card. 🟡
+
+### R-051 — O estabelecimento reprovado cai no formulário em modo "novo", e o `status_motivo` não é lido nem exibido em lugar nenhum (SEC-072)
+- **Descoberto:** 15/09/2026, segunda revisão independente do clone da T-007
+- **Onde:** `app/app/estabelecimento/onboarding/page.tsx:34-38` (o `select` pede `role, status` e
+  nada mais) e `:120` (`modo` é `"revisao"` só quando `pending_validation`) · contra
+  `supabase/migrations/0002_nucleo.sql:702-712`
+- **O quê:** `admin_definir_status` devolve `onboarding_completed = false` ao reprovar, e o
+  comentário da própria migration diz por quê, com todas as letras: *"Sem isto (…) o roteamento
+  manda o reprovado pro painel, e ele nunca alcança a tela onde o `status_motivo` aparece: fica sem
+  saber por que foi reprovado."* **Essa tela não existe.** O reprovado volta para
+  `status = 'incomplete'`, `/app` o manda para o onboarding, o guard aceita `incomplete`, e ele
+  recebe um formulário pré-preenchido com o título *"Vamos cadastrar o seu estabelecimento"* e
+  **nenhuma menção ao motivo da reprova**.
+- **Não é vazamento. É o laço de reprova mudo:** a pessoa reenvia o mesmo dado, o admin reprova de
+  novo, e a fila da S4 recicla. O mecanismo que o banco implementa de propósito não tem contraparte
+  na interface. Por isso 🟡.
+- **Herdado da T-006** — o `page.tsx` do veterinário também só seleciona `role, status`. **O clone
+  não piorou nada**, mas é aqui que o defeito passa a existir para `clinic`. **Não é conserto da
+  T-007**, e o relatório diz isso.
+- **Correção:** o `page.tsx` selecionar `status_motivo` junto, e o formulário exibi-lo quando
+  `status = 'incomplete'` e o motivo não for nulo. **É leitura da própria linha: sem migration, sem
+  policy.**
+- **Dono:** registrado como **sugestão** no card da **T-016** (candidato natural: ela já toca o
+  roteamento por `status`), com a alternativa de virar **card da S4**, junto com a fila de
+  validação, que é quem produz a reprova. ⚠️ **Quem fecha escopo de card é o `vetria-maestro`.**
+- ✅ **16/09 — ESCOPO FECHADO PELO `vetria-maestro`: NÃO entra na T-016. VAI PARA A S4.** Nem na
+  passada de agora (o diff está em revisão) nem na segunda passada que o `vetria-backend`
+  propôs: **restam 6 dias de F3 e a T-008 não começou.** A razão de fundo não é só prazo — **a
+  reprova com motivo só passa a existir quando alguém reprovar, e quem reprova é a fila de
+  validação da S4.** A tela do motivo nasce junto com o que a produz, e aí ela pode ser provada
+  de verdade, com uma reprova real, em vez de ficar escrita sem caso de teste. **Isto não abre
+  card hoje**; abre na abertura da S4, e esta linha existe para que ele não volte a ficar sem
+  dono, que é como o R-034 nasceu. 🟡
+
+### R-052 — Item de `servicos` não tem teto de tamanho individual, e a mensagem de erro devolve o item cru ao cliente (SEC-073)
+- **Descoberto:** 15/09/2026, segunda revisão independente do clone da T-007
+- **Onde:** `app/app/estabelecimento/onboarding/actions.ts:267-275`
+- **O quê:** o teto de **quantidade** existe e vem antes da varredura (SEC-058, herdada da T-006),
+  mas **não há teto por item**. `limpar()` só recorta espaços, e o item que não passa na whitelist
+  volta interpolado na mensagem de erro, que o formulário renderiza. Um POST na Action com um item
+  de ~1 MB devolve o megabyte inteiro de volta.
+- **Impacto: baixo e honesto.** **Não é XSS** (React escapa o texto e não há
+  `dangerouslySetInnerHTML` em nenhum arquivo do diretório), **não é DoS relevante** (o total é
+  limitado pelo `bodySizeLimit` de 1 MB e o trabalho é linear) e **não vaza dado de ninguém**.
+- **Por que entra mesmo assim:** é **defesa em profundidade**, e essa mensagem vai ser clonada de
+  novo — **o original do veterinário tem a gêmea, em `especialidades`**.
+- **Correção:** teto por item antes da comparação, e truncar o valor na mensagem ou não ecoá-lo.
+  **Corrigir junto com a gêmea de `especialidades`**, numa passada só: consertar um lado e deixar o
+  outro é exatamente como o **R-044** nasceu. **Não é conserto da T-007.** 🟡
+
+### R-053 — O pré-voo do CI não confere as credenciais de teste, e sem elas a suíte fica verde sem a única cobertura de sessão real
+- **Descoberto:** 15/09/2026, ao fechar o item que estava aberto no card da T-003 desde 31/08
+- **Onde:** `.github/workflows/ci.yml:34-37` (os quatro secrets declarados no `env` do job) e
+  `:54-62` (o pré-voo) · `tests/e2e/login.spec.ts:20` · `tests/apoio/credenciais.ts:32-34`
+- **A medição:** `npx playwright test --list` local devolve **`Total: 15 tests in 2 files`** — **13
+  em `publico.spec.ts`** e **2 em `login.spec.ts`**. O CI reportou **13 verdes**, que é exatamente o
+  `publico.spec.ts` inteiro. **Se os de login tivessem rodado seriam 15.** Logo o
+  `test.skip(credencial === null, SEM_CREDENCIAL)` disparou: `E2E_VET_EMAIL` / `E2E_VET_SENHA`
+  chegaram **ausentes ou vazios** no workflow.
+- **O quê:** o pré-voo barra a ausência de `NEXT_PUBLIC_SUPABASE_URL` e de
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` **e mais nada**. As duas credenciais de teste **não são conferidas
+  por ninguém**. Sem elas o CI fica **verde, sem erro e sem aviso**, e a única cobertura de **sessão
+  real, cookie real, `middleware.ts` real e roteamento por role** simplesmente não roda.
+- ⚠️ **É literalmente o modo de falha que o próprio código de teste foi escrito para evitar:**
+  `credenciais.ts:32-34` diz *"Pular é diferente de passar… e não como suíte verde mentindo"*. A
+  guarda existe **dentro** da suíte e **não existe** uma camada acima, no workflow — que é onde se
+  decide se a cobertura roda.
+- **É o R-035 em outro suporte** (afirmação de cobertura que ninguém mediu) e o corolário do
+  **R-016**: salvaguarda que afirma mais do que faz produz confiança falsa, e ninguém volta a
+  conferir o que já foi declarado verde.
+- 🔧 **Conserto em curso, fora desta passagem de docs:** `.github/workflows/ci.yml` aparece como `M`
+  no `git status` de 15/09, feito em paralelo nesta mesma sessão. **Este risco só fecha quando o CI
+  rodar com 15 testes**, não quando o arquivo mudar — é a regra do R-006: fechado exige o efeito,
+  não a intenção. 🟡
+
+### R-054 — `/admin/usuarios` renderiza para admin comum, e a matriz §2 diz ❌
+- **Descoberto:** 16/09/2026, pelo `vetria-backend` durante a T-016 (*Descobri 4*).
+  **Pré-existente, não é da T-016** — a página é de `15c38db`, da fase visual.
+  ⏳ **EM CONFIRMAÇÃO PELA REVISÃO DA T-016, que está em curso agora** (`vetria-seguranca`).
+  Se o auditor classificar 🟠, a gravidade sobe e este risco ganha card.
+- **Onde:** `app/admin/usuarios/page.tsx:20-26` × `docs/06-PERMISSOES.md` §2, última linha da
+  matriz de rotas
+- **O quê:** a matriz dá **❌ para admin comum** e **✅ só para master** em `/admin/usuarios`, e
+  ❌ nesta matriz significa, por escrito, *"bloqueado no servidor"*. A página confere
+  `if (!profile || profile.role !== "admin") redirect("/app")` e **nada mais**: um admin comum
+  alcança a rota, recebe **200** e vê o chrome da tela.
+- ⚠️ **O que a gravidade muda, e foi conferido no código pelo `vetria-maestro` em 16/09, não
+  suposto: NÃO VAZA DADO NENHUM.** O `<AdminPanel />`, que é a ferramenta de RBAC e lista a
+  base inteira de usuários, está **dentro do ramo `isMaster`** (`:36-44`). O admin comum cai no
+  `else` (`:45-50`), que renderiza uma caixa de texto dizendo que só master altera permissões.
+  **Zero linha de `profiles` de terceiro chega nele.** As rotas `/api/admin/*`, que são onde a
+  escrita mora, **estão corretas** e foram endurecidas na T-015.
+- **Por que continua sendo risco, e não frescura de documentação:**
+  1. **É a §8 desta matriz falhando.** *"Para cada ❌, um teste que loga com aquele role, tenta a
+     rota e exige o bloqueio."* Esse teste, quando a S11 o escrever, **falha** — e vai falhar
+     descrevendo o código, não o contrato.
+  2. **A defesa está no lugar errado.** Hoje quem separa admin de master nesta tela é um
+     `? :` de renderização. No dia em que alguém acrescentar um segundo bloco fora do
+     `isMaster`, o vazamento nasce sem que ninguém tenha mexido na autorização — porque não há
+     autorização ali para mexer.
+  3. **Hoje o impacto é zero porque não existe admin comum.** O **R-014** registra que
+     *"não está definido quem OPERA o painel admin"*, e provavelmente só o Elber tem conta.
+     **A S4 é exatamente a semana que cria essa persona** (`/admin/validacoes`, a fila real).
+     O risco não é de hoje; é do dia em que a primeira conta `admin` não-master existir.
+- 🎯 **Prazo real: antes da primeira conta `admin` com `admin_level = 'admin'`.** Enquanto só
+  houver master, é divergência de doc. Depois disso, é a matriz §2 não valendo no servidor.
+- **Decisão do `vetria-maestro`, 16/09: NÃO ganha card próprio nesta fase, e a razão é de
+  prioridade, não de mérito.** Restam **6 dias de F3**, a fila é **T-007, T-008 e T-016**, e a
+  **T-008 não começou** — ela é o item 3 do DoD e não tem uma linha escrita. Abrir um quinto
+  card para consertar uma tela que hoje não vaza nada seria tirar tempo do único item da fase
+  que não tem nada pronto. **Vai como linha de entrada na abertura da S4**, junto com o resto
+  do painel admin, onde a correção é 3 linhas na mesma passada em que a fila de validação
+  nasce: `redirect("/app")` quando `admin_level !== 'master'`, e o `else` da renderização some
+  junto por ter ficado inalcançável.
+- ⚠️ **Não corrigir isto dentro da T-016**, mesmo sendo pequeno. O card proíbe encostar em
+  `/admin/*` e o diff está em revisão: escopo de card não cresce sozinho (`AGENTES.md`, regra
+  8), e **foi o `vetria-backend` recusando ampliar o próprio escopo que fez este achado
+  existir com essa clareza.** 🟡
 
 ### R-027 — O pré-voo 1.2 aborta sobre uma condição que ninguém mediu, e manda consertar por um caminho que não existe (SEC-047)
 - **Descoberto:** 26/08/2026, 2ª auditoria da `0003`, antes de aplicar
@@ -81,7 +431,13 @@
 - **A saída existe e a mensagem não diz qual é:** um UPDATE que zere as três passa, porque aí a guarda sai no primeiro `if`.
 - **Correção:** uma frase na mensagem da exceção, mais a regra de que trocar role de `clinic` obriga a limpar `cnpj`, `razao_social` e `responsavel_tecnico`.
 - **26/08 — a guarda está no banco e funciona sem pegar caminho legítimo** (Sonda 13B: conta `vet` gravando `cnpj` levanta exceção; conta `clinic` grava normal; conta `vet` grava telefone normal). **O efeito colateral descrito aqui não foi corrigido, e agora é real e não hipotético.**
-- ⚠️ **Não existe card de `/api/admin/set-access` hoje.** Este item precisa entrar no **primeiro card que tocar essa rota** — o candidato natural é a reescrita de RBAC e middleware da S3 (ver R-001 e R-002). Enquanto esse card não existir, **este risco é o único lugar onde a regra está escrita.**
+- ✅ **09/09 — a metade que é da T-008 ficou com escopo fechado, e ele não cresce lá:** a rota trata a
+  recusa da guarda como **falha nomeada** (compensa o objeto, não cai para `service_role`, e diz que a
+  conta está travada e é caso de suporte), e **a frase da exceção fica escrita no card para a `0004`
+  levar** — a T-008 **não** faz `create or replace` da função, porque isso é migration e é 🔴.
+- ⚠️ **Não existe card de `/api/admin/set-access` hoje.** A outra metade — a regra de que trocar role
+  de `clinic` obriga a limpar as três colunas — **continua sem dono** e precisa entrar no **primeiro
+  card que tocar essa rota** — o candidato natural é a reescrita de RBAC e middleware da S3 (ver R-001 e R-002). Enquanto esse card não existir, **este risco é o único lugar onde a regra está escrita.**
 
 ### R-030 — O pré-voo 1.7 é tautológico para `carimbar_envio_documento`, e manda comparar o corpo com o texto errado (SEC-050)
 - **Descoberto:** 26/08/2026, 2ª auditoria da `0003`, antes de aplicar
@@ -106,6 +462,12 @@
   dizer com qual cliente o passo 8 grava, e é ele que a `0004` vai copiar. **Este risco só
   fecha quando o passo 8 estiver escrito no arquivo**, não quando a decisão foi tomada.
   A decisão entra no card da **T-008** como critério.
+- ✅ **09/09 — o texto existe, palavra por palavra, no card da T-008** (item 6 da seção 🔒),
+  pronto para a `0004` copiar, junto com o parágrafo da ordem 7 → 8, o da compensação e a frase
+  do R-029 para dentro da exceção da guarda. **A `0003` NÃO foi editada, de propósito:** está
+  aplicada em produção desde 26/08 e migration aplicada é histórico.
+- ⛔ **Continua ABERTO até esse texto estar num arquivo de migration aplicado.** Decisão
+  registrada em doc não vira contrato de código sozinha, e é o arquivo que a `0004` copia.
 
 ### R-023 — Excluir a conta apaga a linha e deixa o documento de identidade no bucket (SEC-039)
 - **Descoberto:** 26/08/2026, auditoria da `0003`
@@ -113,6 +475,10 @@
 - **Por que importa:** RG, CNH e comprovante de CRMV de quem pediu exclusão continuam no projeto, agora **órfãos**, sem nem a linha que dizia de quem eram. LGPD art. 18 VI atendido pela metade, e a metade que fica é a mais sensível.
 - **Onde entra:** card da exclusão de dados da **F6**, e citado no card da **T-008**, que é onde a convenção de caminho (`<uuid>/`) é fixada e é ela que torna a varredura possível. Não vira card agora.
 - **26/08 — o bucket existe e está VAZIO** (Sonda 1: zero objetos). É a janela mais barata que vai existir para escrever a rotina: hoje não há documento de gente real para ficar órfão.
+- ✅ **09/09 — o card de lá passou a existir: é a T-018**, em `03-TAREFAS.md` §*Plantadas para fases
+  futuras* (F6/S11, 🔴, LGPD ancorada em E1). Ele carrega o que este risco pede (apagar o objeto
+  antes da linha) **e** a varredura de órfãos escrita no card da T-008. Até 09/09 este risco
+  mandava anotar num card que não existia, e anotação em card que não existe é anotação perdida.
 
 ### R-024 — O CNPJ do estabelecimento viaja no `raw_user_meta_data` e no JWT (SEC-042)
 - **Descoberto:** 26/08/2026, auditoria da `0003`. **Confirmado no código.**
@@ -141,39 +507,6 @@
 - **Enquanto não decide:** o teste **não foi escrito**, e isso está dito no card da T-003, no Resultado, ponto 4. **Não há teste falso no lugar dele.** A prova do item 1 do DoD continua sendo **manual**, feita à mão na T-006.
 - **Por que isso vence antes do que parece:** a T-007 clona a T-006 no estabelecimento e a T-008 escreve arquivo em bucket. **As três são exatamente o tipo de mudança que E2E pega e revisão humana não**, e nenhuma delas vai ter cobertura enquanto isto estiver aberto.
 - **Prazo:** resposta antes do fim da F3, que é quando o item 5 do DoD ("testes automáticos dos fluxos críticos") é cobrado. 🟡
-
-### R-034 — A auditoria da T-006 existe só nos comentários do código, e dois achados não têm dono
-- **Descoberto:** 31/08/2026, ao reabrir o projeto e conferir a árvore de trabalho contra os docs.
-- **O quê:** `app/app/veterinario/onboarding/actions.ts` e `page.tsx` dizem, com todas as
-  letras, que foram corrigidos contra **SEC-052, SEC-054, SEC-056, SEC-057 e SEC-058**. Os cinco
-  números **não existiam em lugar nenhum do repositório**: nem em `docs/relatorios/`, nem aqui,
-  nem em `05-DECISOES.md`. A auditoria aconteceu na sessão de 28/08 e **o relatório nunca foi
-  escrito em disco**; a sessão terminou com o código na árvore, sem commit, e o raciocínio dos
-  achados morreu com ela.
-- **O que foi feito em 31/08:** `docs/relatorios/SEC-2026-08-28-T006.md`, **reconstruído a
-  partir dos comentários do código**, arquivo e linha por achado. O cabeçalho dele diz que é
-  reconstrução, e não auditoria.
-- ⚠️ **O que a reconstrução NÃO alcança, e é o risco de verdade:**
-  - **SEC-053 e SEC-055 não aparecem em lugar nenhum.** A numeração vai de 052 a 058 e só cinco
-    foram citados. Ou foram achados de outro arquivo corrigidos sem comentário, ou foram
-    descartados na própria auditoria e a numeração ficou com o buraco, **ou são reais e não
-    foram corrigidos**. A terceira é improvável e não é descartável.
-  - **O relatório prova o que foi corrigido, não que a lista está completa.** Ele foi extraído
-    do que o autor do código escreveu sobre o próprio código, que é exatamente o ponto cego que
-    uma auditoria existe para cobrir.
-- **Por que isso vence rápido:** **a T-007 clona o `actions.ts` da T-006** e a T-008 escreve
-  arquivo em bucket a partir do mesmo padrão. Clonar um arquivo cuja revisão não tem registro
-  independente é como o R-017 nasceu duplicado.
-- **A regra que isso quebrou, e que é a mais barata de reparar:** `AGENTES.md` §"Como os achados
-  circulam" manda todo achado ir para `docs/relatorios/` **e** para este arquivo. **Nenhum dos
-  dois aconteceu**, e o motivo foi que a task terminou sem commit. **Task sem handoff escrito
-  não está concluída** já estava no `CLAUDE.md`; o que faltava era alguém aplicar a regra ao
-  fim da sessão, não ao fim da task.
-- **Correção:** `vetria-seguranca` revisa `app/app/veterinario/onboarding/` **contra a matriz de
-  `06-PERMISSOES.md`**, e não contra os comentários — de preferência **antes da T-007 começar**,
-  porque é ela que herda o arquivo. Se a revisão nova não achar nada além dos cinco, o buraco
-  do 053/055 fica fechado por cobertura, e não por memória.
-- **Prazo:** antes da T-007. 🟡
 
 ### R-035 — O arquivo de verificação afirmava uma medição que ninguém tinha feito
 - **Descoberto:** 31/08/2026, ao fechar a T-013.
@@ -300,6 +633,34 @@
 ---
 
 ## ✅ FECHADOS
+
+- **R-048** — a sonda que prova a guarda em produção teria sido apagada da árvore de trabalho sem
+  explicação (SEC-069). **15/09/2026 — FECHADO POR MEDIÇÃO, e a medição derrubou a premissa.**
+  **A deleção de `supabase/verificar-apos-0003.sql:678-684` não está na árvore.** O arquivo está
+  **intocado desde `a68251d`** (26/08), tem **945 linhas**, e a sonda de `pg_trigger` sobre
+  `perfil_privado` está nas **linhas 672-685**, com os **quatro triggers** esperados no comentário
+  logo acima. O `git status` de 15/09 lista só os **5 arquivos da T-007** e **nenhum arquivo em
+  `supabase/`**. **Nada a reverter e nada a justificar:** a condição pré-deploy do card da T-007
+  caiu sem custo.
+  ⚠️ **O que sobra de lição:** o risco nasceu de uma leitura da árvore de trabalho e não de um
+  `git status` conferido, e custou uma condição de deploy escrita em dois cards. **Deleção não
+  commitada se prova com `git status` e `git log -- <arquivo>`**, e é isso que o fecha hoje.
+  **O par dele, o R-047, continua aberto e continua sem medição.**
+
+- **R-034** — a auditoria da T-006 existia só nos comentários do código, e SEC-053/SEC-055 não
+  tinham dono. **09/09/2026 — FECHADO POR COBERTURA.**
+  `docs/relatorios/SEC-2026-09-09-T006-revisao-independente.md` releu `actions.ts` e `page.tsx`
+  linha a linha **contra `06-PERMISSOES.md` e contra o schema das três migrations**, sem usar os
+  comentários do código como guia. **Nenhum defeito adicional dentro dos dois arquivos**, o que
+  fecha o buraco 053/055 **por cobertura, não por memória**: os dois números continuam
+  permanentemente vagos e **não devem ser reutilizados**.
+  ⚠️ **O que a revisão achou fora dos dois arquivos, e é o que sobrou de valor:** seis achados
+  novos, **SEC-059 a SEC-064**, todos na costura entre a Action e o resto do sistema. Os dois 🟠
+  viraram card (**T-016**, **T-017**) e ficaram registrados como **R-038** e **R-039**; os quatro
+  🟡 viraram **R-040 a R-043**.
+  **A lição:** a reconstrução acertou o que cobria. O que ela não podia ver não estava dentro do
+  arquivo — estava no destino do `redirect()` dele e na diferença entre o que a Action valida e o
+  que o banco aceita. **Revisão de arquivo não substitui revisão de costura.**
 
 - **R-003** — "zero testes automatizados em código que já está em produção". **31/08 — FECHADO:
   a premissa do título morreu.** A T-003 entregou Playwright + GitHub Actions, e desde o merge do

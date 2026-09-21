@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requirePainel } from "@/lib/auth/painel";
+import { SO_ATIVO } from "@/lib/auth/status";
 import { Card } from "@/components/ui/Card";
 import { EmptyState, Skeleton } from "@/components/ui/EmptyState";
 import {
@@ -21,20 +21,16 @@ import {
 // honesto, sem mock (DL-020). Card de plano/cobrança fica de fora de propósito
 // (Sprint 6). Pontos de integração marcados com // TODO.
 
+// ⚠️ T-016 — QUEM CHEGA AQUI ESTÁ `active`, E SÓ. Gêmea do dashboard do
+// veterinário, mesmo motivo: a matriz §4 põe o dashboard na coluna "Bloqueado"
+// de `incomplete` e de `pending_validation`.
+//
+// É esta a tela que recebia, indevidamente, o estabelecimento que acabava de
+// concluir o onboarding da T-007 (R-050 / SEC-071). Agora ele vai para
+// `/aguardando`, que é o que o card sempre disse que deveria acontecer.
+
 export default async function ClinicPage() {
-  const supabase = await createClient();
-
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, onboarding_completed")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role !== "clinic") redirect("/app");
+  const { user } = await requirePainel("clinic", SO_ATIVO);
 
   // Nome via user_metadata (profiles não tem nome da clínica — DL-019).
   const meta = (user.user_metadata ?? {}) as {
@@ -51,9 +47,10 @@ export default async function ClinicPage() {
     month: "long",
   });
 
-  const completo = profile.onboarding_completed;
-  const ctaHref = completo ? "/app/estabelecimento/perfil" : "/app/estabelecimento/onboarding";
-  const ctaLabel = completo ? "Editar perfil" : "Completar cadastro";
+  // O CTA parou de mentir: quem chega aqui está validado, e a única ação
+  // honesta é editar o perfil. Ver a gêmea do veterinário.
+  const ctaHref = "/app/estabelecimento/perfil";
+  const ctaLabel = "Editar perfil";
 
   return (
     <div className="flex flex-col gap-6">
@@ -67,9 +64,8 @@ export default async function ClinicPage() {
             Bem-vindo, {displayName}.
           </h1>
           <p className="max-w-lg text-[15px] leading-relaxed text-white/80">
-            {completo
-              ? "O cadastro do estabelecimento está completo. Em breve seu perfil entra na busca pública da Vetria."
-              : "Complete o cadastro do estabelecimento para que responsáveis possam encontrar sua equipe na Vetria."}
+            O cadastro do estabelecimento está validado. Em breve seu perfil
+            entra na busca pública da Vetria.
           </p>
         </div>
         <Link
@@ -161,19 +157,22 @@ export default async function ClinicPage() {
               As etapas até o estabelecimento ficar visível na busca pública.
             </p>
 
-            {/* Pipeline = fluxo real de status do CONTEXT §4.3
-                (incomplete → pending_validation → active). Hoje derivado de
-                onboarding_completed; liga ao campo `status` na migration 029. */}
+            {/* Pipeline = o fluxo de status da matriz §4
+                (incomplete → pending_validation → active). O portão só deixa
+                `active` chegar aqui, então os dois primeiros passos ESTÃO
+                feitos; o terceiro segue "em breve" porque a busca pública é a
+                F4. As outras duas etapas têm página própria: `/onboarding` e
+                `/aguardando`. */}
             <ol className="mb-6 flex flex-col gap-4">
               <StepItem
                 title="Cadastro do estabelecimento"
                 desc="Dados institucionais e CNPJ"
-                state={completo ? "done" : "current"}
+                state="done"
               />
               <StepItem
                 title="Validação dos dados"
-                desc="Análise da equipe Vetria"
-                state="soon"
+                desc="Concluída pela equipe Vetria"
+                state="done"
               />
               <StepItem
                 title="Estabelecimento ativo na busca"

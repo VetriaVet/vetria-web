@@ -92,11 +92,17 @@ export default async function VetOnboardingPage() {
   // própria tela dele, e a policy `perfil_privado_select_own` é exatamente
   // isso. A regra "WhatsApp nunca vai no HTML" (DL-047) vale pra busca e pro
   // perfil público, onde quem lê é outra pessoa.
+  //
+  // ⚠️ T-008 — `documento_enviado_em` entra no mesmo `select`, e é só ele.
+  // `documento_path` e `documento_hash` NÃO vêm para a tela: o caminho é dado
+  // de servidor (quem precisa dele é a rota de leitura, que o busca de novo) e
+  // pôr a string no HTML seria convidar a próxima tela a montar URL com ela.
+  // O que a tela precisa saber é uma coisa só: existe documento, e de quando.
   const { data: privado } = await supabase
     .from("perfil_privado")
-    .select("whatsapp")
+    .select("whatsapp, documento_enviado_em")
     .eq("id", user.id)
-    .maybeSingle<{ whatsapp: string | null }>();
+    .maybeSingle<{ whatsapp: string | null; documento_enviado_em: string | null }>();
 
   const meta = (user.user_metadata ?? {}) as {
     full_name?: string;
@@ -126,6 +132,7 @@ export default async function VetOnboardingPage() {
     <VetOnboardingForm
       inicial={inicial}
       modo={profile.status === "pending_validation" ? "revisao" : "novo"}
+      documentoEnviadoEm={privado?.documento_enviado_em ?? null}
       action={salvarOnboardingVet}
     />
   );

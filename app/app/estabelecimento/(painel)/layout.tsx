@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requirePainel } from "@/lib/auth/painel";
+import { ESPERANDO_OU_ATIVO } from "@/lib/auth/status";
 import AppShell, { type ShellSection } from "@/components/app/AppShell";
 
 // Shell premium do painel da clínica (DL-032). Mesmo padrão do vet, com nav
@@ -28,28 +28,23 @@ const SECTIONS: ShellSection[] = [
   },
 ];
 
+// Mesmo piso da gêmea do veterinário: `incomplete` e `suspended` não alcançam
+// nenhuma página deste grupo, e as telas deles ficam fora dele. O portão fino
+// continua tela a tela.
+
 export default async function ClinicPainelLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-  if (!user) redirect("/login");
+  const { user, name: nomeDaSessao } = await requirePainel(
+    "clinic",
+    ESPERANDO_OU_ATIVO
+  );
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (!profile || profile.role !== "clinic") redirect("/app");
-
-  const meta = (user.user_metadata ?? {}) as {
-    full_name?: string;
-    name?: string;
-  };
-  const name = (meta.full_name ?? meta.name ?? user.email?.split("@")[0] ?? "Estabelecimento").trim();
+  const name = (
+    nomeDaSessao || user.email?.split("@")[0] || "Estabelecimento"
+  ).trim();
   const initial = name.charAt(0).toUpperCase();
 
   return (

@@ -60,6 +60,32 @@ jobs:
           fi
           echo "Chaves públicas presentes."
 
+      # ⚠️ SEC-074 / R-053 (15/09/2026) — o modo de falha que faltava guardar.
+      # Sem estas duas, `login.spec.ts` não falha: ele PULA, e o job fica verde
+      # com 13 de 15. Os 2 que somem são os únicos que exercitam sessão real,
+      # cookie real, `middleware.ts` real e o isolamento entre painéis — ou
+      # seja, some exatamente a cobertura que justifica a suíte existir, e some
+      # em silêncio. Foi o que aconteceu na execução #2 e ninguém percebeu por
+      # duas semanas: o card da T-003 anotou "conferir se rodaram ou pularam" e
+      # a resposta ficou em aberto até alguém somar 13 + 2.
+      #
+      # `tests/apoio/credenciais.ts` já tinha escrito o diagnóstico ("Pular é
+      # diferente de passar... e não como suíte verde mentindo"). O que faltava
+      # não era saber, era o workflow recusar.
+      #
+      # Por que ERRO e não aviso: aviso em Actions é decoração, e este projeto
+      # já aprendeu isso uma vez na T-014, com o `continue-on-error` do lint.
+      - name: Conferir que a credencial de teste E2E existe
+        run: |
+          if [ -z "$E2E_VET_EMAIL" ] || [ -z "$E2E_VET_SENHA" ]; then
+            echo "::error::Faltam os secrets E2E_VET_EMAIL e/ou E2E_VET_SENHA."
+            echo "::error::Sem eles os 2 testes de login PULAM e o CI fica verde mentindo: 13 de 15."
+            echo "::error::Crie os dois em Settings > Secrets and variables > Actions, com a conta"
+            echo "::error::de teste de role vet criada a mao. Ver README, secao Testes, e o card T-003."
+            exit 1
+          fi
+          echo "Credencial de teste presente: os 15 testes vao rodar."
+
       - name: Build
         run: npm run build
 

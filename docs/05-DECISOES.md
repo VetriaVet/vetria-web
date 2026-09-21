@@ -396,3 +396,138 @@ em que a validação profissional é o produto.
 - **O R-031 não fecha com esta decisão.** Ele só fecha quando o texto do passo 8, dentro da
   `0003`, disser isto — porque é esse arquivo que a `0004` vai copiar como modelo.
 **Status:** ✅ decidida em 31/08 · ⬜ **não escrita na `0003` ainda** · critério no card da T-008
+
+
+---
+
+### DL-056 — O corte escrito foi acionado: os editores de perfil saem da S3 e vão para a F6/S11
+**Data:** 16/09/2026 · **Fase/Task:** F3/S3 · T-019 · **Commit:** _(esta árvore)_
+**Contexto:** na abertura da S3, em 09/09, o `03-TAREFAS.md` registrou um corte **condicional e
+escrito de antemão**, em duas passagens do arquivo: *"se em 15/09 a T-008 não estiver fechada, os
+editores de perfil da S3 escorregam para a F6/S11 e isso vira linha em `05-DECISOES.md`, não
+improviso de sexta."* A condição existia porque a conta não fechava: restavam 13 dias de F3 e
+dentro deles cabiam a dívida da S2 (T-007, T-008), a S3 inteira e a S4 inteira. Em 16/09 a
+contagem é pior: **restam 6 dias**, a T-007 está implementada e aprovada mas **não commitada**, a
+T-016 está implementada e **em revisão**, e a **T-008 não começou, nem uma linha**. O último
+commit da `main` é de 09/09 e a última linha de **código** commitada é de 31/08.
+**Decisão:** **o corte foi acionado, pelo Elber, em 16/09.** Os editores de perfil das três
+personas (`/app/responsavel/perfil`, `/app/veterinario/perfil`, `/app/estabelecimento/perfil`)
+saem da F3/S3 e passam a viver na **F6/S11**, com card próprio — **T-019**, na seção 🌱
+*Plantadas para fases futuras* do `03-TAREFAS.md`. Os 6 dias que restam ficam **inteiros** para
+T-007, T-008 e T-016, que são os itens 1, 2 e 3 do Definition of Done da F3.
+**Alternativas descartadas:**
+- **(a) Manter os editores na S3 e torcer.** É o que produz a semana 13 descobrindo o atraso da
+  semana 4. O corte foi escrito justamente para não depender de coragem na sexta-feira.
+- **(b) Comer buffer da S13.** Recusada, e é a linha mais importante deste DL: **o buffer está
+  intacto e vai continuar assim.** Ele é o que separa entrega de desastre num prazo fixo, e
+  gastá-lo em trabalho que não é de DoD seria gastá-lo no item errado.
+- **(c) Mandar para a F4.** Recusada: a F4 é o motor B2C e já tem quatro semanas cheias. A S11 é
+  onde a auditoria completa de RLS lê exatamente as policies de UPDATE que o editor exercita —
+  as duas coisas na mesma passada, e não em duas.
+**Implicações:**
+- ✅ **NÃO é corte de escopo contratado, e isto foi conferido contra o `00-ESCOPO.md`, não
+  suposto.** O §2 não cita editor de perfil em nenhuma das seis capacidades: E2 é descrita pelo
+  **onboarding** e E5 é perfil **público**, que é leitura. Nenhum dos 6 itens do DoD da F3
+  depende do editor. **Logo, não há emenda a fazer no §5, e a linha "o que sai em troca" não se
+  aplica: nada contratado saiu.** A entrega de 25/11/2026 continua inteira.
+- É o mesmo precedente de **foto de perfil** e **horários**, cortados da S2 em 26/08 pela mesma
+  razão e pelo mesmo teste (R-019, e §Ideias do `04-RISCOS.md`).
+- ⚠️ **O corte não salva a F3, e o quadro não vai fingir que salva.** A T-008 é o único item da
+  fase sem uma linha escrita, e sem ela o item 3 do DoD não fecha nem com a S4 perfeita: o
+  bucket está vazio e o admin não tem o que abrir. O corte comprou dias; gastá-los é outra
+  coisa.
+- ⚠️ **O DL-046 fica com uma promessa a descoberto até a S11:** *"enquanto espera, ele edita o
+  perfil"*. Quem está em `pending_validation` alcança `/app/*/perfil` pela matriz §4 e a tela
+  continua casca até a F6. **Alcançar não é editar**, e a matriz não mudou — o que mudou foi
+  quando a tela para de ser casca.
+- Voltar este trabalho para dentro da F3 ou da F4 por inércia é exatamente o que este DL existe
+  para impedir. Volta por decisão do Elber, registrada, ou não volta.
+**Status:** ✅ aplicada
+
+---
+
+### DL-057 — T-007 e T-016 sobem juntas, e é isso que dispensa o conserto 🔴 do R-047
+**Data:** 16/09/2026 · **Fase/Task:** F3/S3 · T-007 + T-016 / R-047 · **Commit:** _(esta árvore)_
+**Contexto:** o R-047 registra que uma conta `clinic` que clicou em "Concluir" na Server Action
+inline que está em produção ficou com `onboarding_completed = true` e `status = 'incomplete'`,
+sem linha em `clinic_profiles`. Ela era invisível porque `app/app/page.tsx:20` roteava pela
+coluna `onboarding_completed`: via `true`, mandava a conta para o painel, e o painel não lia
+`status`. O conserto previsto era um `update` de linha em produção, **🔴, sessão presencial**. Ao
+executar a T-016, o `vetria-backend` percebeu que o roteamento por `profiles.status` muda o
+destino dessa conta e **levantou a questão por escrito sem decidir**, que é o comportamento
+correto: ordem de deploy é do `vetria-maestro`.
+**Decisão:** **as duas sobem juntas, no mesmo push.** Com o `/app` da T-016 roteando por
+`status`, a conta órfã é mandada para o **onboarding novo** da T-007, cujo guard aceita
+`incomplete`; ela conclui pela RPC, o `status` vai para `pending_validation`, e ela entra na fila
+de validação. **O `update` 🔴 deixa de ser necessário e o conserto passa a ser código já escrito,
+que acontece no próximo login da pessoa.**
+**Junto com a decisão, duas travas, porque decisão sem trava é intenção:**
+1. ⛔ **Ponto de decisão em 18/09, fim do dia.** A T-016 está em revisão de segurança e pode
+   voltar com correção; amarrar sem prazo é como o atraso de um card vira atraso de dois. Se até
+   lá a revisão não tiver fechado, **vale o plano B: a T-007 sobe sozinha e o `update` 🔴 volta
+   para a mesa.**
+2. 🚫 **A T-016 sozinha antes da T-007 é proibida.** Em produção o onboarding do estabelecimento
+   ainda é a página velha, com a Action inline que grava `onboarding_completed` sem mover o
+   `status`. Roteando por `status` contra ela, a conta conclui, volta para `/app`, é mandada de
+   novo para o onboarding, e **gira** — e o laço alcança **toda** conta `clinic` incompleta, não
+   só as órfãs. A ordem inversa troca uma conta parada por uma conta em laço.
+**Alternativas descartadas:** subir a T-007 sozinha e já, que é tentador porque ela está
+aprovada desde 15/09 e é o item 1 do DoD para `clinic`. Custa uma sessão presencial 🔴 para um
+`update` numa semana em que há 6 dias e a T-008 não começou — e as duas tasks são 🟡, esperam o
+mesmo gesto do Elber e cabem na mesma sentada.
+**Implicações:**
+- ⚠️ **A medição do R-047 CONTINUA VALENDO e não foi dispensada.** Ela deixou de decidir *como se
+  conserta* e passou a dizer *quantas contas dependem do conserto*. **Zero** fecha o risco na
+  hora. **Mais que zero** é o tamanho do conjunto que se cura no próximo login — e sem o número,
+  "se cura sozinho" é fé, que é o modo de falha do R-035. **Muito mais que zero** levanta uma
+  pergunta sem dono: avisar essas pessoas por email. Isso é card, e ninguém abriu, porque
+  ninguém contou.
+- O `vetria-backend` tentou rodar o `select` em 16/09 e o ambiente **recusou acesso a dado de
+  produção**. Não há caminho de agente para essa linha: **é do Elber**, e é o mais barato dos
+  gestos que faltam.
+- **A regra generaliza, e já estava escrita no card da T-008:** antes de qualquer deploy que mude
+  roteamento de onboarding, conta-se primeiro. Falha sem sintoma só se descobre contando.
+**Status:** ✅ decidida · ⬜ nenhum dos dois diffs commitado
+
+---
+
+### DL-058 — `/ajuda` alcança `pending_validation`: a matriz respondeu a lacuna que o deny by default cobriu
+**Data:** 16/09/2026 · **Fase/Task:** F3/S3 · T-016 · **Commit:** _(esta árvore)_
+**Contexto:** ao codificar a matriz §4 de `06-PERMISSOES.md` célula por célula, o
+`vetria-backend` encontrou uma rota que **não estava em célula nenhuma**: `/ajuda` não aparecia
+nem na coluna "Alcança" nem na de "Bloqueado", para nenhum status. Ele aplicou **deny by
+default** (`SO_ATIVO`, só `active` alcança), que é a regra da casa, e **registrou por escrito que
+era escolha e não leitura** — foi esse registro que tornou esta decisão possível. O custo da
+escolha ficou explícito no próprio handoff: quem espera validação não alcança a tela onde
+procuraria o suporte.
+**Decisão:** **`/ajuda` entra em "Alcança" para `pending_validation`.** A linha foi escrita na
+matriz §4, com o porquê. `incomplete` continua alcançando **só** `/onboarding` e `suspended`
+continua alcançando **só** `/bloqueado`.
+**Por quê, nos dois testes que esta matriz aplica:**
+1. **Não é benefício pago.** `/ajuda` é FAQ mais o email `contato@vetriabrasil.com.br`
+   (`components/app/cascas.tsx:241-275`). Não expõe lead, contagem de contato, plano, agenda nem
+   exposição na busca. **Nada vaza de um painel para o outro**, que é o único motivo pelo qual o
+   isolamento existe: ele é modelo de negócio, não tema de segurança.
+2. **Quem espera validação é exatamente quem tem pergunta.** Fechar o suporte para quem já
+   mandou o documento e está parado na fila produz email por outro canal, ou desistência.
+**Alternativas descartadas:**
+- **Manter `SO_ATIVO`**, que era o estado do código. Defensável enquanto a matriz era omissa,
+  indefensável depois de alguém perguntar.
+- **Abrir também para `incomplete`**, que puxaria o chrome inteiro do painel para quem nem
+  preencheu o cadastro. O caminho de suporte dele é a própria tela de onboarding.
+- **Abrir para `suspended`.** A tela de bloqueio tem que ser **terminal**: destino que
+  redireciona para outro destino bloqueado é laço de redirect. O contato mora dentro dela.
+**Implicações:**
+- **A matriz mudou primeiro, e o código muda depois.** É uma linha: `/ajuda` sai de `SO_ATIVO` e
+  passa a `ESPERANDO_OU_ATIVO` no mapa de status por segmento de `lib/auth/status.ts`, nos dois
+  painéis.
+- ⚠️ **Não entra no diff da T-016 agora:** ele está **em revisão de segurança neste momento**, e
+  mexer no artefato que o auditor está lendo invalida a revisão. Entra na mesma passada que
+  tratar o que a revisão devolver, e **volta ao `vetria-seguranca` como delta explícito mesmo se
+  a revisão voltar limpa**, porque alarga uma permissão. Custo: uma releitura curta.
+- Se não couber antes de 18/09, **a T-016 sobe com `SO_ATIVO`** e a linha vira ajuste de uma
+  linha na semana seguinte. A matriz já está escrita, e é ela que manda.
+- **Deny by default continua sendo a regra.** Rota de painel que não estiver na tabela §4
+  continua nascendo `SO_ATIVO`, e a saída continua sendo escrever a linha na matriz antes de
+  mexer no código. O que mudou é que esta linha deixou de ser lacuna.
+**Status:** ✅ decidida na matriz · ⬜ **código ainda não alterado** — critério no card da T-016

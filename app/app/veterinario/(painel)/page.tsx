@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requirePainel } from "@/lib/auth/painel";
+import { SO_ATIVO } from "@/lib/auth/status";
 import { Card } from "@/components/ui/Card";
 import { EmptyState, Skeleton } from "@/components/ui/EmptyState";
 import {
@@ -21,20 +21,20 @@ import {
 // esqueleto do conteúdo + texto honesto do que vai aparecer, sem inventar
 // número (DL-020). Pontos de integração marcados com // TODO.
 
+// ⚠️ T-016 — QUEM CHEGA AQUI ESTÁ `active`, E SÓ.
+// A matriz §4 põe o dashboard na coluna "Bloqueado" de `incomplete` e de
+// `pending_validation`. Antes, o guard lia só `role`: quem concluía o
+// onboarding caía nesta tela como se estivesse aprovado, porque
+// `concluir_onboarding_profissional()` grava `onboarding_completed = true` no
+// mesmo `update` em que move o status (`0002_nucleo.sql:753-755`). Agora ele é
+// devolvido para `/aguardando`.
+//
+// Consequência direta no que esta página mostra: `onboarding_completed` saiu
+// do `select` e saiu da renderização. Ela era a coluna do R-040, escrita pelo
+// próprio usuário, e nenhuma decisão de servidor depende dela aqui.
+
 export default async function VetPage() {
-  const supabase = await createClient();
-
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, onboarding_completed")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role !== "vet") redirect("/app");
+  const { user } = await requirePainel("vet", SO_ATIVO);
 
   // Nome via user_metadata (profiles não tem full_name — DL-019).
   const meta = (user.user_metadata ?? {}) as {
@@ -53,9 +53,12 @@ export default async function VetPage() {
     month: "long",
   });
 
-  const completo = profile.onboarding_completed;
-  const ctaHref = completo ? "/app/veterinario/perfil" : "/app/veterinario/onboarding";
-  const ctaLabel = completo ? "Editar perfil" : "Completar cadastro";
+  // O CTA parou de mentir. Ele dizia "Completar cadastro" e apontava para o
+  // onboarding sempre que `onboarding_completed` fosse falso — inclusive para
+  // quem já estava na fila. Quem chega nesta página está `active`: o cadastro
+  // está completo E validado, e a única ação honesta é editar o perfil.
+  const ctaHref = "/app/veterinario/perfil";
+  const ctaLabel = "Editar perfil";
 
   return (
     <div className="flex flex-col gap-6">
@@ -69,9 +72,8 @@ export default async function VetPage() {
             Olá, {displayName}.
           </h1>
           <p className="max-w-lg text-[15px] leading-relaxed text-white/80">
-            {completo
-              ? "Seu cadastro profissional está completo. Em breve seu perfil entra na busca pública da Vetria."
-              : "Complete seu cadastro profissional para que responsáveis possam te encontrar na Vetria."}
+            Seu cadastro profissional está validado. Em breve seu perfil entra
+            na busca pública da Vetria.
           </p>
         </div>
         <Link
@@ -158,19 +160,23 @@ export default async function VetPage() {
               As etapas até seu perfil ficar visível na busca pública.
             </p>
 
-            {/* Pipeline = fluxo real de status do CONTEXT §4.3
-                (incomplete → pending_validation → active). Hoje derivado de
-                onboarding_completed; liga ao campo `status` na migration 029. */}
+            {/* Pipeline = o fluxo de status da matriz §4
+                (incomplete → pending_validation → active). Não é mais derivado
+                de `onboarding_completed`: o portão só deixa `active` chegar
+                aqui, então os dois primeiros passos ESTÃO feitos. O terceiro
+                continua "em breve" porque a busca pública é a F4, e dizer o
+                contrário seria inventar tela. As outras duas etapas do fluxo
+                têm página própria: `/onboarding` e `/aguardando`. */}
             <ol className="mb-6 flex flex-col gap-4">
               <StepItem
                 title="Cadastro profissional"
                 desc="Dados, CRMV e especialidades"
-                state={completo ? "done" : "current"}
+                state="done"
               />
               <StepItem
                 title="Validação do CRMV"
-                desc="Análise da equipe Vetria"
-                state="soon"
+                desc="Concluída pela equipe Vetria"
+                state="done"
               />
               <StepItem
                 title="Perfil ativo na busca"

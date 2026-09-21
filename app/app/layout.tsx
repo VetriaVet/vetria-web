@@ -10,6 +10,13 @@ import AppHeaderNav from "./AppHeaderNav";
 //     renderizamos header nem o container centralizado pra não brigar com
 //     a sidebar shell.
 // Nav do header (tutor): inclui APENAS rotas que já existem (nunca linka 404).
+//
+// ⚠️ R-002 — a chave `master` foi APAGADA daqui, e era código morto.
+// `master` não é role: é `role = 'admin'` + `admin_level = 'master'` (DL-045,
+// `06-PERMISSOES.md` §1). O enum `user_role` tem quatro valores, `master` não é
+// um deles, e `profiles.role` nunca devolveu essa string — a entrada era
+// inalcançável e ensinava errado a quem lesse. O master continua vendo o link
+// de Admin: ele cai na chave `admin`, que é o role dele de verdade.
 const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
   tutor: [
     { href: "/app/responsavel", label: "Início" },
@@ -18,7 +25,6 @@ const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
     { href: "/app/responsavel/avaliacoes", label: "Avaliações" },
   ],
   admin: [{ href: "/admin", label: "Admin" }],
-  master: [{ href: "/admin", label: "Admin" }],
 };
 
 export default async function AppLayout({
