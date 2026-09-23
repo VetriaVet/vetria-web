@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/browser";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Button } from "@/components/ui/Button";
-import { traduzirErroAuth } from "@/lib/auth/erros";
+import { traduzirErroAuth, AVISO_LINK_RECUPERACAO } from "@/lib/auth/erros";
 
 // Recuperar senha (TASK-007b): chama resetPasswordForEmail e manda o link pra
 // /auth/callback?next=/recuperar-senha/nova (a callback cria a sessão e leva à
@@ -16,6 +16,18 @@ import { traduzirErroAuth } from "@/lib/auth/erros";
 // existe). Erro de verdade (limite de envios, falha ao mandar o email, sem
 // internet) aparece em português (T-034): sumir com ele deixava a pessoa
 // esperando um email que nunca vem.
+//
+// Chega com ?erro=link_expirado quando o link do email falhou (home ou
+// /auth/callback redirecionam pra cá). Lido sem useSearchParams, no mesmo
+// padrão do /login, pra não exigir Suspense na página inteira.
+//
+// O fluxo é PKCE (padrão do createBrowserClient do @supabase/ssr): o pedido
+// grava um code_verifier em cookie NESTE navegador, e o /auth/callback precisa
+// dele para trocar o code pela sessão. Por isso a orientação de abrir o link
+// no mesmo navegador.
+const semInscricao = () => () => {};
+const lerQuery = () => window.location.search;
+const queryNoServidor = () => "";
 
 export default function RecuperarSenhaPage() {
   const supabase = createClient();
@@ -23,10 +35,16 @@ export default function RecuperarSenhaPage() {
   const [enviado, setEnviado] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [interagiu, setInteragiu] = useState(false);
+
+  const query = useSyncExternalStore(semInscricao, lerQuery, queryNoServidor);
+  const linkVencido =
+    !interagiu && new URLSearchParams(query).get("erro") === "link_expirado";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
+    setInteragiu(true);
     setLoading(true);
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
@@ -57,6 +75,14 @@ export default function RecuperarSenhaPage() {
         <div className="rounded-2xl border border-gray-200 p-8 sm:p-10">
           {!enviado ? (
             <>
+              {linkVencido && (
+                <p
+                  className="mb-6 rounded-xl border-l-4 border-error bg-error-soft px-4 py-3 text-[14px] text-titulo leading-relaxed"
+                  role="alert"
+                >
+                  {AVISO_LINK_RECUPERACAO}
+                </p>
+              )}
               <h1 className="font-bold text-[26px] leading-tight tracking-tight text-titulo mb-2">
                 Recuperar senha
               </h1>
@@ -88,6 +114,7 @@ export default function RecuperarSenhaPage() {
                   Enviar link de recuperação
                 </Button>
               </form>
+              <OrientacaoDoLink className="mt-6" />
             </>
           ) : (
             <div className="text-center">
@@ -102,6 +129,7 @@ export default function RecuperarSenhaPage() {
                 link pra criar uma nova senha em alguns minutos. Verifique a
                 caixa de entrada e a pasta de spam.
               </p>
+              <OrientacaoDoLink className="mb-6 text-left" />
               <Link
                 href="/login"
                 className="inline-flex w-full items-center justify-center rounded-pill bg-principal text-white py-3.5 font-semibold text-[15px] hover:bg-[#142E33] transition no-underline"
@@ -129,6 +157,21 @@ export default function RecuperarSenhaPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+// Duas causas comuns de "link expirado" que a pessoa consegue evitar.
+function OrientacaoDoLink({ className = "" }: { className?: string }) {
+  return (
+    <ul
+      className={`list-disc pl-5 space-y-1 text-[13px] text-corpo-texto leading-relaxed ${className}`}
+    >
+      <li>
+        Use o link do email mais recente. Pedir um novo link invalida os
+        anteriores.
+      </li>
+      <li>Abra o link no mesmo navegador em que você pediu.</li>
+    </ul>
   );
 }
 

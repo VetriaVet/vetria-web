@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { destinoDoErroDoLink } from "@/lib/auth/erros";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -14,7 +15,27 @@ export async function GET(request: NextRequest) {
     origin,
   });
 
+  // Link de recuperação de senha: se falhar, a pessoa volta para pedir outro
+  // em /recuperar-senha, não para o login.
+  const fluxoDeSenha = !!next && next.startsWith("/recuperar-senha");
+
   if (!code) {
+    // O Supabase manda ?error=...&error_code=otp_expired quando o link venceu
+    // ou já foi usado (não há code para trocar).
+    const destino = destinoDoErroDoLink(
+      {
+        error: searchParams.get("error"),
+        error_code: searchParams.get("error_code"),
+      },
+      fluxoDeSenha
+    );
+    if (destino) {
+      console.error("[auth/callback] link recusado pelo Supabase", {
+        error: searchParams.get("error"),
+        errorCode: searchParams.get("error_code"),
+      });
+      return NextResponse.redirect(`${origin}${destino}`);
+    }
     return NextResponse.redirect(`${origin}/login?msg=missing_code`);
   }
 
@@ -27,7 +48,9 @@ export async function GET(request: NextRequest) {
       name: error.name,
       code: error.code ?? null,
     });
-    return NextResponse.redirect(`${origin}/login?msg=auth_error`);
+    return NextResponse.redirect(
+      `${origin}${fluxoDeSenha ? "/recuperar-senha?erro=link_expirado" : "/login?msg=auth_error"}`
+    );
   }
 
   const {

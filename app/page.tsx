@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { destinoDoErroDoLink } from "@/lib/auth/erros";
 import { Skeleton } from "@/components/ui/EmptyState";
 import {
   ChevronRight,
@@ -27,7 +28,23 @@ import {
 // futura) e "Novos perfis" usa cards GHOST (sem profissional inventado).
 // Deslogado vê a Home; logado vai direto pro painel (/app).
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // Link de email que falhou (expirado, já usado) cai aqui com ?error=... do
+  // Supabase quando o redirectTo não é aceito. Sem isto a pessoa via a home
+  // sem nenhuma explicação.
+  const sp = await searchParams;
+  const um = (v: string | string[] | undefined) =>
+    Array.isArray(v) ? v[0] : v ?? null;
+  const destinoDoErro = destinoDoErroDoLink({
+    error: um(sp.error),
+    error_code: um(sp.error_code),
+  });
+  if (destinoDoErro) redirect(destinoDoErro);
+
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (userData.user) redirect("/app");

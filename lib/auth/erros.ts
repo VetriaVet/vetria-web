@@ -110,6 +110,40 @@ export function traduzirErroAuth(erro: ErroAuth | null | undefined): string {
   return ERRO_GENERICO;
 }
 
+/** Aviso que /recuperar-senha mostra quando chega com ?erro=link_expirado. */
+export const AVISO_LINK_RECUPERACAO =
+  "Este link expirou ou já foi usado. Peça um novo abaixo.";
+
+/**
+ * Quando o link do email falha na verificação (expirado, já usado, consumido
+ * pela pré-visualização do email), o Supabase NÃO chega a mandar um `code`:
+ * redireciona para o redirectTo (ou, se ele não estiver na lista de Redirect
+ * URLs, para o Site URL, que é a home) com `?error=...&error_code=...`.
+ * Esta função decide para onde levar a pessoa. `null` = não há erro do
+ * Supabase na query, siga o fluxo normal.
+ *
+ * `emFluxoDeSenha` = sabemos que o link era de recuperação (callback com
+ * next=/recuperar-senha/...). Na home não dá pra saber qual email era; mesmo
+ * assim otp_expired/access_denied vão para /recuperar-senha, porque um link
+ * de recuperação novo também confirma o email de quem não confirmou.
+ */
+export function destinoDoErroDoLink(
+  params: { error?: string | null; error_code?: string | null },
+  emFluxoDeSenha = false
+): string | null {
+  const { error, error_code } = params;
+  if (!error && !error_code) return null;
+  const linkVencido =
+    error_code === "otp_expired" ||
+    error_code === "flow_state_expired" ||
+    error_code === "flow_state_not_found" ||
+    error === "access_denied";
+  if (linkVencido || emFluxoDeSenha) {
+    return "/recuperar-senha?erro=link_expirado";
+  }
+  return "/login?msg=auth_error";
+}
+
 /** Códigos que o /auth/callback coloca em /login?msg=... */
 export function traduzirMsgDoCallback(msg: string | null): string | null {
   if (msg === "auth_error") return LINK_EXPIRADO;
