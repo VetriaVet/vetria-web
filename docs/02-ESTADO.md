@@ -3,11 +3,10 @@
 > **Este é o primeiro arquivo que qualquer sessão ou agente lê.**
 > Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
 >
-> **Última atualização:** 21/09/2026 (**PR #2 mergeado**; S3 fechada; **S4 aberta**; **R-001,
-> R-038, R-047 e R-053 fechados por medição**; **T-023 commitada**; **T-021 fechada**;
-> **DL-059, DL-060**) · **Fase:** F3 (S4) · **Último commit em produção:** `eb6e2d6`.
-> ⚠️ **A `main` local está à frente da `origin/main` e nada foi empurrado:** push na `main`
-> dispara deploy, e o gesto é do Elber. `git log origin/main..HEAD --oneline` diz quanto.
+> **Última atualização:** 23/09/2026 (**T-023 e T-025 em produção**, `22fbefd`, CI #13 verde; **item 4
+> do DoD fechado** com conta `tutor`; **R-055 e T-026 fechados** por medição; órfãos **zero**; **DL-061**
+> destrava a T-024; **R-059** novo) · **Fase:** F3 (S4) · **Último commit em produção:** `22fbefd`.
+> O `RETOMAR.md` tem o resumo do dia. **Falta da F3: só o item 3 do DoD (T-024).**
 
 ---
 

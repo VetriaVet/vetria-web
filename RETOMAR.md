@@ -20,7 +20,7 @@
 **Falta, nesta ordem:**
 1. **Passo 7 · teste da T-017** (PATCH `estado = 'ZZ'` com a conta vet de teste). Peça o script ao Claude
 2. ~~Passo 8 · as 3 decisões~~ ✅ **tomadas em 23/09 (DL-061): (a), (a), (a).** A T-024 está destravada
-3. ~~Push~~ ✅ autorizado pelo Elber em 23/09. Falta a olhada em produção pelo celular
+3. ~~Push~~ ✅ **em produção em 23/09** (`eb6e2d6..22fbefd`), CI #13 verde, fila do admin conferida em `vetriabrasil.com.br`
 
 **Pedidos do Elber sem card, para o `vetria-maestro` encaixar:** a prévia real do perfil público (ler o banco, só leitura) e o botão de arquivo sempre em português (hoje é o nativo do navegador, que segue o idioma do Chrome).
 
