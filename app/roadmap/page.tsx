@@ -105,6 +105,8 @@ const SPRINTS: Sprint[] = [
       { label: "Páginas preparadas para o Google encontrar", status: "todo" },
       { label: "Contato direto por WhatsApp", status: "todo" },
       { label: "Cada contato recebido fica registrado para o profissional", status: "todo" },
+      { label: "O banco de dados recusa informação inválida no cadastro (CRMV, estado, endereço de site)", status: "done" },
+      { label: "Senhas mais fortes, com mensagens de erro em português e opção de mostrar a senha", status: "done" },
       { label: "Proteções antes de abrir para profissionais de fora: verificação contra robôs no cadastro, segundo fator de acesso para a equipe Vetria e limites de envio", status: "todo" },
     ],
     result:
@@ -132,9 +134,10 @@ const SPRINTS: Sprint[] = [
     status: "todo",
     goal: "O que separa um sistema que funciona na demonstração de um sistema que pode receber gente de verdade.",
     items: [
-      { label: "Revisão de segurança a cada entrega (11 revisões até agora)", status: "done" },
+      { label: "Revisão de segurança a cada entrega (13 revisões até agora)", status: "done" },
       { label: "Testes automáticos rodando a cada publicação", status: "done" },
-      { label: "Auditoria completa de acesso aos dados", status: "todo" },
+      { label: "Ambiente de testes separado do site real, para ensaiar cada mudança antes de publicar", status: "done" },
+      { label: "Auditoria completa de acesso aos dados (a equipe Vetria já só enxerga os documentos de quem está em validação)", status: "doing" },
       { label: "LGPD: consentimento, exportação e exclusão de dados", status: "todo" },
       { label: "Termos de uso e política de privacidade", status: "todo" },
       { label: "Varredura de qualidade em todos os fluxos", status: "todo" },
