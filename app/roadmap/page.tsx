@@ -36,16 +36,16 @@ type Sprint = {
 const SPRINTS: Sprint[] = [
   {
     num: "Sprint 1 · concluída",
-    title: "Base técnica, autenticação e RBAC",
+    title: "Base técnica, contas e acesso",
     status: "done",
     goal: "Erguer o alicerce: contas, papéis e a estrutura de painéis que sustenta tudo o que vem depois.",
     items: [
-      { label: "Estrutura técnica e deploy contínuo", status: "done" },
-      { label: "Login e cadastro (e-mail + Google)", status: "done" },
-      { label: "Controle de acesso por papel (RBAC)", status: "done" },
+      { label: "Estrutura técnica e publicação automática", status: "done" },
+      { label: "Entrar e criar conta (email ou Google)", status: "done" },
+      { label: "Cada tipo de conta vê só o que é dela", status: "done" },
       { label: "Painéis isolados (responsável, veterinário, estabelecimento)", status: "done" },
-      { label: "Painel administrativo funcional", status: "done" },
-      { label: "Recuperação de senha + emails reais no domínio oficial", status: "done" },
+      { label: "Painel da equipe Vetria funcionando", status: "done" },
+      { label: "Recuperação de senha e emails reais no domínio oficial", status: "done" },
     ],
     result:
       "Base de entrada sólida e no ar (vetriabrasil.com.br): contas, login, recuperação de senha e papéis funcionando de verdade.",
@@ -58,13 +58,13 @@ const SPRINTS: Sprint[] = [
     items: [
       {
         label:
-          "Design system e todas as telas do produto (página inicial, responsável, veterinário, estabelecimento, admin)",
+          "Padrão visual e todas as telas do produto (página inicial, responsável, veterinário, estabelecimento, equipe Vetria)",
         status: "done",
       },
-      { label: "Página inicial pública do consumidor", status: "done" },
-      { label: "Telas de onboarding das três personas", status: "done" },
+      { label: "Página inicial pública para o responsável", status: "done" },
+      { label: "Telas de primeiro cadastro dos três tipos de conta", status: "done" },
       { label: "Marca oficial aplicada em todas as telas", status: "done" },
-      { label: "Emails transacionais com identidade Vetria", status: "done" },
+      { label: "Emails automáticos com a identidade Vetria", status: "done" },
       { label: "Domínio oficial no ar com email verificado", status: "done" },
     ],
     result:

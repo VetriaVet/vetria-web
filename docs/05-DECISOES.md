@@ -755,3 +755,23 @@ dia, fica para a F6; a T-033 entrega o que fecha o clickjacking do botão *Aprov
   **Segurança** do `00-ESCOPO.md` §2. Não há emenda. **Mas é trabalho que o plano original não tinha**, estimado em
   ~3 dias de backend, e ele entra na F4 junto com a busca. Ver `01-PLANO.md` §Atraso.
 **Status:** ✅ decidida pelo `vetria-maestro`, confirmar na leitura do diff · ⬜ portão: 0 de 6 provados
+
+### DL-064 — Um projeto Supabase só de teste (`vetria-e2e`), que também serve de ensaio para toda migration
+**Data:** 23/09/2026 · **Fase/Task:** F4/S5 · T-029, R-033, T-027
+**Quem decidiu:** o Elber delegou (*"decida por mim, pro meu cenário de programador e disponibilidade"*).
+**Contexto:** em 23/09 o CI quebrou porque a prova em tela da T-024 aprovou a conta que o CI usa. É a segunda vez
+que testar em produção morde (R-033). E toda migration até hoje foi aplicada direto em produção, com backup antes.
+**Decisão:** opção A do `vetria-qa`. Criar o projeto `vetria-e2e` (plano grátis), aplicar `0000` a `0003` e cada
+migration nova, e apontar o CI para ele. **O ganho que decide, para quem programa sozinho:** o mesmo projeto vira o
+**ensaio de toda migration** (T-027, T-028): aplica-se lá, roda-se o CI, e só então em produção. Um projeto resolve
+dois problemas. A `service_role` **do projeto de teste** entra como secret do CI; **a de produção, nunca**. O
+`ci.yml` troca a frase "NUNCA service_role" por "nunca a de produção" no mesmo commit da T-029.
+**Custo aceito:** cada migration passa a ser aplicada duas vezes (teste, depois produção), minutos a mais por
+migration. Menor que um CI quebrado ou uma migration errada em produção.
+**Alternativa descartada:** continuar em produção com contas fixas. Barato hoje, mas não fecha os itens 1 e 3 do DoD
+no CI e repete o incidente de 23/09 a cada prova em tela.
+
+### DL-065 — A página pública /roadmap fala a língua do cliente
+**Data:** 23/09/2026 · **Quem decidiu:** o Elber delegou. **Decisão:** sem sigla nem termo técnico no /roadmap
+(RBAC, onboarding, deploy, design system, admin viram "cada tipo de conta vê só o que é dela", "primeiro cadastro",
+"publicação automática", "padrão visual", "equipe Vetria"). A página é vitrine de progresso para quem não programa.
