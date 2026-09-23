@@ -630,3 +630,28 @@ card da T-008: quem precisa dela aponta, ninguém copia.
   **ninguém rodou a varredura**, e neste projeto risco fecha por medição, não por texto.
 **Status:** ✅ aplicada nos dois cards · ⬜ **a medição que ela habilita continua pendente** (Elber,
 SQL Editor, lista de medições da S4)
+
+### DL-061 — As três decisões que travavam a T-024: menor privilégio, validação no servidor e `server-only`
+**Data:** 23/09/2026 · **Fase/Task:** F3/S4 · T-024, T-022, SEC-092, SEC-088, SEC-089 / R-058
+**Quem decidiu:** o Elber delegou (*"decida por mim, o que for melhor pro projeto e o que se usa
+normalmente no mercado"*), e a escolha seguiu o padrão de mercado nas três.
+**Decisão:**
+1. **SEC-092 → (a).** O detalhe `/admin/validacoes/<uuid>` só abre conta em
+   `pending_validation`. Moderação de quem já está `active` ganha tela própria quando existir.
+   **Por quê:** menor privilégio é o padrão, e a LGPD cobra finalidade: o dossiê existe para
+   validar, então só abre enquanto há validação. Ampliar depois é fácil; recolher acesso que já
+   foi usado não é. **A matriz §5 muda antes do código**, dentro da T-024.
+2. **T-022 / SEC-088 → (a).** A Server Action recusa concluir o onboarding sem documento.
+   **Por quê:** validação que só existe no cliente não é validação, e em 23/09 a prova em tela
+   mostrou 3 de 4 contas na fila sem documento. As 3 existentes seguem na fila com o badge âmbar,
+   que continua útil para elas; conta nova não entra mais assim.
+3. **R-058 / SEC-089 → (a).** `import "server-only"` em `lib/supabase/admin.ts`. **Por quê:** é
+   a prática recomendada do Next.js para módulo com segredo; transforma "a chave de
+   `service_role` nunca vai pro cliente" de disciplina em erro de build. É dependência nova (🟡),
+   autorizada por esta decisão.
+**Alternativas descartadas:** (b) nas três. Acesso amplo com trilha é aceitável, mas é mais
+superfície para o mesmo trabalho de hoje; a fila tolerando "sem documento" para sempre normaliza
+dado incompleto; e deixar o `server-only` para depois é deixar a única barreira da chave mais
+sensível do projeto como convenção.
+**Consequência:** a T-024 deixa de estar travada. Os itens 1 e 3 entram nela; o item 2 é a T-022,
+que anda junto ou antes.
