@@ -16,8 +16,12 @@
 //                   cidade, sobre) e clinic_profiles_cep_formato (8 dígitos)
 //   MAX_SERVICOS  → clinic_profiles_servicos_teto
 //   (site)        → clinic_profiles_site_http
-// MUDOU AQUI, MUDA LÁ (migration nova, 🔴). A pertença de `servicos` à lista
-// é da T-028 (tabela de apoio).
+//   SERVICOS      → tabela `public.servicos` (0005, T-028, DL-068): o seed é
+//                   CÓPIA desta lista, na mesma ordem, e o trigger
+//                   `trg_clinic_profiles_servicos_da_lista` recusa item que não
+//                   esteja na tabela
+// MUDOU AQUI, MUDA LÁ (migration nova, 🔴), no mesmo commit. Esta lista
+// continua sendo a fonte da TELA até a busca (S6) ler a tabela.
 //
 // ⚠️ DOIS PAYLOADS SEPARADOS, e continua sendo assim.
 // `cnpj`, `razao_social` e `responsavel_tecnico` são dados de `clinic` e a

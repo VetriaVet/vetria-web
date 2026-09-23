@@ -19,7 +19,12 @@
 //   MAX_ESPECIALIDADES → vet_profiles_especialidades_teto
 // MUDOU AQUI, MUDA LÁ (migration nova, 🔴), e vice-versa. Se esta lista
 // crescer sozinha, a pessoa preenche certo e o banco recusa com um 23514.
-// A pertença de `especialidades` à lista é da T-028 (tabela de apoio).
+//   ESPECIALIDADES → tabela `public.especialidades` (0005, T-028, DL-068): o
+//                    seed é CÓPIA desta lista, na mesma ordem, e o trigger
+//                    `trg_vet_profiles_especialidades_da_lista` recusa item
+//                    que não esteja na tabela. Item novo = migration + esta
+//                    linha, no mesmo commit. Esta lista continua sendo a fonte
+//                    da TELA até a busca (S6) ler a tabela.
 //
 // ⚠️ Não confundir com os campos do estabelecimento (T-007): `cnpj`,
 // `razao_social` e `responsavel_tecnico` são dados de `clinic` e a guarda
