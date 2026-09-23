@@ -378,9 +378,13 @@ test.describe("persistencia do onboarding do veterinario (R-033)", () => {
     }
     await expect(marcados).toHaveCount(0);
 
-    for (const esp of ESPECIALIDADES_EM_TELA.slice(0, 5)) {
+    for (const esp of ESPECIALIDADES_EM_TELA.slice(0, 4)) {
       await chip(page, esp).click();
     }
+    // A quinta está com `aria-disabled`, e o Playwright espera "habilitado"
+    // antes de clicar. Uma pessoa clica mesmo assim, e é esse clique que tem
+    // que ser recusado com o aviso: por isso `force`.
+    await chip(page, ESPECIALIDADES_EM_TELA[4]).click({ force: true });
 
     await expect(marcados, "o chip deixou marcar mais de 4").toHaveCount(4);
     await expect(chip(page, ESPECIALIDADES_EM_TELA[4])).toHaveAttribute("aria-pressed", "false");
