@@ -190,6 +190,28 @@ test.describe("portao de status e de role, contra a conta vet real", () => {
     await expect(page).toHaveURL(rotaExata(`${BASE_VET}/onboarding`));
   });
 
+  // T-025 — A ROTA ALCANÇÁVEL NÃO É A MESMA COISA QUE O CAMINHO OFERECIDO.
+  //
+  // O teste de cima prova que o portão deixa entrar. Ele passava verde
+  // enquanto NÃO EXISTIA um único `href` para `/onboarding` em `app/` nem em
+  // `components/`: a única forma de chegar lá era digitar a URL. Este teste é
+  // o outro lado, e o gesto é CLICAR, não navegar.
+  test("de /aguardando da para CLICAR no caminho de volta ao cadastro", async ({
+    page,
+  }) => {
+    exigirContaNaFila();
+
+    await page.goto(`${BASE_VET}/aguardando`);
+
+    const link = page.getByRole("link", {
+      name: /rever e corrigir o cadastro/i,
+    });
+    await expect(link).toBeVisible();
+
+    await link.click();
+    await expect(page).toHaveURL(rotaExata(`${BASE_VET}/onboarding`));
+  });
+
   test("/bloqueado devolve quem nao esta suspenso, e sem laco de redirect", async ({
     page,
   }) => {

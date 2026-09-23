@@ -14,6 +14,9 @@ import {
   Loader2,
   ArrowRight,
   Info,
+  // T-025 — o link de volta ao cadastro e o aviso que vem com ele.
+  FilePen,
+  TriangleAlert,
   Image as ImageIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -282,15 +285,52 @@ export function AjudaCasca() {
 /* ---------------- Aguardando validação (vet/clínica) ---------------- */
 type TLState = "done" | "active" | "pending";
 
+/**
+ * T-025 — O CAMINHO DE VOLTA AO ONBOARDING.
+ *
+ * O DL-046 promete por escrito que *"enquanto espera, ele edita"*, os dois
+ * portões (`ONBOARDING` em `lib/auth/status.ts` e o guard da própria página de
+ * onboarding) deixam passar, o formulário abre preenchido com o dado do banco
+ * desde a T-006/T-007 — e até aqui **não existia um único `href` para
+ * `/onboarding` em `app/` nem em `components/`**. A capacidade existia e o
+ * produto só a oferecia a quem digitasse a URL na barra de endereço.
+ *
+ * ⚠️ `aviso` VEM JUNTO COM O LINK, NO MESMO OBJETO, DE PROPÓSITO.
+ * Quem não alcança `/onboarding` não vê o link e também não vê o texto sobre
+ * salvar de novo: aviso sobre um botão que não está na tela é ruído, e as duas
+ * coisas nunca podem ser ligadas uma sem a outra por descuido de página nova.
+ *
+ * ⚠️ O QUE ESTE TEXTO NÃO PODE PROMETER (e é o item delicado do card):
+ * mexer em `crmv`, `crmv_uf`, `nome_exibicao` (ou em `cnpj`, `razao_social`,
+ * `nome_fantasia`, ou no `documento_path`) dispara
+ * `revalidar_ao_mudar_dado_sensivel()` (`0002_nucleo.sql:388-436`), que devolve
+ * para `pending_validation` quem já estava `active`. O que acontece com a
+ * POSIÇÃO de quem já está na fila **não está decidido nem escrito** (é a T-019,
+ * cortada para a F6/S11 pelo DL-056), então a tela não afirma que editar é
+ * grátis nem que a posição na fila se mantém. Ela diz o que o banco garante e
+ * para onde a dúvida ainda existe.
+ */
+type ReverCadastro = {
+  href: string;
+  title: string;
+  desc: string;
+  aviso: string;
+};
+
 export function AguardandoCasca({
   headline,
   sub,
   steps,
+  rever,
   perfil,
 }: {
   headline: string;
   sub: string;
   steps: { state: TLState; title: string; desc: string }[];
+  /** `null` = o status de quem está lendo NÃO alcança `/onboarding` pela
+   *  matriz §4. A página decide isso com a lista de `lib/auth/status.ts`, e
+   *  nunca com uma cópia dela escrita aqui. */
+  rever: ReverCadastro | null;
   perfil: { href: string; title: string; desc: string };
 }) {
   return (
@@ -322,26 +362,41 @@ export function AguardandoCasca({
           <h2 className="mb-3 text-lg font-bold text-titulo">
             Enquanto isso, você pode
           </h2>
-          <Link
-            href={perfil.href}
-            className="group flex items-center gap-4 rounded-2xl border border-neutro-border p-5 no-underline transition hover:border-principal hover:shadow-sm"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-fundo-destaque text-principal">
-              <ImageIcon size={18} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-semibold text-titulo">
-                {perfil.title}
-              </span>
-              <span className="block text-[13px] leading-relaxed text-corpo-texto">
-                {perfil.desc}
-              </span>
-            </span>
-            <ArrowRight
-              size={18}
-              className="text-corpo-texto/50 transition group-hover:text-principal"
+
+          <div className="flex flex-col gap-3">
+            {rever && (
+              // O aviso fica ENCOSTADO no link, e não no fim da tela: quem lê
+              // "salvar de novo" precisa ler o que isso custa no mesmo bloco,
+              // antes de clicar, e não três cartões abaixo.
+              <div className="flex flex-col gap-2">
+                <AcaoDeEspera
+                  href={rever.href}
+                  icon={FilePen}
+                  title={rever.title}
+                  desc={rever.desc}
+                />
+                <div className="flex gap-3 rounded-xl bg-warning-soft p-4">
+                  <TriangleAlert
+                    size={18}
+                    className="mt-0.5 shrink-0 text-warning"
+                    aria-hidden="true"
+                  />
+                  <p className="text-[13px] leading-relaxed text-corpo-texto">
+                    <strong className="text-titulo">
+                      Antes de salvar de novo:
+                    </strong>{" "}
+                    {rever.aviso}
+                  </p>
+                </div>
+              </div>
+            )}
+            <AcaoDeEspera
+              href={perfil.href}
+              icon={ImageIcon}
+              title={perfil.title}
+              desc={perfil.desc}
             />
-          </Link>
+          </div>
 
           <div className="mt-6 flex gap-3 rounded-xl bg-fundo-destaque p-4">
             <Info size={18} className="mt-0.5 shrink-0 text-principal" />
@@ -354,6 +409,45 @@ export function AguardandoCasca({
         </div>
       </div>
     </div>
+  );
+}
+
+/** O cartão de ação da tela de espera. Era markup inline de um único link;
+ *  virou função quando a T-025 acrescentou o segundo, para os dois serem o
+ *  mesmo cartão e não duas cópias que divergem na próxima mudança de estilo.
+ *  `<Link>` é âncora: cursor de mão vem do navegador, e o DL-040 fala de
+ *  `<button>`. O foco de teclado é o anel global do `globals.css`. */
+function AcaoDeEspera({
+  href,
+  icon: Icon,
+  title,
+  desc,
+}: {
+  href: string;
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center gap-4 rounded-2xl border border-neutro-border p-5 no-underline transition hover:border-principal hover:shadow-sm"
+    >
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-fundo-destaque text-principal">
+        <Icon size={18} aria-hidden="true" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-titulo">{title}</span>
+        <span className="block text-[13px] leading-relaxed text-corpo-texto">
+          {desc}
+        </span>
+      </span>
+      <ArrowRight
+        size={18}
+        aria-hidden="true"
+        className="shrink-0 text-corpo-texto/50 transition group-hover:text-principal"
+      />
+    </Link>
   );
 }
 

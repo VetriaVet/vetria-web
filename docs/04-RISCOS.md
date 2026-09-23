@@ -414,6 +414,24 @@ trava escrita: **antes do primeiro profissional de fora.**
 - **Sem card, de propósito:** é conserto natural da **T-020**, que é quem vai mexer em teto de
   volume nessa mesma rota. Se a T-020 escorregar para a F6, este vai junto. 🟡
 
+### R-059 — O número do CRMV é texto livre, e cidade e estado não são conferidos um contra o outro
+- **Descoberto:** 23/09/2026, pelo **Elber**, na prova em tela da T-023. **Visto em dado real**
+- **Onde:** `app/app/veterinario/onboarding/actions.ts:149-215`
+- **O quê:** a fila mostrou `CRMV-AL GO-0155 · Goiânia / AP` para uma conta só. **Cada campo,
+  sozinho, passou pela validação que existe:** `crmv_uf` e `estado` são conferidos contra a
+  lista de UFs (`:194`, `:214`), e AL e AP são UFs válidas. O que **não** é conferido: o
+  **número** do CRMV só tem teto de 20 caracteres (`:190`), então aceita `GO-0155` com a sigla de
+  outra UF dentro; e **cidade é texto livre**, nunca cruzada com o estado. A mesma fila mostrou
+  `GO-0155` também na conta da Larissa, com UF AC.
+- **Por que 🟡 e não mais:** a conferência humana existe para isto. O admin vê o CRMV inteiro e
+  o documento antes de aprovar, e a T-024 é quem decide. Os dois `GO-0155` são de UFs
+  diferentes, então **não** são o mesmo registro. São dado de teste digitado à mão.
+- **Não é o R-039:** aquele é o banco aceitar o que a Action recusaria. Aqui **a própria Action
+  aceita**. Se a T-017 escrever CHECK no formato do número, cobre as duas portas de uma vez.
+- **Correção:** formato do número do CRMV na Action (e no CHECK da T-017, se ela nascer), e
+  cidade escolhida de lista por UF, ou aviso ao admin quando não bater.
+- **Task:** sem card. Candidato a entrar junto com a **T-017**. 🟡
+
 ### R-058 — `lib/supabase/admin.ts` não tem `import "server-only"`, e o número de importadores dobrou (SEC-089)
 - **Descoberto:** 16/09/2026, auditoria da T-008
 - **Onde:** `lib/supabase/admin.ts:1-7`
