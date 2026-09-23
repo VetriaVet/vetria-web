@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/browser";
-import { Input } from "@/components/ui/Input";
+import { CampoSenha } from "@/components/ui/CampoSenha";
+import { validarSenha, SENHA_AJUDA, SENHA_PLACEHOLDER } from "@/lib/auth/senha";
+import { traduzirErroAuth } from "@/lib/auth/erros";
 import { Label } from "@/components/ui/Label";
 import { Button } from "@/components/ui/Button";
 import { Check } from "lucide-react";
@@ -35,16 +37,15 @@ export default function NovaSenhaPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-    if (password.length < 8) {
-      return setMsg("A senha precisa ter ao menos 8 caracteres.");
-    }
+    const faltaNaSenha = validarSenha(password);
+    if (faltaNaSenha) return setMsg(faltaNaSenha);
     if (password !== confirm) {
       return setMsg("As senhas não coincidem.");
     }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
-    if (error) return setMsg(error.message);
+    if (error) return setMsg(traduzirErroAuth(error));
     setDone(true);
   }
 
@@ -109,29 +110,28 @@ export default function NovaSenhaPage() {
                 Criar nova senha
               </h1>
               <p className="text-[15px] text-corpo-texto leading-relaxed mb-8">
-                Escolha uma senha com pelo menos 8 caracteres.
+                Escolha uma senha nova para acessar a Vetria.
               </p>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div>
                   <Label htmlFor="password">Nova senha</Label>
-                  <Input
+                  <CampoSenha
                     id="password"
                     name="password"
-                    type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     autoComplete="new-password"
-                    placeholder="Mínimo 8 caracteres"
+                    placeholder={SENHA_PLACEHOLDER}
+                    ajuda={SENHA_AJUDA}
                   />
                 </div>
                 <div>
                   <Label htmlFor="confirm">Confirmar nova senha</Label>
-                  <Input
+                  <CampoSenha
                     id="confirm"
                     name="confirm"
-                    type="password"
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     required

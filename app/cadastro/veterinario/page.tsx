@@ -7,6 +7,9 @@ import { MailCheck } from "lucide-react";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
 import { Button } from "../../../components/ui/Button";
+import { CampoSenha } from "../../../components/ui/CampoSenha";
+import { validarSenha, SENHA_AJUDA, SENHA_PLACEHOLDER } from "@/lib/auth/senha";
+import { traduzirErroAuth } from "@/lib/auth/erros";
 import { createClient } from "@/lib/supabase/browser";
 
 // Funil B2B / empresarial — acessado pelas landings de profissionais (não pelo fluxo do tutor).
@@ -45,7 +48,8 @@ export default function CadastroVetPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-    if (senha.length < 8) return setMsg({ tipo: "erro", texto: "A senha precisa ter ao menos 8 caracteres." });
+    const faltaNaSenha = validarSenha(senha);
+    if (faltaNaSenha) return setMsg({ tipo: "erro", texto: faltaNaSenha });
     if (senha !== confirmar) return setMsg({ tipo: "erro", texto: "As senhas não conferem." });
     if (!termos) return setMsg({ tipo: "erro", texto: "Você precisa aceitar os termos de uso." });
 
@@ -61,7 +65,7 @@ export default function CadastroVetPage() {
     });
     setLoading(false);
 
-    if (error) return setMsg({ tipo: "erro", texto: error.message });
+    if (error) return setMsg({ tipo: "erro", texto: traduzirErroAuth(error) });
     setCriada(true);
     setTimeout(() => setConfirmacao(true), PAUSA_DO_CHECK);
   }
@@ -77,7 +81,7 @@ export default function CadastroVetPage() {
     });
     setReenviando(false);
 
-    if (error) return setMsg({ tipo: "erro", texto: error.message });
+    if (error) return setMsg({ tipo: "erro", texto: traduzirErroAuth(error) });
     setMsg({
       tipo: "ok",
       texto: "Enviamos de novo. Confira a caixa de entrada e o spam.",
@@ -178,11 +182,11 @@ export default function CadastroVetPage() {
                   </div>
                   <div>
                     <Label htmlFor="senha">Senha</Label>
-                    <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required placeholder="Mínimo 8 caracteres" autoComplete="new-password" />
+                    <CampoSenha id="senha" value={senha} onChange={(e) => setSenha(e.target.value)} required placeholder={SENHA_PLACEHOLDER} autoComplete="new-password" ajuda={SENHA_AJUDA} />
                   </div>
                   <div>
                     <Label htmlFor="confirmar">Confirmar senha</Label>
-                    <Input id="confirmar" type="password" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} required placeholder="Repita a senha" autoComplete="new-password" />
+                    <CampoSenha id="confirmar" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} required placeholder="Repita a senha" autoComplete="new-password" />
                   </div>
                   <div>
                     <Label htmlFor="cidade">Cidade</Label>

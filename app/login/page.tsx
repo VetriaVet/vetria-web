@@ -1,27 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/browser";
+import { CampoSenha } from "@/components/ui/CampoSenha";
+import { validarSenha, SENHA_AJUDA, SENHA_PLACEHOLDER } from "@/lib/auth/senha";
+import { traduzirErroAuth, traduzirMsgDoCallback } from "@/lib/auth/erros";
 
 type Mode = "login" | "signup";
+type Mensagem = { tipo: "erro" | "ok"; texto: string };
+
+// O /auth/callback devolve pra cá com ?msg=auth_error quando o link do email
+// expirou. Lido sem useSearchParams pra não exigir Suspense na página inteira:
+// no servidor é "", no navegador é a query real.
+const semInscricao = () => () => {};
+const lerQuery = () => window.location.search;
+const queryNoServidor = () => "";
 
 export default function LoginPage() {
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<Mensagem | null>(null);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<Mode>("login");
-  const [showPassword, setShowPassword] = useState(false);
+  const [interagiu, setInteragiu] = useState(false);
+
+  const query = useSyncExternalStore(semInscricao, lerQuery, queryNoServidor);
+  const avisoDoLink = interagiu
+    ? null
+    : traduzirMsgDoCallback(new URLSearchParams(query).get("msg"));
 
   const isSignup = mode === "signup";
+  const erro = (texto: string) => setMsg({ tipo: "erro", texto });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
+    setInteragiu(true);
+
+    if (isSignup) {
+      const faltaNaSenha = validarSenha(password);
+      if (faltaNaSenha) return erro(faltaNaSenha);
+    }
+
     setLoading(true);
 
     if (isSignup) {
@@ -33,8 +57,11 @@ export default function LoginPage() {
         options: { emailRedirectTo: `${siteUrl}/auth/callback` },
       });
       setLoading(false);
-      if (error) return setMsg(error.message);
-      setMsg("✅ Conta criada. Confirme o email e depois faça login.");
+      if (error) return erro(traduzirErroAuth(error));
+      setMsg({
+        tipo: "ok",
+        texto: "Conta criada. Confirme o email e depois faça login.",
+      });
       return;
     }
 
@@ -43,27 +70,31 @@ export default function LoginPage() {
       password,
     });
     setLoading(false);
-    if (error) return setMsg(error.message);
+    if (error) return erro(traduzirErroAuth(error));
     window.location.href = "/app";
   }
 
   async function loginWithGoogle() {
     setMsg(null);
+    setInteragiu(true);
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${siteUrl}/auth/callback` },
     });
-    if (error) setMsg(error.message);
+    if (error) erro(traduzirErroAuth(error));
   }
 
   function toggleMode() {
     setMode(isSignup ? "login" : "signup");
     setMsg(null);
+    setInteragiu(true);
   }
 
-  const isError = msg !== null && !msg.startsWith("✅");
+  const aviso: Mensagem | null =
+    msg ?? (avisoDoLink ? { tipo: "erro", texto: avisoDoLink } : null);
+  const isError = aviso?.tipo === "erro";
 
   return (
     <main className="min-h-screen grid md:grid-cols-2 bg-white">
@@ -159,29 +190,16 @@ export default function LoginPage() {
                   </a>
                 )}
               </div>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete={
-                    isSignup ? "new-password" : "current-password"
-                  }
-                  placeholder="Insira sua senha"
-                  className="w-full rounded-pill bg-fundo-claro/40 border border-transparent px-5 py-3.5 pr-12 text-[15px] text-titulo placeholder:text-corpo-texto/60 focus:bg-white focus:border-principal focus:ring-2 focus:ring-principal/20 focus:outline-none transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-corpo-texto hover:text-titulo transition"
-                >
-                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                </button>
-              </div>
+              <CampoSenha
+                id="password"
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete={isSignup ? "new-password" : "current-password"}
+                placeholder={isSignup ? SENHA_PLACEHOLDER : "Insira sua senha"}
+                ajuda={isSignup ? SENHA_AJUDA : undefined}
+              />
             </div>
 
             <button
@@ -199,14 +217,14 @@ export default function LoginPage() {
                   : "Fazer login"}
             </button>
 
-            {msg && (
+            {aviso && (
               <p
-                role={isError ? "alert" : undefined}
+                role={isError ? "alert" : "status"}
                 className={`font-medium text-sm mt-1 ${
                   isError ? "text-red-600" : "text-principal"
                 }`}
               >
-                {msg}
+                {aviso.texto}
               </p>
             )}
           </form>
@@ -246,46 +264,6 @@ function GoogleIcon() {
         fill="#1976D2"
         d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"
       />
-    </svg>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function EyeOffIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-      <line x1="2" y1="2" x2="22" y2="22" />
     </svg>
   );
 }

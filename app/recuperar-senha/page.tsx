@@ -7,29 +7,34 @@ import { createClient } from "@/lib/supabase/browser";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Button } from "@/components/ui/Button";
+import { traduzirErroAuth } from "@/lib/auth/erros";
 
 // Recuperar senha (TASK-007b): chama resetPasswordForEmail e manda o link pra
 // /auth/callback?next=/recuperar-senha/nova (a callback cria a sessão e leva à
 // tela de nova senha). Mostra sucesso genérico SEM revelar se o email existe
-// (boa prática anti-enumeração). A entrega depende do Resend com domínio.
+// (boa prática anti-enumeração: o Supabase responde igual para email que não
+// existe). Erro de verdade (limite de envios, falha ao mandar o email, sem
+// internet) aparece em português (T-034): sumir com ele deixava a pessoa
+// esperando um email que nunca vem.
 
 export default function RecuperarSenhaPage() {
   const supabase = createClient();
   const [email, setEmail] = useState("");
   const [enviado, setEnviado] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setErro(null);
     setLoading(true);
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
-    // Erro é só logado, não exibido — mostramos sucesso genérico de qualquer jeito.
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${siteUrl}/auth/callback?next=/recuperar-senha/nova`,
     });
-    if (error) console.error("[recuperar-senha] resetPasswordForEmail", error);
     setLoading(false);
+    if (error) return setErro(traduzirErroAuth(error));
     setEnviado(true);
   }
 
@@ -74,6 +79,11 @@ export default function RecuperarSenhaPage() {
                     placeholder="seuemail@exemplo.com"
                   />
                 </div>
+                {erro && (
+                  <p className="text-[13px] text-error" role="alert">
+                    {erro}
+                  </p>
+                )}
                 <Button type="submit" className="mt-2" loading={loading}>
                   Enviar link de recuperação
                 </Button>
