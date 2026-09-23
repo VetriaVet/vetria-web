@@ -9,7 +9,7 @@
 > painel pro outro não é bug: é receita perdida e é a razão de existir de dois planos
 > desaparecendo ao mesmo tempo.
 >
-> **Criado:** 26/08/2026 · **Decisões:** DL-044 a DL-047 · §5 ampliada por DL-061 (23/09/2026)
+> **Criado:** 26/08/2026 · **Decisões:** DL-044 a DL-047 · §5 ampliada por DL-061 (23/09/2026) e pelo DL-066 (proposto, T-027)
 
 ---
 
@@ -79,7 +79,7 @@
 | `profiles.role` / `admin_level` | o dono, admin, master | **só master**, e só via `/api/admin/set-access` |
 | `profiles.status` | o dono, admin, master | **só admin e master**. Nunca o próprio usuário. |
 | `vet_profiles` / `clinic_profiles` | **público, apenas se `role` bate E `status='active'`**; sempre o dono; admin e master | o dono (menos `slug`), admin (moderação), master |
-| `perfil_privado` (whatsapp, telefone, email, documento) | **só o dono e admin/master. Nunca anônimo, nunca outro usuário.** | o dono |
+| `perfil_privado` (whatsapp, telefone, email, documento) | **só o dono e admin/master. Nunca anônimo, nunca outro usuário.** Admin e master, só enquanto a conta está na fila de validação (DL-061; no banco, a partir da `0004`, §5) | o dono |
 | Documento no Storage | **só o dono e admin/master**, por URL assinada de vida curta | o dono, e o caminho tem que começar com o próprio uuid |
 | `contatos` | o responsável que originou, o profissional que recebeu, admin, master | o servidor (nunca o cliente direto) |
 | `audit_logs` | **só master** | só o servidor |
@@ -189,6 +189,39 @@ só abre enquanto há validação. **Moderar quem já está `active`** (a linha 
 acima) **ganha tela própria quando existir**, com a leitura que a finalidade dela justificar; não
 herda esta. A decisão também vale para quem decide: aprovar ou reprovar só aceita conta que
 ainda está na fila, conferido no servidor antes de chamar `admin_definir_status`.
+
+### 🟡 23/09/2026 — o banco passa a aplicar a mesma regra (T-027, `0004`, DL-066 proposto)
+
+> **Escrito na `0004`, ainda NÃO aplicado.** Enquanto a `0004` não entrar, o que vale no banco é o de
+> antes, e a regra acima é só da aplicação. DL-066 é proposta do `vetria-backend`, a confirmar com o
+> Elber antes de aplicar.
+
+Até aqui, a regra desta seção morava na Server Action e na rota do documento. O PostgREST, com o token
+do próprio admin, deixava contornar as duas (SEC-096, SEC-097). Com a `0004`:
+
+**Transições de `profiles.status` que `admin_definir_status` aceita, e mais nenhuma:**
+
+| De | Para | Admin | Master | Motivo |
+|---|---|:---:|:---:|---|
+| `pending_validation` | `active` (aprovar) | ✅ | ✅ | opcional |
+| `pending_validation` | `incomplete` (reprovar) | ✅ | ✅ | **obrigatório** |
+| qualquer outro | `suspended` | ❌ | ✅ | **obrigatório** |
+| `suspended` | qualquer outro (reativar) | ❌ | ✅ | opcional |
+| `active` | `incomplete` ou `pending_validation` | ❌ | ❌ | tirar do ar quem foi aprovado é moderação (tela própria, ainda não existe); hoje, suspensão |
+| `incomplete` | `active` | ❌ | ❌ | ninguém fica ativo sem passar pela fila |
+
+**Quem lê o quê, pelo banco, na visão do admin:**
+
+| Dado | Admin | Master |
+|---|---|---|
+| `vet_profiles` / `clinic_profiles` de conta **na fila** | ✅ | ✅ |
+| `vet_profiles` / `clinic_profiles` de conta `active` | ✅ pela leitura pública, como qualquer visitante | ✅ |
+| `vet_profiles` / `clinic_profiles` de conta `incomplete` ou `suspended` | ❌ | ✅ ("ver a base inteira") |
+| `perfil_privado` (o dossiê) de conta **na fila** | ✅ | ✅ |
+| `perfil_privado` de conta em qualquer outro status | ❌ | ❌ (DL-061 levado ao banco, DL-066) |
+
+Linha de perfil cujo dono não tem o role da tabela (um `vet_profiles` de conta `clinic`) não aparece para
+ninguém pela visão do admin (SEC-093).
 
 ---
 

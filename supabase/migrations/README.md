@@ -20,6 +20,7 @@ o fluxo é **manual e controlado**:
 | `0001_handle_new_user_role_from_metadata.sql` | 24/05/2026 (Success) | trigger lê role do metadata + hardening |
 | `0002_nucleo.sql` | **26/08/2026** ✅ | núcleo de dados + RLS da matriz de permissões. Verificada por 9 sondas |
 | `0003_storage_documentos.sql` | **26/08/2026** ✅ | bucket `documentos` + SEC-020/R-018 + identidade dos bytes. Verificada por 18 sondas |
+| `0004_banco_recusa_o_que_a_action_recusa.sql` | ✅ **23/09/2026** (ensaio no `vetria-e2e` e produção). Produção: 21/22 `true` na aplicação, `vet_profiles_crmv_formato` validada depois de normalizar 5 CRMVs de conta de teste; sonda 3 com 38/38 OK nos dois projetos | T-027: CHECKs de conteúdo (T-017/R-039/R-059), `admin_definir_status` confere a origem (SEC-096/099), leitura do admin só da fila (SEC-097b/093), conclusão exige o objeto no bucket (SEC-098). Ensaio no `vetria-e2e` antes de produção (DL-064). Arquivos de apoio: `../prevoo-0004.sql`, `../backup-antes-da-0004.sql`, `../verificar-apos-0004.sql` |
 
 ---
 
@@ -53,6 +54,19 @@ valor esperado, e aborta se divergir. Se divergir, alguém editou a função for
 |---|---|
 | `revalidar_ao_mudar_dado_sensivel` | `4f6d1130f05888eb9b47e7cc4a2ef538` |
 | `carimbar_envio_documento` | `5b3f7ca858e6c31d0436afc100d401c4` |
+
+**A partir da `0004`, o pré-voo usa o hash SEM ESPAÇO EM BRANCO** (`md5(regexp_replace(prosrc, '[[:space:]]+', '', 'g'))`).
+Motivo: a `0003` mediu que o `md5(prosrc)` de produção diferia do arquivo só por espaço em branco, o que obrigava a
+medir em produção antes de escrever a constante. Sem espaço, o hash sai do ARQUIVO do repo e continua pegando qualquer
+mudança de conteúdo. Valores calculados sobre o corpo entre `$$` e `$$`:
+
+| Função | corpo da `0002` | corpo da `0004` |
+|---|---|---|
+| `admin_definir_status` | `51f27f5c43ca5c48aea0a3a21850cad2` | `52241257ac30590e445c93e1bc39d09a` |
+| `concluir_onboarding_profissional` | `0be00dee7bb30fddae30e7fde73293e0` | `542d156b7723946d987647491dcfde13` |
+
+Depois de aplicar a `0004`, o select final dela imprime o hash sem espaços medido no banco: tem que bater com a coluna
+da direita.
 
 Valores **anteriores** à `0003`, só para referência histórica (não use em pré-voo):
 `035f8c64c139f2b6e1865341b4995fb7` e `ec641daea0efa102859b787d364a98ad`.

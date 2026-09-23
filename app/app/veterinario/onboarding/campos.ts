@@ -7,6 +7,20 @@
 // cliente, o servidor aceita qualquer string e a busca herda lixo. A lista
 // mora aqui, e a Server Action valida contra ela.
 //
+// ⚠️ T-027 / R-039 — A ACTION NÃO É O ÚNICO ESCRITOR, E ESTA LISTA NÃO É A
+// ÚLTIMA LINHA. O dono alcança `vet_profiles` por PATCH direto no PostgREST
+// (medido em 23/09: `estado='ZZ'` gravado). Desde a `0004` o banco tem CHECK
+// com a MESMA regra de cada lista abaixo, e é o CHECK que vale:
+//   UFS          → vet_profiles_crmv_uf_valida, vet_profiles_estado_valido
+//   TITULOS      → vet_profiles_titulo_lista
+//   EXPERIENCIA  → vet_profiles_experiencia_lista
+//   CRMV_NUMERO  → vet_profiles_crmv_formato
+//   LIMITES      → vet_profiles_textos_teto (nome, cidade, bairro, bio)
+//   MAX_ESPECIALIDADES → vet_profiles_especialidades_teto
+// MUDOU AQUI, MUDA LÁ (migration nova, 🔴), e vice-versa. Se esta lista
+// crescer sozinha, a pessoa preenche certo e o banco recusa com um 23514.
+// A pertença de `especialidades` à lista é da T-028 (tabela de apoio).
+//
 // ⚠️ Não confundir com os campos do estabelecimento (T-007): `cnpj`,
 // `razao_social` e `responsavel_tecnico` são dados de `clinic` e a guarda
 // `trg_perfil_privado_dado_de_estabelecimento` (SEC-044) levanta exceção se
@@ -54,6 +68,34 @@ export const ESPECIALIDADES = [
 
 // A tela do passo 1 promete "1 principal e até 3 secundárias".
 export const MAX_ESPECIALIDADES = 4;
+
+// ⚠️ R-059 — o NÚMERO do CRMV: só algarismos, de 1 a 6. A UF tem campo
+// próprio. É a MESMA regra do CHECK `vet_profiles_crmv_formato` da `0004`:
+// '^[0-9]{1,6}$'. A fila mostrou em 23/09 "CRMV-AL GO-0155": a sigla de uma
+// UF dentro do número e outra UF no campo da UF. Cada campo, sozinho, tinha
+// passado pela validação que existia.
+export const CRMV_NUMERO = /^[0-9]{1,6}$/;
+
+/**
+ * Normaliza o que a pessoa digitou no campo do número do CRMV e confere com
+ * `CRMV_NUMERO`. Tira espaço e ponto de milhar ("12.345", "12 345"), porque
+ * são formatação e não informação. NÃO tira letra nem hífen: "GO-0155" é a
+ * sigla de uma UF dentro do número, e quem decide qual UF vale é a pessoa,
+ * no campo ao lado, não o servidor adivinhando.
+ */
+export function normalizarCrmv(
+  bruto: string
+): { ok: true; valor: string } | { ok: false; motivo: string } {
+  const valor = bruto.replace(/[\s.]+/g, "");
+  if (!CRMV_NUMERO.test(valor)) {
+    return {
+      ok: false,
+      motivo:
+        "Passo 1: o número do CRMV tem só algarismos, até 6, sem a sigla do estado. O estado vai no campo ao lado. Exemplo: 12345.",
+    };
+  }
+  return { ok: true, valor };
+}
 
 export const LIMITES = {
   nome: 120,

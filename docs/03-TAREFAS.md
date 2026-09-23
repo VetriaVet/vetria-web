@@ -142,7 +142,8 @@ _(vazio)_
 > | 6 | Senha mínima 8 no Supabase | gesto do Elber (R-064) | ⬜ |
 
 ### T-027 — A `0004`: o banco passa a recusar o que a Action recusa
-- **Estado:** ⬜ **fila, S5, item 1.** 🔴 **Sessão presencial com o Elber: AGENDE, até 29/09.** Escrever o SQL e mandar para a auditoria pode começar já; **aplicar**, só com o Elber na sala
+- ✅ **APLICADA EM PRODUÇÃO em 23/09/2026, sessão presencial com o Elber.** Ensaio completo no `vetria-e2e` (montagem 34/34, 0004 22/22 `true`, sondas 1-5 OK, sonda 3 38/38 OK). Produção: pré-voo C1 `bate_com_0002 = true` nas duas funções; C4 listou só 5 CRMVs de conta de teste (confirmado por email); backup das policies em `supabase/backups/` (fora do git); `rolbypassrls = true` (SEC-106); 0004 aplicada com 21/22 `true` e só `vet_profiles_crmv_formato` NOT VALID, como previsto; sonda 3 38/38 OK (a sonda 2 não achou alvo limpo e o caso 1 da sonda 3 fez a mesma prova). Os 5 CRMVs foram normalizados para só dígitos pelo SQL Editor (as 3 contas `active` voltaram para a fila pelo trigger de revalidação, com `actor_id` nulo em `audit_logs`: **esperado, não é incidente**, SEC-111) e a constraint foi validada: **22/22**. Formato do CRMV conferido com número real (`05107`), SEC-110. **Falta:** a prova em tela de uma conclusão com documento (SEC-106) e o push do código.
+- **Estado:** 🔵 **SQL ESCRITO em 23/09/2026, na sessão presencial, NÃO APLICADO em lugar nenhum.** `npm run build` e `npm run lint` verdes (`EXIT=0`). Nada commitado. Falta, nesta ordem: auditoria do `vetria-seguranca` → confirmação do DL-066 pelo Elber → o roteiro de aplicação do Resultado, começando pelo projeto de teste `vetria-e2e`. _(anterior:)_ ⬜ fila, S5, item 1. 🔴 Sessão presencial com o Elber: AGENDE, até 29/09
 - **Fase / Semana:** F4 / S5
 - **Capacidade:** **E1** (*"`vet_profiles` e `clinic_profiles` existem com RLS"*) e **E3** (*"aprovar muda o status pra `active`"*, e só quem está na fila), mais a transversal **Segurança**
 - **Nível:** 🔴 — migration, RLS, função usada em policy
@@ -165,7 +166,74 @@ _(vazio)_
   - [ ] **A prova de depois, a mesma de antes:** o `PATCH estado='ZZ'` é **recusado**; `rpc/admin_definir_status` numa conta `incomplete` para `active` é **recusado**; reprova sem motivo é **recusada**; `GET /rest/v1/perfil_privado?id=eq.<conta active>` com token de admin comum devolve **zero linha**. E a fila do admin **continua cheia** (é a prova de que as policies de leitura não caíram)
   - [ ] Os 41 testes continuam verdes no CI
 - **Não fazer:** não mexer em `is_admin()` aqui (é a T-032, e tem ordem própria). Não criar as tabelas de apoio nem o `slug` (T-028). Não encostar no CHECK all-or-nothing de `perfil_privado.documento_*`. Não renomear coluna nem enum (DL-043). Não resolver o R-040 de carona sem DL.
-- **Resultado:** _(a preencher)_
+- **Resultado:** 🔵 escrito, não aplicado. Handoff e roteiro abaixo.
+
+## HANDOFF — vetria-backend — T-027 — 23/09/2026
+
+**Fiz** (nada aplicado, nada commitado, nenhum banco consultado):
+- **`supabase/migrations/0004_banco_recusa_o_que_a_action_recusa.sql`**, uma transação, aditiva (zero `drop`, zero `delete`, zero renomeação; as três policies mudam por `alter policy ... using`), idempotente:
+  - **§1 pré-voo** (tudo `raise exception`): 1.1 as duas funções sobrescritas são as da `0002` ou já as da `0004`, por **hash do corpo sem espaço em branco**, calculado a partir do arquivo do repo (sem passo manual; ver o README das migrations); 1.2 não existe policy de SELECT desconhecida nas três tabelas (policy permissiva se soma por OU) e as três `*_select_admin` são as da `0002`; 1.3 o papel que roda lê `storage.objects` e o bucket existe (sem isso ninguém mais conclui o onboarding); 1.4 `is_admin()` e `is_master_admin()` são DEFINER + `search_path`.
+  - **§2, 12 CHECKs `NOT VALID`** (T-017 / R-039 / R-059): UF em `vet_profiles.crmv_uf`, `vet_profiles.estado` e `clinic_profiles.estado`; **número do CRMV só algarismos, de 1 a 6** (`^[0-9]{1,6}$`); lista fechada de `titulo` e `experiencia`; tetos de texto (nome 120, cidade 80, bairro 200, bio 500 · nome fantasia 120, endereço 200, cidade 80, sobre 600); CEP com 8 dígitos; teto de array (especialidades: 4 itens e 240 caracteres somados; serviços: 9 e 400); **`site` só `http(s)://` com host não vazio, sem espaço, caractere de controle, aspas, `<>` ou barra invertida, até 300**. A pertença à lista de especialidades e serviços é da T-028, como o DL-062 manda.
+  - **§3 e §4, SEC-097(b) + SEC-093:** duas funções novas, `admin_pode_ver_perfil(id, role)` e `admin_pode_ver_dossie(id)`, **SECURITY DEFINER + `SET search_path = public`**, EXECUTE só para `authenticated` (SEC-014 explicada no arquivo). `vet_profiles_select_admin` e `clinic_profiles_select_admin`: o role do alvo tem que ser o da tabela, e o admin comum só lê alvo em `pending_validation` (o `active` ele lê pela policy pública); o master lê qualquer status. `perfil_privado_select_admin`: **só alvo vet/clinic em `pending_validation`, para admin e para master** (DL-066).
+  - **§5, SEC-096 + SEC-099:** `admin_definir_status` com `select ... for update`, tabela de transições fechada (fila → `active`; fila → `incomplete` com motivo não vazio; qualquer → `suspended` com motivo, só master; reativar, só master; o resto recusado, inclusive `incomplete → active`, `active → pending_validation` e `active → incomplete`), motivo até 1000 caracteres, e `update ... where status = status_antigo` + `if not found then raise`. **Os códigos de erro são contrato com a Action:** 42501 sem autorização, 55000 fora do estado exigido, 22023 pedido inválido, P0002 conta não encontrada.
+  - **§6, SEC-098:** `concluir_onboarding_profissional` exige linha em `storage.objects` com `bucket_id = 'documentos'` e `name = documento_path` (a coluna é o que o dono diz; o objeto é o que a rota de upload escreveu). Recusa com 55000. Ganhou também `for update` e update condicional.
+  - **§8** valida cada CHECK que estiver limpo e deixa `NOT VALID` o que tiver linha suja; roda de novo sozinha. **§9** é o select final, único canal de saída. **§10** é a reversão completa, na ordem certa, com os corpos da `0002` colados.
+- **`supabase/prevoo-0004.sql`** (só leitura, 7 consultas): o que a auditoria da T-024 não conseguiu medir (corpo das funções, policies das 4 tabelas, documento sem objeto no bucket, quem é admin) e **as linhas que violariam cada CHECK**.
+- **`supabase/backup-antes-da-0004.sql`**: `vet_profiles`, `clinic_profiles`, o **corpo real** das duas funções (`pg_get_functiondef`) e as três policies como `alter policy` de volta.
+- **`supabase/verificar-apos-0004.sql`**: sonda 1 (os 12 CHECKs e quais validaram); **sonda 2, a prova de antes refeita** (`update vet_profiles set estado = 'ZZ' where id = auth.uid()` como `authenticated`, dentro de `begin ... rollback`, esperando ERRO `vet_profiles_estado_valido`); sonda 3 (tabela de 33 casos com controle positivo: cada CHECK, cada transição, cada leitura e as três portas da conclusão); sonda 4 (a fila REAL continua cheia para o admin comum); sonda 5 (a busca pública não foi tocada).
+- **Código, ajuste mínimo ao contrato novo:**
+  - `app/app/veterinario/onboarding/campos.ts:79-97`: `CRMV_NUMERO` e `normalizarCrmv()` (tira espaço e ponto de milhar, recusa letra e hífen). **A mesma regra do CHECK**, escrita uma vez aqui e apontada lá. O cabeçalho lista cada lista e o CHECK espelho.
+  - `app/app/veterinario/onboarding/actions.ts:209`: a Action valida o CRMV com essa regra (R-059). `:88` e `app/app/estabelecimento/onboarding/actions.ts:101`: 23514 vira frase que não manda "tentar de novo". `:417` e `:447`: 55000 na conclusão vira "o documento não foi encontrado no armazenamento, envie de novo no passo 4".
+  - `app/admin/validacoes/[conta]/actions.ts:160`: **o nome de exibição passa a ser lido ANTES da RPC.** Com a `0004`, o admin comum deixa de ler `vet_profiles` de quem acabou de ser reprovado (vira `incomplete`), e o email de reprova sairia sem nome. `:190-200`: 55000 vira "não está mais na fila"; 42501 e 22023 ganham frase própria.
+  - `app/app/estabelecimento/onboarding/campos.ts`: o comentário que dizia "não tem um único CHECK" agora aponta para os CHECKs da `0004`.
+- **Matriz primeiro:** `docs/06-PERMISSOES.md` §5 ganhou a subseção de 23/09 (T-027), com a tabela de transições e a de leitura, marcada como **escrita, não aplicada**; §3, linha do `perfil_privado`. **DL-066** em `docs/05-DECISOES.md` (proposta: o que o master mantém, e o `NOT VALID`).
+
+**Não fiz:**
+- **Aplicar, ou rodar qualquer coisa contra banco.** É 🔴 e a instrução foi explícita. Os `select` que o card pede "antes da primeira linha de SQL" estão escritos no `prevoo-0004.sql`, **não executados**: o SQL foi escrito contra a `0002` e a `0003` do repo, e os pré-voos 1.1 e 1.2 da migration abortam se o banco não for o que o repo diz.
+- **`titulo`/`experiencia` do `campos.ts` "lendo" a constraint:** não há mecanismo para isso sem gerar tipos do banco. O que existe é o comentário cruzado dos dois lados e a regra "mudou aqui, muda lá".
+- **Cidade × UF** (Goiânia / AP): precisa da tabela de cidades da T-028. O CHECK pega UF inválida, não UF errada.
+- **Os comentários dos dois formulários de onboarding** que dizem "SEC-098: a regra ainda NÃO vive no banco" (`VetOnboardingForm.tsx:~98`, `ClinicOnboardingForm.tsx:~85`): só ficam falsos depois de a `0004` entrar. Trocar na mesma leva do push (passo g).
+- **Teste E2E novo:** é do `vetria-qa` (T-029), e depende do `vetria-e2e`.
+
+**Estado agora:** nada mudou em banco nenhum. Em código, o que já vale hoje, mesmo sem a migration: o onboarding do vet **recusa CRMV com letra** ("GO-0155") com uma frase no passo 1; o email de reprova lê o nome antes da decisão. Os tratamentos de 55000, 22023 e 23514 ficam dormentes até a `0004` entrar (a função antiga nunca emite esses códigos), então o código pode subir antes ou depois dela, desde que o CRMV das contas de teste seja corrigido antes (Descobri 4).
+
+**Descobri:**
+1. ⚠️ **`0000_baseline.sql` não roda num projeto em branco.** Ele cria `trg_profiles_updated_at` apontando para `set_updated_at()` e `on_auth_user_created` apontando para `handle_new_user()` sem criar nenhuma das duas (o corpo está "abreviado", e o `handle_new_user` mora na `0001`). No `vetria-e2e` a ordem precisa ser outra (passo a do roteiro). Isso interessa à T-029 também.
+2. ⚠️ **O pré-voo 1.7 da `0003` pode abortar no `vetria-e2e`**: ele compara `md5(prosrc)` cru com o hash medido em PRODUÇÃO, e o texto colado no projeto novo pode diferir por espaço em branco. Foi por isso que a `0004` passou a usar hash sem espaço.
+3. **A sonda 10B do `verificar-apos-0003.sql` quebra depois da `0004`** (grava `crmv = 'SP-99999'`). Esperado; anotado no cabeçalho do verificar novo.
+4. ⚠️ **O E2E do CI reescreve a linha da conta vet de teste** (`onboarding-vet.spec.ts`, "o que foi salvo continua lá"). Se o CRMV dessa conta for um dos sujos, **o CI quebra no push** (a Action nova recusa o CRMV antes de gravar), e quebraria mesmo sem o push depois da `0004`, porque a linha suja não passa mais pelo CHECK em UPDATE nenhum. Corrigir o CRMV das contas de teste é passo do roteiro, antes do push.
+5. `profiles_select_admin` continua deixando o admin comum ler `profiles.phone` e `full_name` de todo vet/clinic, em qualquer status. Não estava no card; fica para a auditoria dizer se entra na `0004` ou vira risco.
+
+**Bloqueios:** auditoria do `vetria-seguranca` (obrigatória; a `0002` levou quatro rodadas) · confirmação do DL-066 pelo Elber · o projeto `vetria-e2e` existir.
+
+**Próximo passo óbvio:** o `vetria-seguranca` audita a `0004`, os três arquivos de apoio e os 5 arquivos de código. Correção volta para ele. Depois, o roteiro abaixo.
+
+**Docs que atualizei:** este card · `docs/06-PERMISSOES.md` (§3, §5) · `docs/05-DECISOES.md` (DL-066) · `supabase/migrations/README.md` (linha da `0004` e os hashes sem espaço).
+**Commits:** nenhum.
+
+### Roteiro de aplicação (sessão presencial; cada etapa só começa com a anterior verde)
+
+**(a) Aplicar `0000` a `0004` no `vetria-e2e`.** SQL Editor do projeto de TESTE; conferir o nome do projeto no topo da tela antes de colar cada arquivo.
+1. `0000_baseline.sql`, **só as seções 1 a 3** (tipos, `profiles`, funções). ⚠️ As seções 4 e 5 ainda não: elas apontam para funções que ainda não existem.
+2. `0001_handle_new_user_role_from_metadata.sql` inteiro.
+3. O `set_updated_at()` da `0002` §3.4, sozinho (`create or replace function public.set_updated_at() ...`, 9 linhas).
+4. `0000`, **seções 4 e 5** (triggers e policies de `profiles`).
+5. `0002_nucleo.sql` inteiro. Esperado: "Success".
+6. `0003_storage_documentos.sql` inteiro. ⚠️ Se o pré-voo 1.7 abortar por hash (Descobri 2), o corpo impresso é o que você acabou de colar do repo: troque o hash **na cópia colada no editor**, não no arquivo, e rode de novo. Esperado: o select final da 0003 todo `true`.
+7. **`0004` inteira.** Esperado no select final: todas as linhas com `ok_tem_que_ser_true = true` (o banco está vazio, então os 12 CHECKs validam), e as duas linhas `md5_sem_espacos_*` iguais a `52241257ac30590e445c93e1bc39d09a` e `542d156b7723946d987647491dcfde13`.
+8. **Contas para as sondas:** Authentication → Add user, três contas (nascem `tutor`). No SQL Editor, uma vira `vet` (`update profiles set role = 'vet', status = 'incomplete' where id = '…'`), uma vira `clinic` (idem) e uma vira `admin` (`role = 'admin', admin_level = 'master', status = 'active'`). Para a sonda 2, uma linha limpa: `insert into vet_profiles (id, crmv, crmv_uf, estado, cidade, nome_exibicao) values ('<id do vet>', '12345', 'SP', 'SP', 'Teste', 'Teste');`.
+
+**(b) `supabase/verificar-apos-0004.sql` no `vetria-e2e`**, uma sonda por vez. Esperado: sonda 1, 12 linhas com `validada = true`; **sonda 2, ERRO 23514 citando `vet_profiles_estado_valido`**; sonda 3, todas as linhas `OK` (a 62 pode vir `NAO MEDIDO`, ver o cabeçalho do arquivo); sonda 4, `OK (com a fila vazia…)`; sonda 5, `0` e `0`. **Qualquer FALHA ou SONDA INVALIDA para aqui: volta para o backend, e a correção volta para a auditoria.**
+
+**(c) Pré-voo em PRODUÇÃO: `supabase/prevoo-0004.sql`**, consulta por consulta, anotando neste card. Esperado: C0, os números de hoje; **C1, `bate_com_0002 = true` nas duas** (se vier `false`, PARE: função editada fora do repo); C2, só as policies da 0002; C3, zero linha (se vier linha, anote os ids: essas contas não concluem mais sem reenviar o documento); **C4, só `vet_profiles_crmv_formato`, com as duas contas de teste ("GO-0155" e "GO 1522")**, e qualquer outra linha em C4 quer dizer mais um CHECK nascendo `NOT VALID` (anote); C5, quem é admin; C6, as quatro colunas `true`.
+
+**(d) Backup de PRODUÇÃO: `supabase/backup-antes-da-0004.sql`**, queries 0 a 4, Export → CSV em `supabase/backups/`, e conferir que o arquivo abre. A query 3 é a que importa (o corpo real das funções).
+
+**(e) Aplicar a `0004` em PRODUÇÃO**, o arquivo inteiro. Esperado no select final: tudo `true` **menos a linha `CHECK vet_profiles.vet_profiles_crmv_formato` = `false`** (NOT VALID por causa das duas contas de teste; é o item 4 do DL-066 funcionando). Os hashes iguais aos do passo a7. Se o pré-voo abortar, nada foi aplicado: leia a mensagem, não force.
+
+**(f) Verificação em PRODUÇÃO:** `verificar-apos-0004.sql`, as cinco sondas. Esperado: sonda 1 igual ao select final; **sonda 2, ERRO `vet_profiles_estado_valido`**; sonda 3, tudo `OK`; **sonda 4, `OK: o admin comum ve a fila inteira`**, com os números iguais à fila de hoje; sonda 5, os dois números iguais. Depois, **as provas pela API, as mesmas de antes** (o card pede): o script de 23/09 com `PATCH estado='ZZ'` agora recebe **HTTP 400 com código 23514**; na tela, `/admin/validacoes` **continua mostrando as mesmas contas**, o detalhe abre e o documento abre. Então **corrigir o CRMV das duas contas de teste** (pela tela, no onboarding em modo revisão, ou `update vet_profiles set crmv = '<só algarismos>' where id = '<id>'` no SQL Editor; em conta `active`, isso a devolve para a fila, pelo trigger), rodar de novo **só a seção 8 da `0004`** (o bloco `$validar$`) e o select da seção 9: tudo `true`. Anotar a data de aplicação no `supabase/migrations/README.md`.
+
+**(g) Push do código**, depois de (f) e **só depois de corrigir os CRMVs de teste** (Descobri 4). No mesmo commit, trocar os dois comentários "SEC-098: a regra ainda NÃO vive no banco" dos formulários. `npm run build` e `npm run lint` verdes. Na tela, em produção: digitar "GO-0155" no CRMV do onboarding → a frase do passo 1 aparece e nada é gravado; concluir o onboarding de uma conta de teste nova com documento → ela vai para a fila.
 
 ### T-028 — A `0005`: tabelas de apoio da busca, a regra do `slug` e os índices
 - **Estado:** ⬜ **fila, S5, item 2.** 🔴 **Sessão presencial**, idealmente a mesma da T-027, **depois** dela

@@ -145,11 +145,24 @@ export async function decidirValidacao(entrada: {
   // Conta inexistente, invisível para este admin ou fora de `vet`/`clinic`.
   if (!alvo) return erro(NAO_ESTA_NA_FILA);
 
-  // ⚠️ DL-061 / matriz §5: decisão só sobre quem está na fila. A RPC aceita
-  // qualquer status de origem (menos `suspended` para admin comum), então
-  // esta conferência é da aplicação. Ver o Resultado da T-024: fechar isso
-  // dentro do banco pede migration e ficou registrado, não feito.
+  // ⚠️ DL-061 / matriz §5: decisão só sobre quem está na fila. Desde a
+  // `0004` (T-027, SEC-096) a RPC confere a mesma coisa DENTRO do banco, com a
+  // linha travada (`for update`), e recusa com 55000. Esta conferência fica:
+  // é ela que devolve a frase certa sem gastar uma ida à RPC, e é ela que
+  // vale enquanto a `0004` não estiver aplicada.
   if (alvo.status !== "pending_validation") return erro(NAO_ESTA_NA_FILA);
+
+  // ⚠️ T-027 / SEC-097(b) — o nome de exibição é lido AGORA, com a conta
+  // ainda na fila. Desde a `0004`, o admin comum só lê `vet_profiles` e
+  // `clinic_profiles` de conta em `pending_validation` (ou `active`, pela
+  // policy pública). Lido depois da RPC, o nome de quem acabou de ser
+  // REPROVADO (agora `incomplete`) viria vazio, e o email sairia sem nome.
+  const nomeDeExibicao = await lerNomeDeExibicao(
+    supabase,
+    conta,
+    alvo.role,
+    alvo.full_name
+  ).catch(() => texto(alvo.full_name));
 
   // -------------------------------------------------------------------------
   // 4. A MUDANÇA, PELA RPC E SÓ POR ELA
@@ -166,6 +179,26 @@ export async function decidirValidacao(entrada: {
 
   if (erroRpc) {
     registrarErro("rpc admin_definir_status", erroRpc);
+
+    // ⚠️ T-027 — os códigos combinados com a RPC da `0004`. A frase sai do
+    // CÓDIGO, nunca do texto da exceção (SEC-057).
+    //   55000  a conta saiu da fila entre a leitura acima e a RPC: outra
+    //          pessoa decidiu no mesmo instante (SEC-099)
+    //   22023  o banco recusou o pedido (motivo vazio ou longo demais). A
+    //          validação acima já cobre os dois; se chegou aqui, é divergência
+    //   42501  a sessão não é de admin para o banco
+    if (erroRpc.code === "55000") return erro(NAO_ESTA_NA_FILA);
+    if (erroRpc.code === "42501") {
+      return erro(
+        "O banco não reconheceu sua conta como admin, então nada foi alterado. Saia e entre de novo."
+      );
+    }
+    if (erroRpc.code === "22023") {
+      return erro(
+        `O banco recusou a decisão por um dado inválido, então nada foi alterado. Na reprova, o motivo precisa ter entre ${MOTIVO_MINIMO} e ${MOTIVO_MAXIMO} caracteres.`
+      );
+    }
+
     return erro(
       "O banco recusou a decisão, então nada foi alterado. Tente de novo em alguns instantes." +
         (erroRpc.code ? ` (código ${erroRpc.code})` : "")
@@ -203,11 +236,9 @@ export async function decidirValidacao(entrada: {
   // -------------------------------------------------------------------------
   const email = await avisarPorEmail({
     conta,
-    role: alvo.role,
-    fullName: alvo.full_name,
+    nome: nomeDeExibicao,
     decisao,
     motivo,
-    supabase,
   });
 
   revalidatePath("/admin/validacoes");
@@ -232,14 +263,12 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
  */
 async function avisarPorEmail(p: {
   conta: string;
-  role: string;
-  fullName: string | null;
+  /** Lido ANTES da decisão (ver o passo 3 de `decidirValidacao`). */
+  nome: string | null;
   decisao: Decisao;
   motivo: string | null;
-  supabase: Supabase;
 }): Promise<ResultadoDoEmail> {
   try {
-    const nome = await lerNomeDeExibicao(p.supabase, p.conta, p.role, p.fullName);
 
     // O email de LOGIN, em `auth.users`. Não é `perfil_privado.email_contato`:
     // aquele é o contato que o profissional quer mostrar (e hoje nem tem campo
@@ -279,7 +308,7 @@ async function avisarPorEmail(p: {
     return await enviarEmailDeValidacao({
       contaId: p.conta,
       para,
-      nome,
+      nome: p.nome,
       decisao: p.decisao === "aprovar" ? "aprovado" : "reprovado",
       motivo: p.motivo,
     });

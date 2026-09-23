@@ -81,10 +81,10 @@ export default function ClinicOnboardingForm({
   //
   // ⚠️ Isto é conveniência de tela, não autorização. Desde a T-024 (DL-061,
   // T-022 opção a) a Server Action também recusa concluir sem documento, e
-  // este `disabled` só evita a ida e volta. ⚠️ SEC-098: a regra ainda NÃO
-  // vive no banco. A RPC `concluir_onboarding_profissional()` não confere
-  // documento, então quem a chamar direto pelo PostgREST, sem passar pela
-  // Action, entra na fila sem documento. Isso fecha na T-027 (migration, 🔴).
+  // este `disabled` só evita a ida e volta. Desde a 0004 (T-027, aplicada em
+  // 23/09/2026) a regra também vive no banco: `concluir_onboarding_profissional()`
+  // exige o objeto do documento no bucket (SEC-098), então nem a chamada direta
+  // pelo PostgREST entra na fila sem documento.
   const temDocumento = Boolean(docEnviadoEm);
 
   function toggleServico(s: string) {

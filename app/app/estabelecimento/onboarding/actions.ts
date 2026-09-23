@@ -94,6 +94,16 @@ function mensagemDoBanco(
     );
   }
 
+  // ⚠️ T-027 — 23514 é um CHECK da `0004` recusando a linha (UF, CEP, tetos
+  // de texto, serviços, site). Com a validação desta Action espelhando cada
+  // CHECK, isto só acontece por divergência entre as duas listas (bug nosso)
+  // ou por linha antiga fora da regra. "Tente de novo" seria mentira.
+  if (detalhe.code === "23514") {
+    return erro(
+      `Não foi possível salvar ${contexto}: algum dado está fora do formato que a Vetria aceita. Confira os campos dos passos 1 a 3 e tente de novo. Se continuar, fale com a gente.`
+    );
+  }
+
   return erro(
     `Não foi possível salvar ${contexto}. Nada foi perdido: seus dados continuam na tela, tente de novo em alguns instantes.` +
       (detalhe.code ? ` (código ${detalhe.code})` : "")
@@ -431,6 +441,14 @@ export async function salvarOnboardingClinic(
           message: erroRpc.message,
           code: erroRpc.code,
         });
+        // ⚠️ T-027 / SEC-098 — 55000 é o código combinado com a RPC da `0004`
+        // para "documento ausente": a linha aponta para um arquivo que não
+        // está no armazenamento. Decidido pelo CÓDIGO, nunca pelo texto.
+        if (erroRpc.code === "55000") {
+          return erro(
+            "Os dados foram salvos, mas o documento enviado não foi encontrado no armazenamento. Envie o documento de novo no passo 4 e conclua."
+          );
+        }
         return erro(
           "Os dados foram salvos, mas não conseguimos enviar o cadastro para validação. Tente concluir de novo em alguns instantes."
         );

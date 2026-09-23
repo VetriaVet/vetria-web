@@ -7,10 +7,17 @@
 // cliente é lista que o servidor não aplica.
 //
 // ⚠️ R-039 / SEC-060 — esta lista NÃO é a última linha de defesa.
-// `clinic_profiles` não tem um único CHECK e a policy `clinic_profiles_update_own`
-// pina só `id` e `slug`: o dono alcança as mesmas colunas por PATCH direto no
-// PostgREST, com a anon key que está no bundle. O que está aqui vale para quem
-// passa por esta tela. A garantia de verdade é a T-017, e é migration.
+// A policy `clinic_profiles_update_own` pina só `id` e `slug`: o dono alcança
+// as mesmas colunas por PATCH direto no PostgREST, com a anon key que está no
+// bundle. Desde a `0004` (T-027, que absorveu a T-017) o banco tem CHECK com a
+// MESMA regra, e é o CHECK que vale:
+//   UFS           → clinic_profiles_estado_valido
+//   LIMITES       → clinic_profiles_textos_teto (nome fantasia, endereço,
+//                   cidade, sobre) e clinic_profiles_cep_formato (8 dígitos)
+//   MAX_SERVICOS  → clinic_profiles_servicos_teto
+//   (site)        → clinic_profiles_site_http
+// MUDOU AQUI, MUDA LÁ (migration nova, 🔴). A pertença de `servicos` à lista
+// é da T-028 (tabela de apoio).
 //
 // ⚠️ DOIS PAYLOADS SEPARADOS, e continua sendo assim.
 // `cnpj`, `razao_social` e `responsavel_tecnico` são dados de `clinic` e a
@@ -22,9 +29,11 @@
 // A coluna `clinic_profiles.site` existe e a `0003:1301` a declara "PÚBLICA por
 // decisão. É vitrine". O formulário nunca teve campo para ela, e a T-007 optou
 // por NÃO criar o campo: a coluna vira link em página pública na F4/S7 e hoje
-// aceitaria `javascript:` e `data:` sem nenhuma validação de esquema. Quem for
-// acrescentar o campo depois: validar esquema `http(s)` NO SERVIDOR é
-// obrigatório antes de gravar, e ainda assim não substitui a T-017.
+// aceitava `javascript:` e `data:` sem nenhuma validação de esquema. Desde a
+// `0004` o banco recusa (CHECK `clinic_profiles_site_http`: só http/https,
+// host não vazio). Quem for acrescentar o campo: validar o esquema NO SERVIDOR
+// com a mesma regra, antes de gravar, para a pessoa ouvir o erro em português
+// e não um 23514.
 
 export const STEPS = [
   { n: 1, title: "Dados do estabelecimento", desc: "Razão social, CNPJ" },

@@ -10,6 +10,7 @@ import {
   MAX_ESPECIALIDADES,
   TITULOS,
   UFS,
+  normalizarCrmv,
   type ResultadoOnboarding,
   type VetOnboardingPayload,
 } from "./campos";
@@ -76,6 +77,17 @@ function mensagemDoBanco(
   if (detalhe.code === "42501" || detalhe.code === "PGRST301") {
     return erro(
       "Sua sessão não tem permissão para gravar esses dados. Saia e entre de novo. Se continuar, fale com a gente."
+    );
+  }
+
+  // ⚠️ T-027 — 23514 é um CHECK da `0004` recusando a linha. Com a validação
+  // acima espelhando cada CHECK, isto só acontece por divergência entre as
+  // duas listas (bug nosso) ou por linha antiga fora da regra num campo que
+  // esta tela não mostra. "Tente de novo" seria mentira: tentar de novo dá o
+  // mesmo erro. O `message` (que nomeia a constraint) vai para o log acima.
+  if (detalhe.code === "23514") {
+    return erro(
+      `Não foi possível salvar ${contexto}: algum dado está fora do formato que a Vetria aceita. Confira os campos dos passos 1 a 3 e tente de novo. Se continuar, fale com a gente.`
     );
   }
 
@@ -146,7 +158,7 @@ export async function salvarOnboardingVet(
   // 2. VALIDAÇÃO E NORMALIZAÇÃO
   // -------------------------------------------------------------------------
   const nome = limpar(entrada?.nome);
-  const crmv = limpar(entrada?.crmv);
+  const crmvBruto = limpar(entrada?.crmv);
   const crmvUf = limpar(entrada?.crmvUf).toUpperCase();
   const cidade = limpar(entrada?.cidade);
   const estado = limpar(entrada?.estado).toUpperCase();
@@ -186,9 +198,17 @@ export async function salvarOnboardingVet(
   if (nome.length > LIMITES.nome)
     return erro(`Passo 1: o nome passa de ${LIMITES.nome} caracteres.`);
 
-  if (!crmv) return erro("Passo 1: informe o número do CRMV.");
-  if (crmv.length > LIMITES.crmv)
+  if (!crmvBruto) return erro("Passo 1: informe o número do CRMV.");
+  if (crmvBruto.length > LIMITES.crmv)
     return erro(`Passo 1: o número do CRMV passa de ${LIMITES.crmv} caracteres.`);
+  // ⚠️ R-059 / T-027 — a MESMA regra do CHECK `vet_profiles_crmv_formato` da
+  // `0004`, escrita uma vez em `campos.ts`. Sem ela a Action aceitava
+  // "GO-0155", e depois da `0004` o banco recusaria com um 23514 sem dizer
+  // qual campo: a pessoa ouviria "não foi possível salvar" no passo 4 por um
+  // erro do passo 1.
+  const crmvNormalizado = normalizarCrmv(crmvBruto);
+  if (!crmvNormalizado.ok) return erro(crmvNormalizado.motivo);
+  const crmv = crmvNormalizado.valor;
 
   if (!crmvUf) return erro("Passo 1: escolha o estado de registro do CRMV.");
   if (!(UFS as readonly string[]).includes(crmvUf))
@@ -389,6 +409,16 @@ export async function salvarOnboardingVet(
           message: erroRpc.message,
           code: erroRpc.code,
         });
+        // ⚠️ T-027 / SEC-098 — desde a `0004` a RPC confere o OBJETO no
+        // bucket, não só a coluna. 55000 é o código combinado com ela para
+        // "documento ausente": a linha diz que há documento e o arquivo não
+        // está no armazenamento. Decidido pelo CÓDIGO, nunca pelo texto da
+        // exceção (SEC-057).
+        if (erroRpc.code === "55000") {
+          return erro(
+            "Seus dados foram salvos, mas o documento do CRMV não foi encontrado no armazenamento. Envie o documento de novo no passo 4 e conclua."
+          );
+        }
         return erro(
           "Seus dados foram salvos, mas não conseguimos enviar seu cadastro para validação. Tente concluir de novo em alguns instantes."
         );

@@ -775,3 +775,38 @@ no CI e repete o incidente de 23/09 a cada prova em tela.
 **Data:** 23/09/2026 · **Quem decidiu:** o Elber delegou. **Decisão:** sem sigla nem termo técnico no /roadmap
 (RBAC, onboarding, deploy, design system, admin viram "cada tipo de conta vê só o que é dela", "primeiro cadastro",
 "publicação automática", "padrão visual", "equipe Vetria"). A página é vitrine de progresso para quem não programa.
+
+---
+
+### DL-066 — T-027: o que o banco passa a impor ao admin e ao master, e o dado sujo entra como NOT VALID
+**Data:** 23/09/2026 · **Fase/Task:** F4/S5 · T-027 (SEC-093, SEC-096, SEC-097b, SEC-098, SEC-099, R-039, R-059)
+**Quem decidiu:** o `vetria-backend`, ao escrever a `0004`, porque o card e a SEC-097(b) deixaram a regra do master em
+aberto (*"decida e documente o que o master mantém"*). **Proposta: confirmar com o Elber na sessão presencial, antes de
+aplicar.** Se ele discordar, cada item abaixo é uma linha na `0004`.
+**Decisão:**
+1. **Transições de `admin_definir_status`, e mais nenhuma:** `pending_validation → active` (admin e master);
+   `pending_validation → incomplete` com motivo não vazio (admin e master); qualquer status `→ suspended` com motivo
+   (só master); `suspended →` qualquer outro (só master, reativar). **`active → incomplete` e `active →
+   pending_validation` passam a ser recusados para todos**: tirar do ar quem já foi aprovado é moderação, que "ganha tela
+   própria quando existir" (DL-061), e o instrumento de hoje é a suspensão, que é do master.
+2. **Leitura do perfil de vitrine (`vet_profiles`, `clinic_profiles`):** admin comum lê só alvo com o role da tabela e em
+   `pending_validation` (o `active` ele continua lendo pela policy pública, como qualquer visitante). **O master continua
+   lendo a linha de qualquer vet/clinic, em qualquer status** ("ver a base inteira", matriz §5): é dado que vira público
+   na aprovação.
+3. **Leitura do dossiê (`perfil_privado`: CNPJ, razão social, responsável técnico, WhatsApp, telefone, caminho do
+   documento):** **só com a conta em `pending_validation`, para admin E master.** É o DL-061 levado ao banco. A tela e a
+   rota do documento já aplicam isso ao master desde a T-024; deixar o PostgREST mais largo que a tela seria manter
+   aberto por trás o que a tela fechou pela frente, e é o cenário do R-062 (senha de master vazada entrega o dossiê da
+   base inteira). Nenhuma tela lê o dossiê fora da fila com a sessão do master. Investigação de fraude sobre conta
+   `active` é SQL Editor, fora do produto.
+4. **O dado antigo fora da regra nova não trava a migration:** todo CHECK da `0004` nasce `NOT VALID` (vale para toda
+   escrita a partir do commit) e é validado em seguida, um por um; o que tiver linha suja fica `NOT VALID` até a linha
+   ser corrigida e a seção 8 rodar de novo. Em produção, espera-se só `vet_profiles_crmv_formato` nessa situação (contas
+   de teste com "GO-0155" e "GO 1522"). A migration **não corrige dado**: corrigir CRMV como `postgres` dispararia a
+   revalidação e tiraria da busca quem estivesse `active`.
+**Alternativas descartadas:** manter o master lendo o dossiê de todos (mais superfície para o mesmo trabalho de hoje, e
+contradiz o DL-061); exigir a correção do dado antes de aplicar (seguraria um conserto de segurança medido por causa de
+duas contas de teste); a migration normalizar o CRMV sozinha (revalidação em massa, trilha falsa em `audit_logs`).
+**Consequência:** `docs/06-PERMISSOES.md` §5 ganhou a subseção de 23/09 (T-027). A moderação de conta `incomplete` ou
+`suspended` pelo admin comum deixa de ser alcançável pelo PostgREST; não há tela que a use.
+**Status:** 🟡 proposta, escrita na `0004` · ⬜ confirmar com o Elber · ⬜ aplicada
