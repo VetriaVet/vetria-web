@@ -6,6 +6,8 @@ import {
   TITULOS,
 } from "@/app/app/veterinario/onboarding/campos";
 import BotaoDocumento from "../BotaoDocumento";
+import DecisaoForm from "./DecisaoForm";
+import { decidirValidacao } from "./actions";
 import {
   PERSONA_LABEL,
   carregarCadastro,
@@ -38,8 +40,15 @@ export const metadata = { title: "Validação" };
 // ⚠️ É UMA CONTA POR VEZ. O dado privado não aparece na lista: vinte linhas de
 // HTML com CNPJ e telefone é uma superfície que ninguém pediu.
 //
-// ⚠️ NÃO HÁ BOTÃO DE APROVAR NEM DE REPROVAR. É a T-024. Botão morto ensina o
-// operador a clicar em algo que não acontece, e é pior que botão nenhum.
+// ⚠️ T-024 / DL-061 — SÓ ABRE CONTA EM `pending_validation`. O filtro está em
+// `carregarCadastro` como cláusula do `select`: conta ativa, reprovada ou
+// suspensa devolve `null` e vira `notFound()`, para admin e para master
+// (matriz §5, linha de 23/09). Por isso o antigo aviso "esta conta não está
+// mais na fila" saiu: ficou inalcançável.
+//
+// ⚠️ OS BOTÕES DE APROVAR E REPROVAR SÃO `DecisaoForm`, e quem decide é a
+// Server Action `./actions.ts`, que reconfere tudo no servidor e só muda o
+// status pela RPC `admin_definir_status`.
 
 type Props = { params: Promise<{ conta: string }> };
 
@@ -49,15 +58,15 @@ export default async function AdminValidacaoDetalhePage({ params }: Props) {
   const { conta } = await params;
   const cadastro = await carregarCadastro(conta);
 
-  // `null` cobre, de propósito, quatro casos com a mesma resposta: uuid
-  // inválido, conta inexistente, conta que não é `vet` nem `clinic`, e conta
-  // que a RLS não entrega a quem pediu. Uma tela de "não encontrado" que não
+  // `null` cobre, de propósito, cinco casos com a mesma resposta: uuid
+  // inválido, conta inexistente, conta que não é `vet` nem `clinic`, conta
+  // que a RLS não entrega a quem pediu, e conta fora de `pending_validation`. Uma tela de "não encontrado" que não
   // distingue esses casos é uma tela que não conta a ninguém o que existe no
   // banco.
   if (!cadastro) notFound();
 
   const nome = nomeExibido(cadastro);
-  const naFila = cadastro.status === "pending_validation";
+  const temDocumento = Boolean(cadastro.privado?.documento_enviado_em);
 
   return (
     <div>
@@ -81,11 +90,10 @@ export default async function AdminValidacaoDetalhePage({ params }: Props) {
           <Aviso tom="erro">{cadastro.erroParcial}</Aviso>
         )}
 
-        {!naFila && (
+        {cadastro.statusMotivo && (
           <Aviso tom="atencao">
-            Esta conta não está mais na fila. O status dela agora é{" "}
-            <b>{cadastro.status}</b>
-            {cadastro.statusMotivo ? `, com o motivo: ${cadastro.statusMotivo}` : ""}.
+            Esta conta já foi devolvida ao cadastro antes, com o motivo:{" "}
+            {cadastro.statusMotivo}
           </Aviso>
         )}
 
@@ -93,7 +101,7 @@ export default async function AdminValidacaoDetalhePage({ params }: Props) {
           <div className="flex flex-col gap-3">
             <BotaoDocumento
               dono={cadastro.id}
-              temDocumento={Boolean(cadastro.privado?.documento_enviado_em)}
+              temDocumento={temDocumento}
             />
             <Campos>
               <Campo
@@ -159,16 +167,19 @@ export default async function AdminValidacaoDetalhePage({ params }: Props) {
               rotulo="Cadastro atualizado em"
               valor={formatarDataHora(cadastro.atualizadoEm)}
             />
-            {cadastro.statusMotivo && (
-              <Campo rotulo="Motivo do status atual" valor={cadastro.statusMotivo} largo />
-            )}
           </Campos>
         </Secao>
 
-        <p className="text-[12px] text-white/40 m-0">
-          Por enquanto esta tela só lê. Aprovar e reprovar ainda não existem no
-          produto, e nenhuma ação desta página muda o status de ninguém.
-        </p>
+        <Secao
+          titulo="Decisão"
+          nota="Aprovar ou reprovar muda o status pelo banco e fica registrado na trilha de auditoria, com a sua conta."
+        >
+          <DecisaoForm
+            conta={cadastro.id}
+            temDocumento={temDocumento}
+            action={decidirValidacao}
+          />
+        </Secao>
       </div>
     </div>
   );

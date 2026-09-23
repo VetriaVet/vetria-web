@@ -100,6 +100,42 @@ export async function POST(req: Request) {
       return recusa(403, "Esta conta não tem documento de validação.");
     }
 
+    // ⚠️ SEC-097 (a) / DL-061 / matriz §5 (linha de 23/09) — o admin só abre
+    // documento de terceiro ENQUANTO HÁ VALIDAÇÃO. É a MESMA cláusula de
+    // `carregarCadastro` (`app/admin/validacoes/fila.ts`): conta fora de
+    // `pending_validation`, ou fora de `vet`/`clinic`, não tem documento para
+    // o admin abrir. Sem isto, a tela fechava o dossiê e a rota continuava
+    // entregando o documento a quem colasse o uuid num POST.
+    //
+    // Lido sob RLS, com a sessão do admin (`profiles_select_admin`), e ANTES
+    // da trilha e da URL: pedido recusado aqui não assina nada. O dono abrindo
+    // o próprio documento não passa por este bloco.
+    if (!ehProprio) {
+      const { data: alvo, error: erroAlvo } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", dono)
+        .eq("status", "pending_validation")
+        .in("role", ["vet", "clinic"])
+        .maybeSingle<{ id: string }>();
+
+      if (erroAlvo) {
+        console.error("[documentos/abrir] leitura do alvo falhou", {
+          message: erroAlvo.message,
+          code: erroAlvo.code,
+        });
+        return recusa(502, "Não foi possível abrir o documento agora. Tente de novo em alguns instantes.");
+      }
+
+      if (!alvo) {
+        console.warn("[documentos/abrir] alvo fora da fila de validacao", {
+          requisitante: user.id,
+          alvo: dono,
+        });
+        return recusa(404, "Esta conta não está na fila de validação.");
+      }
+    }
+
     // ⚠️ SEC-087 — o portão de status, que faltava aqui e existe no `upload`.
     //
     // A rota irmã (`/api/documentos/upload`) já aplicava `PODEM_ENVIAR`, e esta

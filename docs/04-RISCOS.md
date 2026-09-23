@@ -416,6 +416,14 @@ trava escrita: **antes do primeiro profissional de fora.**
 - **Sem card, de propósito:** é conserto natural da **T-020**, que é quem vai mexer em teto de
   volume nessa mesma rota. Se a T-020 escorregar para a F6, este vai junto. 🟡
 
+### R-060 — O limite de especialidades só é conferido ao salvar, no passo 4, e a mensagem manda a pessoa de volta ao passo 1
+- **Descoberto:** 23/09/2026, pelo **Elber**, na prova em tela da T-024, criando conta vet nova
+- **Onde:** `app/app/veterinario/onboarding/VetOnboardingForm.tsx:262` (os chips deixam marcar mais que o limite) × a Server Action, que recusa no fim
+- **O quê:** o passo 1 diz *"1 principal e até 3 secundárias"*, mas os chips aceitam mais. Nada avisa até o **passo 4**, quando *"Concluir cadastro"* devolve *"Não deu pra salvar. Passo 1: escolha no máximo 4 especialidades"*. A validação do servidor está certa; falta a do cliente, no lugar certo.
+- **Impacto:** atrito no funil de cadastro profissional. Sem risco de dado ou segurança. 🟡
+- **Correção:** travar a seleção no próprio chip ao atingir 4 (ou avisar ao tentar a quinta) e conferir antes de sair do passo 1. Conferir se o `ClinicOnboardingForm` tem limite parecido (serviços) com o mesmo defeito, porque clone herda defeito (R-017).
+- **Task:** sem card, 🟡 (`components`/formulário). Pequena, candidata à S5.
+
 ### R-059 — O número do CRMV é texto livre, e cidade e estado não são conferidos um contra o outro
 - **Descoberto:** 23/09/2026, pelo **Elber**, na prova em tela da T-023. **Visto em dado real**
 - **Onde:** `app/app/veterinario/onboarding/actions.ts:149-215`

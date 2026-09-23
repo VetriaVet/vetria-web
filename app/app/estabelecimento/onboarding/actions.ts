@@ -379,6 +379,39 @@ export async function salvarOnboardingClinic(
   // se o status já saiu de `incomplete`, então a chamada é condicionada: quem
   // volta pra corrigir só salva.
   if (perfil.status === "incomplete") {
+    // ⚠️ T-022 / SEC-088 / DL-061 item 2 (opção a) — SEM DOCUMENTO, NÃO HÁ
+    // CONCLUSÃO, e quem decide isso é o SERVIDOR.
+    //
+    // Até 23/09 a obrigatoriedade era só o `disabled` do botão: DevTools ou um
+    // POST com o id desta Action punham a conta na fila sem documento, e a
+    // prova em tela da T-023 achou 3 de 4 contas assim. A conferência lê
+    // `documento_enviado_em`, que é carimbado pelo TRIGGER quando a rota de
+    // upload grava as três colunas do documento; o cliente não escreve essa
+    // coluna. Os dados do formulário JÁ foram salvos acima, e a mensagem diz
+    // isso: a pessoa não perde nada, só não entra na fila.
+    //
+    // Vale só para `incomplete` (a conclusão). Quem já está na fila e volta
+    // para corrigir continua salvando: as contas antigas sem documento seguem
+    // na fila com o badge âmbar, como o DL-061 decidiu.
+    const { data: documento, error: erroDocumento } = await supabase
+      .from("perfil_privado")
+      .select("documento_enviado_em")
+      .eq("id", user.id)
+      .maybeSingle<{ documento_enviado_em: string | null }>();
+
+    if (erroDocumento) {
+      return mensagemDoBanco("a conferência do documento", erroDocumento);
+    }
+
+    if (!documento?.documento_enviado_em) {
+      console.warn("[clinic/onboarding] conclusão recusada: sem documento", {
+        userId: user.id,
+      });
+      return erro(
+        "Os dados foram salvos, mas o cadastro só segue para validação com o documento enviado. Envie o documento no passo 4 e conclua de novo."
+      );
+    }
+
     const { error: erroRpc } = await supabase.rpc(
       "concluir_onboarding_profissional"
     );

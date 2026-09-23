@@ -94,10 +94,10 @@ export type ItemDaFila = {
   criadoEm: string;
   atualizadoEm: string;
   /** ⚠️ ESTADO DE PRIMEIRA CLASSE (SEC-088). Nulo = concluiu o onboarding sem
-   *  enviar documento, o que hoje é alcançável: a obrigatoriedade é regra de
-   *  tela (o botão fica `disabled`) e nenhuma das duas Server Actions confere
-   *  documento. Enquanto a T-022 não for decidida, a fila recebe esses
-   *  cadastros e precisa mostrá-los como são. */
+   *  enviar documento. A T-022 foi decidida em 23/09 (DL-061, opção a) e as
+   *  duas Server Actions passaram a recusar a conclusão sem documento, então
+   *  conta NOVA não chega mais assim. As que chegaram antes continuam na fila,
+   *  e é para elas que o badge âmbar continua existindo. */
   documentoEnviadoEm: string | null;
 };
 
@@ -362,10 +362,19 @@ export function ehUuid(valor: string): boolean {
 
 /**
  * Carrega uma conta da fila. Devolve `null` quando não há linha visível para
- * quem pede — e "não visível" cobre três casos de uma vez, de propósito:
+ * quem pede — e "não visível" cobre quatro casos de uma vez, de propósito:
  * a conta não existe, a conta é de um responsável ou de outro admin (a policy
- * `profiles_select_admin` não a entrega ao admin comum), ou o uuid é lixo.
+ * `profiles_select_admin` não a entrega ao admin comum), o uuid é lixo, ou
+ * **a conta não está em `pending_validation`**.
  * Quem chama transforma isso em `notFound()`.
+ *
+ * ⚠️ T-024 / DL-061 / SEC-092 (a) — O DOSSIÊ SÓ ABRE ENQUANTO HÁ VALIDAÇÃO.
+ * Matriz §5, linha escrita em 23/09: o detalhe mostra CNPJ, WhatsApp e o
+ * documento de terceiro, e a finalidade disso é validar. Conta `active`,
+ * `incomplete` ou `suspended` não tem validação em curso, então não abre, nem
+ * para o master. O filtro é CLÁUSULA DO SELECT (`.eq("status", …)`), não um
+ * `if` depois de ler: a linha de quem não está na fila nem chega a este
+ * processo, e os complementos privados (`lerPrivado`) nem são consultados.
  */
 export async function carregarCadastro(id: string): Promise<Cadastro | null> {
   if (!ehUuid(id)) return null;
@@ -376,6 +385,7 @@ export async function carregarCadastro(id: string): Promise<Cadastro | null> {
     .from("profiles")
     .select("id, role, full_name, status, status_motivo, created_at, updated_at")
     .eq("id", id)
+    .eq("status", "pending_validation")
     .in("role", ROLES_DA_FILA)
     .maybeSingle<{
       id: string;

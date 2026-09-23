@@ -6,7 +6,8 @@
 > **Última atualização:** 23/09/2026 (**T-023 e T-025 em produção**, `22fbefd`, CI #13 verde; **item 4
 > do DoD fechado** com conta `tutor`; **R-055 e T-026 fechados** por medição; órfãos **zero**; **DL-061**
 > destrava a T-024; **R-059** novo) · **Fase:** F3 (S4) · **Último commit em produção:** `22fbefd`.
-> O `RETOMAR.md` tem o resumo do dia. **Falta da F3: só o item 3 do DoD (T-024).**
+> **23/09, tarde: T-024 PROVADA EM TELA** (aprovar, reprovar com motivo, email recebido, `audit_logs`) e commitada,
+> **esperando push**. Com o push, o **item 3 do DoD fecha**. Item 5 segue parcial (R-033). **T-017 medida: o furo é real (🔴).**
 
 ---
 

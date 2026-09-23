@@ -17,6 +17,8 @@
 - ✅ **R-055 / T-026 fechados:** 1 WhatsApp sujo achado e corrigido pela própria interface, e a consulta voltou zero
 - ➕ **R-059** novo (número do CRMV livre, cidade × estado sem conferência)
 
+**Tarde de 23/09:** T-024 provada em tela e commitada (email do Resend recebido); T-017 medida (**furo real**, `ZZ` gravado e restaurado); SMTP do Supabase consertado. **Falta: o push da T-024, pelo Elber, no terminal do PC. Depois: abrir a T-027 (migration 🔴: T-017 + SEC-096/097b/098) e agendar a sessão presencial.**
+
 **Falta, nesta ordem:**
 1. **Passo 7 · teste da T-017** (PATCH `estado = 'ZZ'` com a conta vet de teste). Peça o script ao Claude
 2. ~~Passo 8 · as 3 decisões~~ ✅ **tomadas em 23/09 (DL-061): (a), (a), (a).** A T-024 está destravada

@@ -26,13 +26,61 @@ export const metadata = { title: "Validações" };
 // validação: ✅ / ✅"). O que os separa é `/admin/usuarios`, e isso é o R-054,
 // consertado nesta mesma task.
 //
-// ⚠️ ESTA TELA NÃO APROVA E NÃO REPROVA. Isso é a T-024, e é a razão de não
-// haver um único botão de decisão aqui: botão morto é pior que botão nenhum,
-// porque ensina o operador a clicar em algo que não acontece.
+// ⚠️ ESTA TELA NÃO APROVA E NÃO REPROVA: quem decide é o detalhe
+// (`[conta]/DecisaoForm.tsx` → `[conta]/actions.ts`, T-024), uma conta por
+// vez, com o cadastro inteiro na frente. Aqui só aparece o RESULTADO da
+// decisão que acabou de ser tomada, lido de `?decisao=` e `?email=`, dois
+// parâmetros de lista fechada: valor fora da lista não vira texto na tela.
 
 type Props = {
   searchParams: Promise<{ [chave: string]: string | string[] | undefined }>;
 };
+
+type ResultadoDaDecisao = {
+  decisao: "aprovado" | "reprovado";
+  email: "enviado" | "falhou" | "desligado";
+};
+
+function lerResultado(params: {
+  [chave: string]: string | string[] | undefined;
+}): ResultadoDaDecisao | null {
+  const um = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const decisao = um(params.decisao);
+  const email = um(params.email);
+  if (decisao !== "aprovado" && decisao !== "reprovado") return null;
+  if (email !== "enviado" && email !== "falhou" && email !== "desligado") return null;
+  return { decisao, email };
+}
+
+/** O que a tela diz depois da decisão. A frase sobre o email é a verdade do
+ *  que aconteceu com ele, inclusive quando não saiu: a decisão vale do mesmo
+ *  jeito, e o admin precisa saber que a pessoa não foi avisada. */
+function AvisoDaDecisao({ resultado }: { resultado: ResultadoDaDecisao | null }) {
+  if (!resultado) return null;
+
+  const principal =
+    resultado.decisao === "aprovado"
+      ? "Conta aprovada. Ela já entra no painel completo."
+      : "Cadastro devolvido com o motivo. A pessoa vê o motivo quando entrar na conta e pode corrigir e concluir de novo.";
+
+  const sobreEmail =
+    resultado.email === "enviado"
+      ? "O email foi enviado."
+      : resultado.email === "desligado"
+        ? "O email NÃO foi enviado: o envio está desligado neste ambiente, porque falta a chave do Resend. Avise a pessoa por outro canal."
+        : "O email NÃO foi enviado por uma falha no envio. A decisão continua valendo. Avise a pessoa por outro canal.";
+
+  const cor =
+    resultado.email === "enviado"
+      ? "border-emerald-400/30 bg-emerald-400/[0.08] text-emerald-100"
+      : "border-amber-300/30 bg-amber-300/[0.08] text-amber-100";
+
+  return (
+    <div role="status" className={`rounded-md border p-4 text-[13px] ${cor}`}>
+      {principal} {sobreEmail}
+    </div>
+  );
+}
 
 function lerPagina(valor: string | string[] | undefined): number {
   const bruto = Array.isArray(valor) ? valor[0] : valor;
@@ -47,6 +95,7 @@ export default async function AdminValidacoesPage({ searchParams }: Props) {
 
   const params = await searchParams;
   const pagina = lerPagina(params.pagina);
+  const resultado = lerResultado(params);
 
   const { itens, total, erro } = await carregarFila(pagina);
   const totalDePaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
@@ -72,6 +121,7 @@ export default async function AdminValidacoesPage({ searchParams }: Props) {
         title="Validações"
         heading="Ninguém esperando validação"
         desc="Quando um veterinário ou um estabelecimento concluir o cadastro, a conta entra nesta fila com os dados e o documento enviados."
+        aviso={<AvisoDaDecisao resultado={resultado} />}
       />
     );
   }
@@ -104,6 +154,7 @@ export default async function AdminValidacoesPage({ searchParams }: Props) {
       <Cabecalho total={total} />
 
       <div className="p-6 max-w-[1280px] mx-auto flex flex-col gap-4">
+        <AvisoDaDecisao resultado={resultado} />
         <ul className="flex flex-col gap-2 list-none p-0 m-0">
           {itens.map((item) => (
             <li key={item.id}>

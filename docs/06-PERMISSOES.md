@@ -9,7 +9,7 @@
 > painel pro outro não é bug: é receita perdida e é a razão de existir de dois planos
 > desaparecendo ao mesmo tempo.
 >
-> **Criado:** 26/08/2026 · **Decisões:** DL-044 a DL-047
+> **Criado:** 26/08/2026 · **Decisões:** DL-044 a DL-047 · §5 ampliada por DL-061 (23/09/2026)
 
 ---
 
@@ -169,6 +169,26 @@ lados da mesma decisão, então ambos exigem master.
 
 Admin comum opera, master governa (DL-045). Escala a operação sem dar a chave do cofre
 a todo mundo. **Toda ação de admin entra em `audit_logs`, inclusive as do master.**
+
+### ✅ 23/09/2026 — o dossiê de validação só abre enquanto há validação (DL-061, SEC-092 opção a)
+
+O detalhe `/admin/validacoes/<uuid>` mostra dado privado de terceiro (CNPJ, razão social,
+responsável técnico, WhatsApp, telefone, email de contato e o documento). Ele **só abre conta em
+`status = 'pending_validation'`**, para admin **e** para master. Conta em qualquer outro status
+(`incomplete`, `active`, `suspended`) devolve **"não encontrado"**, decidido **no servidor**, pela
+mesma consulta que lê o cadastro: o filtro é cláusula do `select`, não `if` depois dele.
+
+| Ação | Admin | Master |
+|---|:---:|:---:|
+| Abrir o detalhe de validação de conta em `pending_validation` | ✅ | ✅ |
+| Abrir o detalhe de validação de conta em outro status | ❌ | ❌ |
+| Aprovar (`pending_validation` → `active`) ou reprovar com motivo (`pending_validation` → `incomplete`) | ✅ | ✅ |
+
+**Por quê:** menor privilégio, e a LGPD cobra finalidade. O dossiê existe para validar, então
+só abre enquanto há validação. **Moderar quem já está `active`** (a linha "Moderar conteúdo"
+acima) **ganha tela própria quando existir**, com a leitura que a finalidade dela justificar; não
+herda esta. A decisão também vale para quem decide: aprovar ou reprovar só aceita conta que
+ainda está na fila, conferido no servidor antes de chamar `admin_definir_status`.
 
 ---
 

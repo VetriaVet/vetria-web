@@ -15,10 +15,15 @@ export default function AdminEmptyScreen({
   title,
   heading,
   desc,
+  aviso,
 }: {
   title: string;
   heading: string;
   desc: string;
+  /** T-024: o resultado de uma ação que acabou de esvaziar a tela (por
+   *  exemplo, a última aprovação da fila). Sem isto, o aviso sumiria justo
+   *  quando a fila fica vazia. */
+  aviso?: React.ReactNode;
 }) {
   return (
     <div>
@@ -26,7 +31,8 @@ export default function AdminEmptyScreen({
         <h1 className="font-bold text-lg text-white">{title}</h1>
       </header>
 
-      <div className="p-6 max-w-[1280px] mx-auto">
+      <div className="p-6 max-w-[1280px] mx-auto flex flex-col gap-4">
+        {aviso}
         <div className="rounded-md border border-white/[0.06] bg-[#1A2A2D] p-6">
           {/* Esqueleto de fila/tabela (some pra baixo) */}
           <div className="space-y-2.5 mb-8 [mask-image:linear-gradient(to_bottom,black,transparent)]">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { TriangleAlert } from "lucide-react";
 import Image from "next/image";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
@@ -32,6 +33,7 @@ export default function VetOnboardingForm({
   inicial,
   modo,
   documentoEnviadoEm,
+  motivoReprova,
   action,
 }: {
   inicial: VetOnboardingInicial;
@@ -40,6 +42,11 @@ export default function VetOnboardingForm({
    *  sinal de que existe documento no bucket, e vem do BANCO: o cliente nunca
    *  carimba essa data (o trigger `trg_perfil_privado_carimbo` carimba). */
   documentoEnviadoEm: string | null;
+  /** T-024 / R-051 — `profiles.status_motivo`, lido pelo Server Component SÓ
+   *  quando `status = 'incomplete'`: é o motivo da reprova, escrito pelo admin
+   *  pela RPC `admin_definir_status`. Nulo = nunca foi reprovado, ou foi e o
+   *  admin não deixou motivo (o que a Action da T-024 não permite mais). */
+  motivoReprova: string | null;
   action: (
     payload: VetOnboardingPayload
   ) => Promise<ResultadoOnboarding | void>;
@@ -85,9 +92,12 @@ export default function VetOnboardingForm({
   // linha foi gravada com as três colunas do documento. Quem já enviou antes
   // (revisão) chega aqui com o valor vindo do banco e não precisa reenviar.
   //
-  // ⚠️ Isto é conveniência de tela, não autorização: a Server Action continua
-  // sendo quem valida e grava, e ela não recusa por falta de documento. Quem
-  // reprova cadastro sem documento é a fila do admin, na S4.
+  // ⚠️ Isto é conveniência de tela, não autorização. Desde a T-024 (DL-061,
+  // T-022 opção a) a Server Action também recusa concluir sem documento, e
+  // este `disabled` só evita a ida e volta. ⚠️ SEC-098: a regra ainda NÃO
+  // vive no banco. A RPC `concluir_onboarding_profissional()` não confere
+  // documento, então quem a chamar direto pelo PostgREST, sem passar pela
+  // Action, entra na fila sem documento. Isso fecha na T-027 (migration, 🔴).
   const temDocumento = Boolean(docEnviadoEm);
 
   function toggleEsp(e: string) {
@@ -189,6 +199,32 @@ export default function VetOnboardingForm({
       {/* Conteúdo do passo */}
       <main className="p-8 sm:p-12 bg-white">
         <div className="max-w-xl mx-auto">
+          {/* T-024 / R-051 — a outra metade do laço: o reprovado vê POR QUE
+              voltou. Sem isto ele recebia o formulário em modo "novo",
+              reenviava o mesmo dado e a fila reciclava. O texto é do admin e
+              entra como texto (React escapa), nunca como HTML. */}
+          {motivoReprova && (
+            <div
+              role="status"
+              className="mb-8 flex gap-3 rounded-xl bg-warning-soft p-4"
+            >
+              <TriangleAlert
+                size={18}
+                className="mt-0.5 shrink-0 text-warning"
+                aria-hidden="true"
+              />
+              <div className="text-[13px] leading-relaxed text-corpo-texto">
+                <strong className="block text-titulo mb-1">
+                  A equipe Vetria devolveu seu cadastro para ajuste.
+                </strong>
+                <span className="whitespace-pre-line">{motivoReprova}</span>
+                <span className="block mt-2">
+                  Corrija o que foi apontado e conclua de novo: o cadastro volta
+                  para a fila de validação.
+                </span>
+              </div>
+            </div>
+          )}
           <div className="text-[11px] uppercase tracking-[0.18em] text-principal font-medium mb-3">
             Passo {step} de 4 · {STEPS[step - 1].title}
           </div>

@@ -33,9 +33,11 @@ export default async function VetOnboardingPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, status")
+    // T-024 / R-051 — `status_motivo` entra no mesmo `select`: é a linha do
+    // próprio dono, lida pela policy dele, sem migration e sem policy nova.
+    .select("role, status, status_motivo")
     .eq("id", user.id)
-    .single<{ role: string; status: string }>();
+    .single<{ role: string; status: string; status_motivo: string | null }>();
 
   if (!profile || profile.role !== "vet") redirect("/app");
 
@@ -133,6 +135,13 @@ export default async function VetOnboardingPage() {
       inicial={inicial}
       modo={profile.status === "pending_validation" ? "revisao" : "novo"}
       documentoEnviadoEm={privado?.documento_enviado_em ?? null}
+      // Só em `incomplete`: é o estado em que a reprova devolve a pessoa.
+      // Em `pending_validation` o motivo antigo pode continuar gravado (a RPC
+      // de conclusão não o limpa), e mostrá-lo ali diria que a pessoa está
+      // reprovada quando ela já está de volta na fila.
+      motivoReprova={
+        profile.status === "incomplete" ? profile.status_motivo?.trim() || null : null
+      }
       action={salvarOnboardingVet}
     />
   );
