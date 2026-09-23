@@ -7,6 +7,23 @@
 > estado do projeto em [`docs/02-ESTADO.md`](docs/02-ESTADO.md) e a fila em
 > [`docs/03-TAREFAS.md`](docs/03-TAREFAS.md). Isto aqui é só o **bilhete na porta da geladeira**.
 
+## ⏸️ ONDE PAROU EM 23/09/2026 (o Elber saiu do computador no meio do roteiro)
+
+**Feito hoje, tudo provado em tela ou por consulta:**
+- ✅ **T-023** provada: fila com 4 contas, detalhe completo, documento abriu
+- ✅ **T-025** provada nas duas personas e **commitada** (`46cd9e6`). A copy do cartão de `/perfil` foi corrigida, porque a tela não lê o banco e não é prévia de nada
+- ✅ **Item 4 do DoD** fechado com conta `tutor`
+- ✅ **Varredura de órfãos: zero nas duas consultas** (R-042 e R-023 seguem abertos por mecanismo)
+- ✅ **R-055 / T-026 fechados:** 1 WhatsApp sujo achado e corrigido pela própria interface, e a consulta voltou zero
+- ➕ **R-059** novo (número do CRMV livre, cidade × estado sem conferência)
+
+**Falta, nesta ordem:**
+1. **Passo 7 · teste da T-017** (PATCH `estado = 'ZZ'` com a conta vet de teste). Peça o script ao Claude
+2. **Passo 8 · as 3 decisões** da seção 4 abaixo (SEC-092, T-022, `server-only`)
+3. **Push**, depois de `npm run build` verde. Leva a T-023 e a T-025 para produção
+
+**Pedidos do Elber sem card, para o `vetria-maestro` encaixar:** a prévia real do perfil público (ler o banco, só leitura) e o botão de arquivo sempre em português (hoje é o nativo do navegador, que segue o idioma do Chrome).
+
 ---
 
 ## O prompt pra colar numa sessão nova

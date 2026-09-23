@@ -195,6 +195,7 @@ trava escrita: **antes do primeiro profissional de fora.**
   A saída honesta foi entregar dado e deixar a leitura para o humano. **Distinguir com certeza é
   tabela nova, logo migration, logo 🔴, e não tem card** — está escrito nos cards da T-008 e da
   T-018 como a única saída possível, e a decisão de criar a tabela é do Elber.
+- 📏 **23/09/2026 — a varredura RODOU pela primeira vez (Elber, SQL Editor, produção): ZERO linha nas duas consultas** do card da T-008. Nenhum objeto em `documentos` sem linha apontando para ele, e nenhum objeto fora da convenção `<uuid>/`. **O risco NÃO fecha com isso:** a medição diz que hoje não há órfão, e o mecanismo (processo morrendo entre o 7 e o 8) continua possível por custo aceito. O que mudou é que a varredura deixou de ser teórica.
 
 ### R-043 — Nenhum registro de consentimento na coleta, e a T-007 coleta dado de TERCEIRO (SEC-064)
 - **Descoberto:** 09/09/2026, revisão independente da T-006 (R-034)
@@ -397,6 +398,7 @@ trava escrita: **antes do primeiro profissional de fora.**
   este projeto adotar nasce com *"e o que já está gravado?"* respondido dentro do card.
 - **Task:** **T-026** · **Prazo:** a medição, na S4. A correção, antes do primeiro profissional de
   fora. 🟡
+- 📏 **23/09/2026 — a medição rodou: UMA linha suja.** `perfil_privado.id = e5a1a020-0e71-4f52-89fc-b57c83043179`, `whatsapp = '62 99265327'`: com espaço **e com 10 dígitos** (celular com DDD tem 11), então além de sujo o número parece incompleto. **Não é a linha de 20/09** (`62 992653278`, que o Elber já corrigiu). A dona está entre as 4 contas de teste da fila (a consulta 6b mostrou `perfil_privado` só em `vet` 3 e `clinic` 1). **O conserto não precisa de `update` 🔴:** desde a T-025 a dona abre *"Rever e corrigir o cadastro"* em `/aguardando`, chega ao fim e salva, e a Action normaliza na escrita. Se o número estiver de fato incompleto, ela corrige o dígito no mesmo gesto. ✅ **Feito no mesmo dia:** a dona salvou pelo *"Rever e corrigir o cadastro"* e a consulta rodou de novo: **zero linha. R-055 FECHA por medição** (o critério escrito acima: *"Zero → fecha com a medição escrita"*). A lição fica: normalização na escrita não retroage, e o caminho que a fez retroagir aqui foi a própria interface.
 
 ### R-056 — O corpo do pedido é materializado inteiro antes do teto, nas duas rotas de documento (SEC-082)
 - **Descoberto:** 16/09/2026, auditoria da T-008
@@ -532,6 +534,7 @@ trava escrita: **antes do primeiro profissional de fora.**
   significa **conta apagada com objeto vivo**, que é este risco acontecendo, e pede ação. **O
   risco continua aberto:** a consulta existe desde 09/09, ninguém a rodou, e a rotina de exclusão
   da T-018 continua na F6/S11.
+- 📏 **23/09/2026 — a varredura rodou: ZERO linha**, então **nenhuma conta apagada com documento vivo no bucket hoje** (`dono_ainda_existe = false` não apareceu). **O risco continua aberto:** ele é sobre a rotina de exclusão que não existe (T-018, F6/S11), não sobre o acervo de hoje.
 
 ### R-024 — O CNPJ do estabelecimento viaja no `raw_user_meta_data` e no JWT (SEC-042)
 - **Descoberto:** 26/08/2026, auditoria da `0003`. **Confirmado no código.**

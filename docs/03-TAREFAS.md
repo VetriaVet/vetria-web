@@ -279,7 +279,7 @@ mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
 - **Resultado:** _(a preencher)_
 
 ### T-026 — O WhatsApp gravado antes do conserto do R-041 continua sujo
-- **Estado:** ⬜ **fila, correndo por fora.** 🟢 **para medir** (é um `select`, e é do Elber) · 🔴 **para corrigir** (`update` em dado de produção)
+- **Estado:** ✅ **FECHADA em 23/09/2026 por medição, sem `update` nenhum.** A medição achou **uma** linha suja (`62 99265327`, conta de teste). A dona corrigiu pela própria interface: *"Rever e corrigir o cadastro"* (T-025) → fim do onboarding → *"Salvar alterações"*, e a Action normalizou na escrita. **A mesma consulta rodou de novo: zero linha.** O 🔴 de corrigir nunca precisou existir, pelo mesmo motivo do R-047: com conta de teste, o dono salva e a escrita conserta. _(Estado anterior:)_ fila, correndo por fora. 🟢 para medir · 🔴 para corrigir
 - **Fase / Semana:** F3 / S4 para a medição. A correção, se for preciso, **agenda-se**
 - **Capacidade:** **E5** — *"CTA de WhatsApp funciona"*. Número sujo é CTA que não abre conversa
 - **Nível:** 🟢 medir · 🔴 corrigir
