@@ -6,11 +6,14 @@ import Image from "next/image";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Select } from "@/components/ui/Select";
+import { CampoMascarado } from "@/components/ui/CampoMascarado";
+import { erroDoCampo } from "@/lib/campos/mascaras";
 import EnvioDeDocumento from "@/components/app/EnvioDeDocumento";
 import {
   ESPECIALIDADES,
   ESTADOS,
   EXPERIENCIA,
+  MAX_ESPECIALIDADES,
   STEPS,
   TITULOS,
   type ResultadoOnboarding,
@@ -63,6 +66,7 @@ export default function VetOnboardingForm({
   const [crmv, setCrmv] = useState(inicial.crmv);
   const [uf, setUf] = useState(inicial.crmvUf);
   const [especialidades, setEspecialidades] = useState<string[]>(inicial.especialidades);
+  const [avisoEsp, setAvisoEsp] = useState(false);
   const [experiencia, setExperiencia] = useState(inicial.experiencia);
   const [cidade, setCidade] = useState(inicial.cidade);
   const [estado, setEstado] = useState(inicial.estado);
@@ -82,7 +86,26 @@ export default function VetOnboardingForm({
   // servidor. A regra que VALE continua sendo a da Server Action: esta é
   // conveniência, não autorização.
   const algumModo = modos.presencial || modos.domiciliar || modos.tele;
-  const podeAvancar = step === 2 ? algumModo : true;
+
+  // T-035 — campo com máscara fora da regra segura o passo, com o motivo
+  // embaixo do próprio campo. Mesma lógica: conveniência, não autorização.
+  // R-060 — mais especialidades que o limite (só acontece com dado antigo,
+  // porque o chip não deixa marcar a quinta) também segura o passo 1.
+  const motivoParado =
+    step === 1
+      ? erroDoCampo("crmv", crmv)
+        ? "Confira o número do CRMV para continuar."
+        : especialidades.length > MAX_ESPECIALIDADES
+          ? `Deixe no máximo ${MAX_ESPECIALIDADES} especialidades para continuar.`
+          : null
+      : step === 2
+        ? algumModo
+          ? null
+          : "Marque pelo menos uma forma de atendimento para continuar."
+        : step === 3 && erroDoCampo("telefone", whatsapp)
+          ? "Confira o WhatsApp para continuar."
+          : null;
+  const podeAvancar = motivoParado === null;
 
   // T-008 — SEM DOCUMENTO NÃO HÁ CONCLUSÃO, e isso é o critério do card:
   // "falha de upload impede a conclusão; o profissional não pode sair achando
@@ -100,8 +123,19 @@ export default function VetOnboardingForm({
   // pelo PostgREST entra na fila sem documento.
   const temDocumento = Boolean(docEnviadoEm);
 
+  // R-060 — o limite vale no próprio chip: a quinta não entra, e o aviso
+  // aparece na hora, em vez de o erro do servidor aparecer só no passo 4.
   function toggleEsp(e: string) {
-    setEspecialidades((p) => (p.includes(e) ? p.filter((x) => x !== e) : [...p, e]));
+    if (especialidades.includes(e)) {
+      setEspecialidades(especialidades.filter((x) => x !== e));
+      setAvisoEsp(false);
+      return;
+    }
+    if (especialidades.length >= MAX_ESPECIALIDADES) {
+      setAvisoEsp(true);
+      return;
+    }
+    setEspecialidades([...especialidades, e]);
   }
   function toggleModo(k: keyof typeof modos) {
     setModos((p) => ({ ...p, [k]: !p[k] }));
@@ -247,7 +281,7 @@ export default function VetOnboardingForm({
               <div className="grid sm:grid-cols-2 gap-4 mt-4">
                 <div>
                   <Label htmlFor="crmv">Número do CRMV</Label>
-                  <Input id="crmv" value={crmv} onChange={(e) => setCrmv(e.target.value)} placeholder="Ex: 1234" />
+                  <CampoMascarado id="crmv" mascara="crmv" valor={crmv} onValor={setCrmv} placeholder="Ex: 12345" ajuda="Só os números, sem a sigla do estado." />
                 </div>
                 <div>
                   <Label htmlFor="uf">Estado de registro</Label>
@@ -256,10 +290,33 @@ export default function VetOnboardingForm({
               </div>
               <div className="mt-4">
                 <Label>Especialidades</Label>
-                <p className="text-[12px] text-corpo-texto/70 mb-3">
-                  1 principal e até 3 secundárias. Dá pra ajustar depois.
+                <p id="esp-regra" className="text-[12px] text-corpo-texto/70 mb-3">
+                  1 principal e até 3 secundárias. A primeira que você marcar é
+                  a principal. Dá pra ajustar depois.{" "}
+                  <span className="font-medium text-titulo">
+                    {especialidades.length} de {MAX_ESPECIALIDADES}
+                  </span>
                 </p>
-                <Chips items={ESPECIALIDADES} selected={especialidades} onToggle={toggleEsp} />
+                <Chips
+                  items={ESPECIALIDADES}
+                  selected={especialidades}
+                  onToggle={toggleEsp}
+                  max={MAX_ESPECIALIDADES}
+                />
+                <p
+                  aria-live="polite"
+                  className={
+                    avisoEsp || especialidades.length > MAX_ESPECIALIDADES
+                      ? "mt-2 text-[13px] text-red-700"
+                      : "sr-only"
+                  }
+                >
+                  {especialidades.length > MAX_ESPECIALIDADES
+                    ? `Há ${especialidades.length} marcadas. O limite é ${MAX_ESPECIALIDADES}: desmarque as que sobram.`
+                    : avisoEsp
+                      ? `Limite de ${MAX_ESPECIALIDADES} atingido. Desmarque uma para trocar.`
+                      : ""}
+                </p>
               </div>
               <div className="mt-4">
                 <Label htmlFor="exp">Anos de experiência</Label>
@@ -330,7 +387,7 @@ export default function VetOnboardingForm({
               </div>
               <div>
                 <Label htmlFor="wpp">WhatsApp</Label>
-                <Input id="wpp" type="tel" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(00) 00000-0000" />
+                <CampoMascarado id="wpp" mascara="telefone" valor={whatsapp} onValor={setWhatsapp} placeholder="(00) 00000-0000" />
               </div>
             </StepWrap>
           )}
@@ -386,7 +443,7 @@ export default function VetOnboardingForm({
             <span className="text-[12px] text-corpo-texto/70">
               {step === 4 && !temDocumento
                 ? "Falta enviar o documento do CRMV."
-                : `${step * 25}% concluído`}
+                : (motivoParado ?? `${step * 25}% concluído`)}
             </span>
             <div className="flex gap-3">
               {step > 1 && (
@@ -403,11 +460,7 @@ export default function VetOnboardingForm({
                   type="button"
                   onClick={next}
                   disabled={!podeAvancar}
-                  title={
-                    podeAvancar
-                      ? undefined
-                      : "Marque pelo menos uma forma de atendimento para continuar."
-                  }
+                  title={motivoParado ?? undefined}
                   className="inline-flex items-center gap-2 rounded-pill bg-principal text-white px-6 py-2.5 font-semibold text-sm hover:bg-[#142E33] transition disabled:opacity-50"
                 >
                   Continuar
@@ -463,23 +516,36 @@ function Chips({
   items,
   selected,
   onToggle,
+  max,
 }: {
   items: readonly string[];
   selected: string[];
   onToggle: (s: string) => void;
+  max: number;
 }) {
+  const cheio = selected.length >= max;
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
       {items.map((s) => {
         const on = selected.includes(s);
         const principal = selected[0] === s;
+        // No limite, os chips livres ficam esmaecidos mas continuam
+        // clicáveis: o clique mostra o aviso em vez de não fazer nada.
+        const travado = !on && cheio;
         return (
           <button
             key={s}
             type="button"
             onClick={() => onToggle(s)}
-            className={`rounded-xl border-2 px-3.5 py-2.5 text-[13px] text-left transition ${
-              on ? "bg-principal text-white border-principal" : "border-gray-200 text-titulo hover:border-principal"
+            aria-pressed={on}
+            aria-disabled={travado || undefined}
+            aria-describedby="esp-regra"
+            className={`rounded-xl border-2 px-3.5 py-2.5 text-[13px] text-left transition cursor-pointer ${
+              on
+                ? "bg-principal text-white border-principal"
+                : travado
+                  ? "border-gray-200 text-titulo/40"
+                  : "border-gray-200 text-titulo hover:border-principal"
             }`}
           >
             {s}

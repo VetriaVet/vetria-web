@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Input } from "../../../../components/ui/Input";
 import { Label } from "../../../../components/ui/Label";
+import { CampoMascarado } from "@/components/ui/CampoMascarado";
 
 // Perfil do tutor — casca fiel (DL-020). Dados pessoais (email real, do login),
 // pets em empty-state (sem persistência ainda) e preferências como toggles
@@ -54,11 +55,11 @@ export default function TutorProfileForm({
         <div className="grid sm:grid-cols-2 gap-4 mt-4">
           <div>
             <Label htmlFor="telefone">Telefone</Label>
-            <Input
+            <CampoMascarado
               id="telefone"
-              type="tel"
-              value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
+              mascara="telefone"
+              valor={telefone}
+              onValor={setTelefone}
               placeholder="(00) 00000-0000"
             />
           </div>

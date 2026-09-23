@@ -1,8 +1,11 @@
-import { InputHTMLAttributes, ReactNode } from "react";
+import { InputHTMLAttributes, ReactNode, Ref } from "react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   // Slot opcional à direita (ex.: botão olho do toggle de senha no /login).
   rightSlot?: ReactNode;
+  // React 19: `ref` chega como prop comum e segue no spread até o <input>.
+  // Usado pelo CampoMascarado (T-035) para manter o cursor no lugar.
+  ref?: Ref<HTMLInputElement>;
 }
 
 // Classe EXATA do input pill das telas de produção (login + TutorOnboardingForm).

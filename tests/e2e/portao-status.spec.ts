@@ -8,6 +8,9 @@ import {
   medirDestinoDeApp,
   rotaExata,
 } from "../apoio/sessao";
+import { EXIGIR, falharSeExigir, pularOuFalhar } from "../apoio/pulo";
+import { alvoEhTeste } from "../apoio/alvo";
+import { garantirVetFixoNaFila } from "../apoio/servico";
 
 // Camada 3 da suíte: O PORTÃO, MEDIDO DE FORA.
 //
@@ -48,7 +51,7 @@ test.describe("portao de status e de role, contra a conta vet real", () => {
   // Pular é diferente de passar. Sem os secrets, estes testes aparecem como
   // "skipped" com o motivo escrito. Desde 16/09 o pré-voo do `ci.yml` recusa o
   // job quando eles faltam, então no CI isto não volta a acontecer em silêncio.
-  test.skip(credencial === null, SEM_CREDENCIAL);
+  test.skip(credencial === null && !EXIGIR, SEM_CREDENCIAL);
 
   let sessao: Cookie[] = [];
 
@@ -57,11 +60,15 @@ test.describe("portao de status e de role, contra a conta vet real", () => {
   let destino = "";
 
   test.beforeAll(async ({ browser }) => {
+    falharSeExigir(credencial === null, SEM_CREDENCIAL);
     if (!credencial) return;
     // O hook herda o `timeout: 30_000` do config, e ele faz duas navegações
     // reais contra o Supabase. Sem folga, o hook estoura ANTES da mensagem de
     // erro útil de `capturarSessao` e o relatório mostra só "hook timeout".
     test.setTimeout(120_000);
+    // DL-064: no projeto de teste a conta fixa volta para a fila antes de
+    // medir. Em producao nada e escrito aqui.
+    if (alvoEhTeste()) await garantirVetFixoNaFila(credencial);
     sessao = await capturarSessao(browser, credencial);
     destino = await medirDestinoDeApp(browser, sessao);
   });
@@ -81,7 +88,7 @@ test.describe("portao de status e de role, contra a conta vet real", () => {
    * voltar: devolver a conta de teste para a fila.
    */
   function exigirContaNaFila() {
-    test.skip(
+    pularOuFalhar(
       destino !== DESTINO_VET.pending_validation,
       `a conta de teste nao esta em pending_validation: /app despachou para "${destino}". ` +
         `A prova da matriz §4 para quem espera validacao NAO rodou. ` +

@@ -19,6 +19,7 @@
 
 import type { Browser, Cookie, Page } from "@playwright/test";
 import type { Credencial } from "./credenciais";
+import { conferirCookiesDoAlvo } from "./alvo";
 
 // ⚠️ Espelha o `BASE_URL` de `playwright.config.ts`, e espelha de propósito:
 // os helpers abaixo abrem uma página FORA das fixtures do Playwright (é o que
@@ -88,7 +89,11 @@ export function alertaDeErro(page: Page) {
  */
 export async function capturarSessao(
   browser: Browser,
-  credencial: Credencial
+  credencial: Credencial,
+  // Qual secret está sendo usado, só para a mensagem de erro. Desde 23/09 há
+  // mais de uma conta de teste, e "E2E_VET_EMAIL" fixo mandaria quem lê o
+  // relatório conferir o secret errado.
+  rotulo = "E2E_VET_EMAIL"
 ): Promise<Cookie[]> {
   const contexto = await browser.newContext({ baseURL: BASE_URL });
   const page = await contexto.newPage();
@@ -115,13 +120,17 @@ export async function capturarSessao(
         .innerText({ timeout: 3_000 })
         .catch(() => "");
       throw new Error(
-        `capturarSessao: o login com E2E_VET_EMAIL nao saiu de /login em 30s. ` +
+        `capturarSessao: o login com ${rotulo} nao saiu de /login em 30s. ` +
           `Mensagem na tela: "${alerta.trim() || "(nenhuma)"}". ` +
           `Confira o secret: senha trocada, conta nao confirmada ou email errado.`
       );
     }
 
-    return await contexto.cookies();
+    const cookies = await contexto.cookies();
+    // DL-064: com E2E_ALVO=teste, o cookie de sessao tem que ser do projeto
+    // de teste. E a unica prova de para onde o SERVIDOR Next esta falando.
+    conferirCookiesDoAlvo(cookies.map((c) => c.name));
+    return cookies;
   } finally {
     // O `close()` pode estourar quando o hook que chamou isto já estourou por
     // timeout e o Playwright derrubou o browser. Engolir aqui é o certo: senão
@@ -143,8 +152,10 @@ export async function aplicarSessao(page: Page, cookies: Cookie[]) {
 /**
  * Para onde `/app` despacha esta conta. É a leitura, de fora, de
  * `destinoPorStatus()`: o caminho devolvido diz o `status` da conta sem que o
- * teste precise tocar o banco (e ele não pode tocar — a suíte não usa
- * `SUPABASE_SERVICE_ROLE_KEY`, por nada).
+ * teste precise tocar o banco. (Desde o DL-064 a suíte usa a
+ * `SUPABASE_SERVICE_ROLE_KEY` do projeto de TESTE, e só dele, em
+ * `servico.ts`; a de produção, nunca. Ler o status de fora continua sendo o
+ * jeito que funciona nos dois alvos.)
  */
 export async function destinoDeApp(page: Page): Promise<string> {
   await page.goto("/app");

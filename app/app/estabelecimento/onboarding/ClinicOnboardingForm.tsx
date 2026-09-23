@@ -6,6 +6,8 @@ import Image from "next/image";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Select } from "@/components/ui/Select";
+import { CampoMascarado } from "@/components/ui/CampoMascarado";
+import { erroDoCampo } from "@/lib/campos/mascaras";
 import EnvioDeDocumento from "@/components/app/EnvioDeDocumento";
 import {
   ESTADOS,
@@ -86,6 +88,20 @@ export default function ClinicOnboardingForm({
   // exige o objeto do documento no bucket (SEC-098), então nem a chamada direta
   // pelo PostgREST entra na fila sem documento.
   const temDocumento = Boolean(docEnviadoEm);
+
+  // T-035 — campo com máscara fora da regra segura o passo, com o motivo
+  // embaixo do próprio campo. Conveniência de tela: quem decide é a Action.
+  //
+  // R-060 conferido aqui também: serviços NÃO têm o mesmo defeito, porque o
+  // teto (`MAX_SERVICOS`) é o tamanho da lista inteira. Marcar todos é válido.
+  const motivoParado =
+    step === 1 && erroDoCampo("cnpj", cnpj)
+      ? "Confira o CNPJ para continuar."
+      : step === 2 && erroDoCampo("cep", cep)
+        ? "Confira o CEP para continuar."
+        : step === 3 && erroDoCampo("telefone", whatsapp)
+          ? "Confira o WhatsApp para continuar."
+          : null;
 
   function toggleServico(s: string) {
     setServicos((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
@@ -221,7 +237,7 @@ export default function ClinicOnboardingForm({
               <div className="grid sm:grid-cols-2 gap-4 mt-4">
                 <div>
                   <Label htmlFor="cnpj">CNPJ</Label>
-                  <Input id="cnpj" value={cnpj} maxLength={LIMITES.cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" />
+                  <CampoMascarado id="cnpj" mascara="cnpj" valor={cnpj} onValor={setCnpj} placeholder="00.000.000/0000-00" />
                 </div>
                 <div>
                   <Label htmlFor="resp">Responsável técnico (opcional)</Label>
@@ -253,7 +269,9 @@ export default function ClinicOnboardingForm({
               <div className="grid sm:grid-cols-3 gap-4 mt-4">
                 <div>
                   <Label htmlFor="cep">CEP</Label>
-                  <Input id="cep" value={cep} maxLength={LIMITES.cep} onChange={(e) => setCep(e.target.value)} placeholder="00000-000" />
+                  {/* T-028 vai preencher cidade e estado a partir do CEP. O gancho
+                      é o `onValor`: com 8 dígitos, consultar e preencher. */}
+                  <CampoMascarado id="cep" mascara="cep" valor={cep} onValor={setCep} placeholder="00000-000" />
                 </div>
                 <div>
                   <Label htmlFor="cid">Cidade</Label>
@@ -312,8 +330,8 @@ export default function ClinicOnboardingForm({
               </div>
               <div>
                 <Label htmlFor="wpp">WhatsApp</Label>
-                <Input id="wpp" type="tel" value={whatsapp} maxLength={LIMITES.whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(00) 00000-0000" />
-                <p className="mt-1.5 text-[12px] text-corpo-texto/70 leading-relaxed">
+                <CampoMascarado id="wpp" mascara="telefone" valor={whatsapp} onValor={setWhatsapp} placeholder="(00) 00000-0000" aria-describedby="wpp-nota" />
+                <p id="wpp-nota" className="mt-1.5 text-[12px] text-corpo-texto/70 leading-relaxed">
                   Precisa ser um número com DDD que receba mensagem no WhatsApp.
                   Números 0800 não servem. Guardamos só os dígitos, e o número
                   nunca aparece na página: ele é revelado quando o responsável
@@ -375,7 +393,7 @@ export default function ClinicOnboardingForm({
             <span className="text-[12px] text-corpo-texto/70">
               {step === 4 && !temDocumento
                 ? "Falta enviar o documento do estabelecimento."
-                : `${step * 25}% concluído`}
+                : (motivoParado ?? `${step * 25}% concluído`)}
             </span>
             <div className="flex gap-3">
               {step > 1 && (
@@ -391,7 +409,9 @@ export default function ClinicOnboardingForm({
                 <button
                   type="button"
                   onClick={next}
-                  className="inline-flex items-center gap-2 rounded-pill bg-principal text-white px-6 py-2.5 font-semibold text-sm hover:bg-[#142E33] transition"
+                  disabled={motivoParado !== null}
+                  title={motivoParado ?? undefined}
+                  className="inline-flex items-center gap-2 rounded-pill bg-principal text-white px-6 py-2.5 font-semibold text-sm hover:bg-[#142E33] transition disabled:opacity-50"
                 >
                   Continuar
                   <ArrowRightIcon />

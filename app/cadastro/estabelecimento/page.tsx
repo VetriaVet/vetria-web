@@ -8,8 +8,10 @@ import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
 import { Button } from "../../../components/ui/Button";
 import { CampoSenha } from "../../../components/ui/CampoSenha";
+import { CampoMascarado } from "../../../components/ui/CampoMascarado";
 import { validarSenha, SENHA_AJUDA, SENHA_PLACEHOLDER } from "@/lib/auth/senha";
 import { traduzirErroAuth } from "@/lib/auth/erros";
+import { erroDoCampo } from "@/lib/campos/mascaras";
 import { createClient } from "@/lib/supabase/browser";
 
 // Funil B2B / empresarial — acessado pelas landings de profissionais (não pelo fluxo do tutor).
@@ -53,6 +55,8 @@ export default function CadastroClinicaPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
+    const erroEmail = erroDoCampo("email", email);
+    if (erroEmail) return setMsg({ tipo: "erro", texto: erroEmail });
     const faltaNaSenha = validarSenha(senha);
     if (faltaNaSenha) return setMsg({ tipo: "erro", texto: faltaNaSenha });
     if (senha !== confirmar) return setMsg({ tipo: "erro", texto: "As senhas não conferem." });
@@ -189,7 +193,7 @@ export default function CadastroClinicaPage() {
                   </div>
                   <div>
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="contato@estabelecimento.com.br" autoComplete="email" />
+                    <CampoMascarado id="email" mascara="email" valor={email} onValor={setEmail} required placeholder="contato@estabelecimento.com.br" />
                   </div>
                   <div>
                     <Label htmlFor="senha">Senha</Label>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Paperclip } from "lucide-react";
 
 // T-008 — O PASSO 4 DO ONBOARDING DEIXA DE SER UM AVISO.
 //
@@ -221,22 +222,41 @@ export default function EnvioDeDocumento({
       )}
 
       <div className="flex flex-col gap-3">
-        <label
-          htmlFor="documento"
-          className="text-[13px] font-medium text-titulo"
-        >
-          {quando ? "Enviar outro documento" : "Escolher o arquivo"}
-        </label>
-        <input
-          ref={inputRef}
-          id="documento"
-          name="documento"
-          type="file"
-          accept={ACCEPT}
-          onChange={escolher}
-          disabled={enviando}
-          className="text-[13px] text-corpo-texto file:mr-3 file:rounded-pill file:border-0 file:bg-fundo-destaque file:px-4 file:py-2 file:text-[13px] file:font-medium file:text-principal hover:file:bg-gray-100"
-        />
+        <p className="text-[13px] font-medium text-titulo">
+          {quando ? "Enviar outro documento" : "Documento"}
+        </p>
+        {/* T-035 — o botão nativo de arquivo fala a língua do NAVEGADOR
+            ("Choose file", "No file chosen"). O input continua aqui, fora da
+            vista mas no teclado e no leitor de tela; o que aparece é o label
+            dele, desenhado como botão, sempre em português. `peer` leva o foco
+            do input para o anel visível do label. */}
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            ref={inputRef}
+            id="documento"
+            name="documento"
+            type="file"
+            accept={ACCEPT}
+            onChange={escolher}
+            disabled={enviando}
+            aria-describedby="documento-escolhido"
+            className="peer sr-only"
+          />
+          <label
+            htmlFor="documento"
+            className="inline-flex items-center gap-2 rounded-pill bg-fundo-destaque px-4 py-2 text-[13px] font-medium text-principal cursor-pointer hover:bg-gray-100 transition peer-focus-visible:ring-2 peer-focus-visible:ring-principal/40 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"
+          >
+            <Paperclip size={15} aria-hidden="true" />
+            {arquivo ? "Trocar arquivo" : "Escolher arquivo"}
+          </label>
+          <span
+            id="documento-escolhido"
+            aria-live="polite"
+            className="min-w-0 truncate text-[13px] text-corpo-texto"
+          >
+            {arquivo ? arquivo.name : "Nenhum arquivo escolhido"}
+          </span>
+        </div>
         <p className="text-[12px] text-corpo-texto/70 leading-relaxed">
           {exemplos} PDF, JPG, PNG ou WEBP, até 10 MB. O arquivo é renomeado
           pelo servidor e nunca aparece no perfil público.

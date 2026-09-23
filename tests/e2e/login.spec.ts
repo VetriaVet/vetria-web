@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { credencialVet, SEM_CREDENCIAL } from "../apoio/credenciais";
 import { alertaDeErro } from "../apoio/sessao";
+import { EXIGIR, falharSeExigir } from "../apoio/pulo";
 
 // Camada 2: o primeiro teste que exige credencial.
 //
@@ -18,7 +19,8 @@ const credencial = credencialVet();
 test.describe("login com credencial real", () => {
   // Pular é diferente de passar. Sem os secrets, estes testes aparecem como
   // "skipped" com o motivo escrito, e não como suíte verde mentindo.
-  test.skip(credencial === null, SEM_CREDENCIAL);
+  test.skip(credencial === null && !EXIGIR, SEM_CREDENCIAL);
+  test.beforeAll(() => falharSeExigir(credencial === null, SEM_CREDENCIAL));
 
   test("senha errada recusa e nao cria sessao", async ({ page }) => {
     await page.goto("/login");

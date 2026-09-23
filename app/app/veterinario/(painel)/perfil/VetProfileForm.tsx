@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Select } from "@/components/ui/Select";
+import { CampoMascarado } from "@/components/ui/CampoMascarado";
 
 // Editor de perfil do vet — casca fiel ao produto (DL-020). O formulário tem
 // estado client e alimenta um preview ao vivo, mas NÃO persiste ainda: não
@@ -277,21 +278,21 @@ export default function VetProfileForm({ initialName }: { initialName: string })
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="whatsapp">WhatsApp</Label>
-              <Input
+              <CampoMascarado
                 id="whatsapp"
-                type="tel"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
+                mascara="telefone"
+                valor={whatsapp}
+                onValor={setWhatsapp}
                 placeholder="(00) 00000-0000"
               />
             </div>
             <div>
               <Label htmlFor="telefone">Telefone fixo (opcional)</Label>
-              <Input
+              <CampoMascarado
                 id="telefone"
-                type="tel"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
+                mascara="telefone"
+                valor={telefone}
+                onValor={setTelefone}
                 placeholder="(00) 0000-0000"
               />
             </div>
@@ -300,11 +301,11 @@ export default function VetProfileForm({ initialName }: { initialName: string })
             <Label htmlFor="emailContato">
               Email de contato profissional (opcional)
             </Label>
-            <Input
+            <CampoMascarado
               id="emailContato"
-              type="email"
-              value={emailContato}
-              onChange={(e) => setEmailContato(e.target.value)}
+              mascara="email"
+              valor={emailContato}
+              onValor={setEmailContato}
               placeholder="contato@seuestabelecimento.com.br"
             />
           </div>

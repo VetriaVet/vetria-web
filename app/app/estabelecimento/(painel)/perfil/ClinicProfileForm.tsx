@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Select } from "@/components/ui/Select";
+import { CampoMascarado } from "@/components/ui/CampoMascarado";
 
 // Editor de perfil da clínica — casca fiel ao produto (DL-020), mesmo padrão
 // do editor do vet. Estado client + preview ao vivo, sem persistência ainda
@@ -165,10 +166,11 @@ export default function ClinicProfileForm({
           <div className="grid sm:grid-cols-3 gap-4 mt-4">
             <div className="sm:col-span-1">
               <Label htmlFor="cep">CEP</Label>
-              <Input
+              <CampoMascarado
                 id="cep"
-                value={cep}
-                onChange={(e) => setCep(e.target.value)}
+                mascara="cep"
+                valor={cep}
+                onValor={setCep}
                 placeholder="00000-000"
               />
             </div>
@@ -198,21 +200,21 @@ export default function ClinicProfileForm({
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="whatsapp">WhatsApp</Label>
-              <Input
+              <CampoMascarado
                 id="whatsapp"
-                type="tel"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
+                mascara="telefone"
+                valor={whatsapp}
+                onValor={setWhatsapp}
                 placeholder="(00) 00000-0000"
               />
             </div>
             <div>
               <Label htmlFor="telefone">Telefone fixo (opcional)</Label>
-              <Input
+              <CampoMascarado
                 id="telefone"
-                type="tel"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
+                mascara="telefone"
+                valor={telefone}
+                onValor={setTelefone}
                 placeholder="(00) 0000-0000"
               />
             </div>
@@ -220,21 +222,22 @@ export default function ClinicProfileForm({
           <div className="grid sm:grid-cols-2 gap-4 mt-4">
             <div>
               <Label htmlFor="emailContato">Email de contato (opcional)</Label>
-              <Input
+              <CampoMascarado
                 id="emailContato"
-                type="email"
-                value={emailContato}
-                onChange={(e) => setEmailContato(e.target.value)}
+                mascara="email"
+                valor={emailContato}
+                onValor={setEmailContato}
                 placeholder="contato@seuestabelecimento.com.br"
               />
             </div>
             <div>
               <Label htmlFor="site">Site (opcional)</Label>
-              <Input
+              <CampoMascarado
                 id="site"
-                value={site}
-                onChange={(e) => setSite(e.target.value)}
-                placeholder="www.seuestabelecimento.com.br"
+                mascara="site"
+                valor={site}
+                onValor={setSite}
+                placeholder="https://www.seuestabelecimento.com.br"
               />
             </div>
           </div>
