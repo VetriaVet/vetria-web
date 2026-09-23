@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Check, Clock, ChevronRight, Info, Crown } from "lucide-react";
+import { Check, Clock, ChevronRight, Info } from "lucide-react";
 
 // Roadmap vivo da Vetria — rota isolada (não linkada na navegação; acessível
 // por link direto). noindex pra não ser indexada. É a janela dos donos pro
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const ATUALIZADO = "31 de agosto de 2026";
+const ATUALIZADO = "23 de setembro de 2026";
 const ENTREGA = "25 de novembro de 2026";
 
 type Status = "done" | "doing" | "todo" | "later";
@@ -71,36 +71,41 @@ const SPRINTS: Sprint[] = [
       "A Vetria deixa de ser um sistema com login e ganha a cara de um marketplace real. Todas as telas navegáveis, prontas para receber os dados.",
   },
   {
-    num: "Fase 3 · até 22 de setembro",
+    num: "Fase 3 · encerrada em 23 de setembro · 5 de 6 metas comprovadas",
     title: "O produto passa a guardar dados",
     status: "doing",
-    goal: "Sair da casca. Tudo o que o profissional preenche passa a ser guardado, e o admin passa a validar de verdade quem entra na plataforma. A base de dados e o cofre dos documentos estão de pé desde 26 de agosto. Em 31 de agosto o onboarding do veterinário passou a guardar de verdade o que a pessoa preenche, e ela entra na fila de validação. Falta o mesmo no estabelecimento, o envio do documento, e a fila do admin.",
+    goal: "Sair da casca. Tudo o que o profissional preenche passa a ser guardado, e a equipe Vetria passa a validar de verdade quem entra na plataforma.",
     items: [
       { label: "Estrutura de dados dos perfis profissionais", status: "done" },
-      { label: "Onboarding que guarda o que foi preenchido (veterinário pronto)", status: "doing" },
-      { label: "Envio de documento para validação (CRMV, CNPJ)", status: "todo" },
-      { label: "Estados do profissional: incompleto, em validação, ativo", status: "todo" },
-      { label: "Fila de validação real no painel do admin", status: "todo" },
-      { label: "Aprovação e reprovação com aviso por email", status: "todo" },
-      { label: "Isolamento reforçado entre os painéis", status: "todo" },
-      { label: "Testes automáticos dos fluxos críticos", status: "doing" },
+      { label: "Cadastro do veterinário e do estabelecimento que guarda o que foi preenchido", status: "done" },
+      { label: "Envio de documento para validação (CRMV, CNPJ)", status: "done" },
+      { label: "Estados do profissional: incompleto, em validação, ativo", status: "done" },
+      { label: "Enquanto espera a validação, o profissional pode rever e corrigir o cadastro", status: "done" },
+      { label: "Fila de validação real no painel da equipe Vetria", status: "done" },
+      { label: "Aprovação e reprovação com motivo, com aviso por email", status: "done" },
+      { label: "Isolamento reforçado entre os painéis", status: "done" },
+      { label: "Testes automáticos dos fluxos críticos (dois de quatro já automatizados)", status: "doing" },
     ],
+    warn: "Falta automatizar o teste de dois fluxos: o cadastro completo e a aprovação. Os dois já foram conferidos à mão, em tela, com contas reais. Previsão: 6 de outubro.",
     result:
-      "O profissional se cadastra, preenche o perfil, envia o documento e é aprovado por uma pessoa. A partir daqui a plataforma tem dados reais.",
+      "O profissional se cadastra, envia o documento, é aprovado por uma pessoa da equipe e recebe o aviso por email. A plataforma passou a ter dados reais.",
   },
   {
-    num: "Fase 4 · até 20 de outubro",
+    num: "Fase 4 · de 23 de setembro a 20 de outubro",
     title: "Busca, perfil público e contato",
-    status: "todo",
+    status: "doing",
     goal: "O momento em que a Vetria começa a girar: o responsável encontra o profissional certo e fala com ele.",
     items: [
+      { label: "Listas de especialidades, cidades e serviços, e um endereço próprio para cada perfil", status: "doing" },
       { label: "Busca por cidade, especialidade e tipo de atendimento", status: "todo" },
-      { label: "Só profissionais validados aparecem na busca", status: "todo" },
+      { label: "Só profissionais validados aparecem na busca (a regra já vale dentro do banco de dados; falta a tela de busca)", status: "doing" },
       { label: "Página pública do veterinário", status: "todo" },
       { label: "Página pública do estabelecimento", status: "todo" },
+      { label: "Prévia do perfil público para o próprio profissional", status: "todo" },
       { label: "Páginas preparadas para o Google encontrar", status: "todo" },
       { label: "Contato direto por WhatsApp", status: "todo" },
       { label: "Cada contato recebido fica registrado para o profissional", status: "todo" },
+      { label: "Proteções antes de abrir para profissionais de fora: verificação contra robôs no cadastro, segundo fator de acesso para a equipe Vetria e limites de envio", status: "todo" },
     ],
     result:
       "O marketplace passa a funcionar. E o profissional passa a ver quantos contatos recebeu, que é exatamente o valor que ele contrata.",
@@ -111,9 +116,10 @@ const SPRINTS: Sprint[] = [
     status: "todo",
     goal: "Montar o funil comercial: páginas que explicam o valor e páginas que apresentam os planos.",
     items: [
+      { label: "Textos das seis páginas escritos e aprovados", status: "done" },
       { label: "Página para veterinários", status: "todo" },
-      { label: "Página para clínicas e hospitais", status: "todo" },
-      { label: "Página para empresas pet e agrovet", status: "todo" },
+      { label: "Página para estabelecimentos veterinários", status: "todo" },
+      { label: "Página para empresas do setor veterinário e agro", status: "todo" },
       { label: "Três páginas de planos e preços", status: "todo" },
     ],
     warn: "Os planos aparecem como vitrine. A cobrança entra depois da entrega.",
@@ -126,6 +132,8 @@ const SPRINTS: Sprint[] = [
     status: "todo",
     goal: "O que separa um sistema que funciona na demonstração de um sistema que pode receber gente de verdade.",
     items: [
+      { label: "Revisão de segurança a cada entrega (11 revisões até agora)", status: "done" },
+      { label: "Testes automáticos rodando a cada publicação", status: "done" },
       { label: "Auditoria completa de acesso aos dados", status: "todo" },
       { label: "LGPD: consentimento, exportação e exclusão de dados", status: "todo" },
       { label: "Termos de uso e política de privacidade", status: "todo" },
@@ -171,7 +179,9 @@ const SPRINTS: Sprint[] = [
 // "later" e o que ficou fora da janela de entrega: nao conta no progresso.
 const ENTREGAVEIS = SPRINTS.filter((s) => s.status !== "later");
 const concluidas = ENTREGAVEIS.filter((s) => s.status === "done").length;
-const emAndamento = SPRINTS.find((s) => s.status === "doing");
+// A etapa citada no topo e a mais recente em andamento (a F3 encerrou com item
+// parcial e continua "doing", mas o trabalho de agora e a F4).
+const emAndamento = SPRINTS.filter((s) => s.status === "doing").at(-1);
 
 const segColor: Record<Status, string> = {
   done: "bg-success",
@@ -254,8 +264,8 @@ export default function RoadmapPage() {
             </h2>
             <span className="text-[13px] text-corpo-texto">
               <b className="text-[15px] text-principal">{concluidas}</b> de{" "}
-              {ENTREGAVEIS.length} etapas concluídas · todas as telas no ar,
-              agora ligando os dados reais
+              {ENTREGAVEIS.length} etapas concluídas · dados reais no ar,
+              agora construindo a busca
             </span>
           </div>
           <div className="flex gap-[3px] overflow-hidden rounded-pill">
@@ -405,7 +415,7 @@ function SprintCard({ sprint, last }: { sprint: Sprint; last: boolean }) {
 
         {s.warn && (
           <div className="mt-3 inline-flex items-center gap-2 rounded-pill bg-warning-soft px-3 py-1.5 text-[11px] font-semibold text-warning">
-            <Crown size={12} />
+            <Info size={12} aria-hidden="true" />
             {s.warn}
           </div>
         )}
