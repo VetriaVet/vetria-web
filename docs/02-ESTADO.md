@@ -3,74 +3,54 @@
 > **Este é o primeiro arquivo que qualquer sessão ou agente lê.**
 > Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
 >
-> **Última atualização:** 23/09/2026 (**T-023 e T-025 em produção**, `22fbefd`, CI #13 verde; **item 4
-> do DoD fechado** com conta `tutor`; **R-055 e T-026 fechados** por medição; órfãos **zero**; **DL-061**
-> destrava a T-024; **R-059** novo) · **Fase:** F3 (S4) · **Último commit em produção:** `22fbefd`.
-> **23/09, tarde: T-024 PROVADA EM TELA** (aprovar, reprovar com motivo, email recebido, `audit_logs`) e commitada,
-> **esperando push**. Com o push, o **item 3 do DoD fecha**. Item 5 segue parcial (R-033). **T-017 medida: o furo é real (🔴).**
+> **Última atualização:** 23/09/2026, noite (`vetria-maestro`, fechamento da F3 e abertura da S5) ·
+> **Fase:** **F4 (S5)** · **Último commit em produção:** `6a8d86a` (a T-024; o verde do CI ainda não foi
+> conferido por ninguém).
 
 ---
 
 ## AGORA
 
-**Fase:** F3 — Núcleo de dados · **Semana:** **S4 (4 de 13), aberta em 21/09** · **Entrega:** 25/11/2026
+**Fase:** **F4 — Motor B2C**, começou hoje · **Semana:** **S5 (5 de 13), 23/09 a 29/09** · **Entrega:** 25/11/2026
 
-🎉 **20/09 — O PR #2 ENTROU NA `main` (`eb6e2d6`): 14 commits, 61 arquivos, +7512 −619**, e o CI
-rodou **40 testes, todos verdes** — a primeira vez que a suíte inteira executa e passa. Entraram
-**T-007** (o onboarding do estabelecimento **persiste**), **T-016** (portão de status e
-isolamento de role por prefixo) e **T-008** (o upload do documento, duas rotas novas, e o
-**bucket deixou de estar vazio** pela primeira vez desde 26/08), mais os três funis de cadastro
-consertados, o `/ajuda` do DL-058 e o pré-voo do `ci.yml`.
+⛔ **A F3 ENCERROU EM 23/09 COM 5 DE 6, E NÃO SE DECLARA CONCLUÍDA** (**DL-062**). O item 3 (admin
+aprova, a pessoa entra no painel e recebe o email) **fechou hoje, provado em tela pelo Elber e em
+produção** (`6a8d86a`). O item 4 fechou ao pé da letra com conta `tutor`. **O item 5 ficou parcial:**
+os itens 1 e 3 não têm E2E porque o **R-033** (onde criar conta de teste nova) não tem decisão desde
+28/08. Virou a **T-029**, com **data dura 06/10**. A F3 só vira "concluída" quando o CI rodar isso verde.
 
-⚠️ **E o custo, que é o número que importa desta fase:** a `main` estava em **`e07f967`, de
-31/08**. **Vinte dias sem uma linha de código em produção**, com o trabalho escrito, revisado e
-aprovado na árvore. **O gargalo da F3 não foi escrever; foi mergear.**
+⚠️ **Estamos cerca de uma semana atrás em trabalho** (não em calendário). A S3 fechou 5 dias tarde, a
+S4 foi espremida em três dias, e a F4 herda três dívidas: o item 5, a T-017 (agora dentro da T-027) e
+~3 dias de endurecimento que o plano não tinha. **O buffer da S13 está intacto.** O plano de
+recuperação está no `01-PLANO.md` §Atraso; o gatilho é a sessão presencial até 29/09.
 
-✅ **AS PROVAS EM TELA FORAM FEITAS PELO ELBER, em 20/09, com conta real.** Neste projeto risco
-não fecha porque o código existe: fecha quando o comportamento muda em tela. **Mudou.**
-As **9 navegações** do portão bateram (`/app` → `/aguardando`; `/app/veterinario`, `/contatos`,
-`/plano`, `/agenda` **voltam**; `/perfil` e `/ajuda` **abrem**; `/app/estabelecimento` e `/admin`
-**devolvem a conta ao painel dela**). O **upload funcionou ponta a ponta** numa conta `vet` real,
-e o `select` provou `documento_hash` com 64 hex, `documento_tamanho` 15683,
-`documento_enviado_em` **carimbado pelo banco** e `status = pending_validation`. A **URL assinada
-expira em 60 s**, medido no payload do próprio JWT. **O R-047 mediu ZERO** contas `clinic` órfãs:
-o `update` 🔴 que ele exigiria **nunca precisou existir**.
-**Fecharam: R-001** (era o **único 🔴 crítico aberto do projeto**, desde 26/08), **R-038**,
-**R-047** e **R-053**.
+🔴 **SESSÃO PRESENCIAL COM O ELBER — AGENDE, ATÉ 29/09.** A S5 inteira depende dela:
+- **T-027**, a `0004`: o banco passa a recusar o que a Action recusa. **Absorveu a T-017**, cujo furo
+  foi **medido em 23/09** (`PATCH estado='ZZ'` aceito pelo banco, restaurado), mais SEC-096 (a RPC de
+  aprovação exige a conta na fila e motivo na reprova), SEC-097(b), SEC-098, SEC-093 e o formato do CRMV
+- **T-028**, a `0005`: tabelas de especialidades, cidades e serviços, a regra do `slug` e os índices.
+  **Sem ela a S6 não tem o que buscar**, e as contas já aprovadas têm `slug` nulo (**R-065**)
+- **A decisão do R-033** (projeto Supabase só de teste, T-029)
 
-⛔ **A F3 FECHA COM 5 DE 6 ITENS DO DoD, e não se declara concluída** (**DL-059**, decisão do
-Elber). O **item 3** — *admin aprova, o profissional entra no dashboard e recebe o email* —
-**não tem uma linha escrita**: `/admin/validacoes` é casca. Ele vai para a **S4**, que é onde o
-`01-PLANO.md` sempre o colocou. **Forçar o item 3 em dois dias é repetir o que gerou a dívida da
-S2, e chamar a fase de "concluída" com 5 de 6 é o R-034 outra vez.**
+**Fila da S5**, em ordem de dependência: **T-027** 🔴 → **T-028** 🔴 → **T-029** (QA, em paralelo) →
+**T-030** (o limite de especialidades no passo certo e o botão de arquivo em português) → **T-020**
+(teto do bucket e rate limit da Vercel; se não couber, abre a S6).
 
-**Fila da S4:** ✅ **T-021 fechada em 21/09** (doc) e 🟨 **T-023 commitada em 21/09** (`4a355b0`,
-auditada e aprovada, **esperando a prova em tela**). **Sobram duas:** **T-024** (aprovar e
-reprovar com motivo, o email, `audit_logs` — **fecha o item 3 do DoD**) → **T-025** (o caminho de
-volta ao onboarding, que o DL-046 promete e a interface **não oferece**: não existe um único
-`href` para `/onboarding` no código).
-**Correm por fora:** **T-017** 🔴, **T-020** 🟠, **T-022** (decisão) e **T-026**.
+🚪 **O portão de abertura (DL-063): nenhum profissional de fora antes destes 6, provados. Prazo 20/10.**
+⬜ T-027 `0004` · ⬜ T-020 teto do bucket + rate limit · ⬜ T-031 captcha · ⬜ T-032 2FA do admin
+(trava própria: antes do segundo admin) · ⬜ T-033 cabeçalhos · ⬜ senha mínima 8 no Supabase.
+**Cloudflare: não** (DL-063).
 
-🔴 **A T-017 continua sem data, pela quarta semana seguida, e o prazo duro dela é dentro da F3.
-É migration. AGENDE.**
+📏 **Gestos do Elber, 1 minuto cada:** senha mínima 8 no painel do Supabase (R-064) · conferir o CI de
+`6a8d86a` no GitHub · **conferir a `RESEND_API_KEY` nas variáveis da Vercel (Production)**: a prova do
+email foi em `localhost`; sem a chave na Vercel, em produção a decisão funciona e o email não sai.
 
-⚠️ **Três bugs saíram das provas, e os três já estão consertados em produção.** O maior:
-**o R-041 estava aberto do lado do veterinário e ninguém sabia** — a T-007 normalizou só no
-arquivo dela e **três auditorias não pegaram, porque as três leram o código do estabelecimento**.
-Virou `lib/contato/whatsapp.ts` (`08dd42b`). **É o R-017 pela terceira vez: clone herda defeito,
-e revisar o clone não é revisar o par.** Os outros dois: um teste lia `innerText()` contra CSS
-`uppercase` e derrubou o CI (`8674e3a`, bug do teste); e **o dado velho sobreviveu ao conserto**,
-porque normalização vale na escrita — **R-055** e card **T-026**.
+📝 **Na árvore, sem commit:** o `vetria-qa` escreveu `tests/e2e/admin-validacoes.spec.ts` (19 testes de
+leitura, segundo ele) e mexeu em `tests/apoio/credenciais.ts` e `sessao.ts`. **Não rodado.** É da T-029.
 
-**Riscos vivos que valem a leitura:** **R-033** (sem conta de teste nova, o item 1 do DoD segue
-sem E2E e o estabelecimento segue sem prova), **R-039**/**T-017**, **R-057** (origem do pedido
-nas rotas de documento), **R-036**, **R-032**, **R-054**, **R-055**.
-
-📏 **Três medições de 30 s, todas do Elber, e nenhuma foi feita:** a passada com conta `tutor` em
-`/app/veterinario` (fecha o item 4 do DoD) · a **varredura de órfãos** (card da T-008, item 3 da
-seção 🔒) — **destravada pela T-021 em 21/09: a consulta parou de rotular órfão real como
-"esperado" (DL-060), são duas consultas, e zero linha nas duas é a medição; enquanto ninguém
-roda, R-042 e R-023 ficam abertos** · o `select` do WhatsApp sujo (T-026).
+**Decisões de hoje:** **DL-062** (F3 encerra com 5 de 6; T-017 entra na T-027; SEC-091 para a F6/S11,
+aceito pelo Elber) · **DL-063** (portão de abertura; Cloudflare não). A **prévia real do perfil
+público** que o Elber pediu vai para a **S7**, como o mesmo componente da página pública (E5).
 
 ---
 
@@ -79,14 +59,14 @@ roda, R-042 e R-023 ficam abertos** · o `select` do WhatsApp sujo (T-026).
 | Área | Estado |
 |---|---|
 | **Auth** | ✅ Real. Email/senha + Google OAuth + confirmação + recuperação de senha, validados em produção (DL-039). |
-| **Domínio e email** | ✅ Real. `vetriabrasil.com.br` na Vercel; Resend verificado; envio de `contato@vetriabrasil.com.br`. **Os 3 emails do app continuam desligados** — acendem na T-024. |
+| **Domínio e email** | ✅ Real. `vetriabrasil.com.br` na Vercel; Resend verificado; envio de `contato@vetriabrasil.com.br`. **O app manda email por código desde a T-024** (aprovação e reprova com motivo, pela API do Resend): **provado em `localhost` em 23/09, email recebido**. ⚠️ Em produção depende da `RESEND_API_KEY` na Vercel, **não conferida**. |
 | **RBAC** | ✅ **Real desde 20/09.** O `middleware.ts` isola painel por **prefixo de rota** e aplica o **portão de status** da matriz §4, e as páginas reconferem por `requirePainel(role, statusPermitidos)`. Lista de permitidos em `lib/auth/status.ts`, um lugar só. **R-001 e R-038 fechados por prova em tela.** |
 | **Telas** | ✅ ~45 telas no design system v2 (Inter + tokens `@theme` do Tailwind v4), estados honestos, sem dado fake. **Nasceram as duas `/bloqueado`**, com o motivo lido de `profiles.status_motivo` e a frase honesta quando ele é nulo. |
-| **Onboarding profissional** | ✅ **Persiste nas duas personas** (T-006, T-007) e o documento sobe (T-008). Ao concluir, o `status` vai a `pending_validation` pela RPC e a pessoa cai em `/aguardando`. ⚠️ **Não há link na interface que leve de volta ao onboarding** (T-025). |
-| **Admin** | 🟡 Painel dark completo; RBAC de usuários é real; **validações, moderação e conteúdo continuam casca**. `/admin/usuarios` renderiza para admin comum contra a matriz §2 (**R-054**, sem vazar dado, conserto dentro da T-023). |
-| **Banco** | ✅ Núcleo (`0002`) + storage e privacidade (`0003`), aplicadas em 26/08. `profiles.status`, `vet_profiles`, `clinic_profiles`, `perfil_privado`, `animais`, `contatos`, `audit_logs`, com RLS codificando a matriz. **`clinic_profiles` deixou de estar vazia em 20/09.** `animais` e `contatos` continuam vazias. ⚠️ **Nenhuma coluna de conteúdo tem CHECK** (R-039 / T-017 🔴). |
+| **Onboarding profissional** | ✅ **Persiste nas duas personas** (T-006, T-007) e o documento sobe (T-008). Ao concluir, o `status` vai a `pending_validation` pela RPC e a pessoa cai em `/aguardando`. **Conta nova não conclui sem documento** (DL-061, na Action). **O caminho de volta ao cadastro existe** em `/aguardando` (T-025). Reprovado vê o motivo. ⚠️ O limite de especialidades só avisa no passo 4 (R-060, T-030). |
+| **Admin** | ✅ **A validação é real desde 23/09:** `/admin/validacoes` lista a fila do banco, abre o documento (URL de 60 s, com trilha), **aprova e reprova com motivo**, dispara o email e grava `audit_logs`. O detalhe só abre conta que está na fila (DL-061). `/admin/usuarios` só para master (R-054 fechado). **Moderação e conteúdo continuam casca.** ⚠️ Admin entra só com senha (R-062, T-032). |
+| **Banco** | ✅ Núcleo (`0002`) + storage e privacidade (`0003`), aplicadas em 26/08. `profiles.status`, `vet_profiles`, `clinic_profiles`, `perfil_privado`, `animais`, `contatos`, `audit_logs`, com RLS codificando a matriz. **`clinic_profiles` deixou de estar vazia em 20/09.** `animais` e `contatos` continuam vazias. ⚠️ **Nenhuma coluna de conteúdo tem CHECK, e foi MEDIDO em 23/09: o banco grava `estado='ZZ'`** (R-039 → **T-027** 🔴). **Existem contas `active` desde 23/09, todas com `slug` nulo** (R-065 → T-028). |
 | **Storage** | ✅ **Bucket privado `documentos` deixou de estar vazio em 20/09** (10 MiB, quatro MIME, **zero policy**, só `service_role` alcança). Rotas `/api/documentos/upload` e `/abrir`; URL assinada de 60 s, medida. ⚠️ **Sem teto de volume e sem limpeza** (SEC-081 / **T-020**). |
-| **Testes** | ✅ **40 testes, todos verdes no CI de 20/09** — primeira execução completa da suíte. `publico` (10), `login` (2), `onboarding-vet` (9), `portao-status` (10) mais os parametrizados. Lint bloqueia desde 31/08. ⚠️ **A persistência do onboarding continua sem E2E** (**R-033**): falta conta nova a cada rodada, e é por isso que o estabelecimento não tem prova automatizada nenhuma. |
+| **Testes** | ✅ **41 testes na suíte** (40 verdes no CI de 20/09; o 41º veio com a T-025). Mais 19 escritos em 23/09, sem rodar (T-029). ⚠️ Se a conta de teste sair da fila, 16 testes pulam e o CI fica verde calado (T-029, parte A). Histórico: **40 testes, todos verdes no CI de 20/09** — primeira execução completa da suíte. `publico` (10), `login` (2), `onboarding-vet` (9), `portao-status` (10) mais os parametrizados. Lint bloqueia desde 31/08. ⚠️ **A persistência do onboarding continua sem E2E** (**R-033**): falta conta nova a cada rodada, e é por isso que o estabelecimento não tem prova automatizada nenhuma. |
 
 ---
 
@@ -94,9 +74,9 @@ roda, R-042 e R-023 ficam abertos** · o `select` do WhatsApp sujo (T-026).
 
 Telas no ar, bonitas e navegáveis, que **não persistem nada**:
 
-- `/admin/validacoes`, `/admin/moderacao`, `/admin/conteudo` → **F3/S4, e é o item 3 do DoD**
+- ~~`/admin/validacoes`~~ ✅ **real desde 23/09** · `/admin/moderacao`, `/admin/conteudo` → sem card (não são item de DoD)
 - Onboarding do responsável (coleta cidade e um animal, e descarta os dois) → **sem card**
-- Editores de perfil das 3 personas → ⛔ cortado da S3 em 16/09 → F6/S11 (T-019, DL-056)
+- Editores de perfil das 3 personas → ⛔ cortado da S3 em 16/09 → F6/S11 (T-019, DL-056). A **prévia** do perfil (só leitura) vem antes, na F4/S7, com o perfil público
 - Agenda, contatos, avaliações, plano (nos painéis B2B) → fora do escopo dos 3 meses
 - Busca da Home (não leva a lugar nenhum) → F4/S6
 - ~~Onboarding de veterinário~~ ✅ 31/08 · ~~Onboarding de estabelecimento~~ ✅ **20/09**
@@ -105,8 +85,9 @@ Telas no ar, bonitas e navegáveis, que **não persistem nada**:
 
 ## O QUE NÃO EXISTE AINDA
 
-- **A validação pelo admin.** Nada no produto move alguém para `active` (**T-023 + T-024**)
-- Rotas `/buscar`, `/veterinario/[slug]`, `/estabelecimento/[slug]`
+- Rotas `/buscar` (S6), `/veterinario/[slug]`, `/estabelecimento/[slug]` (S7), e o registro do contato (S8)
+- Tabelas de especialidades, cidades e serviços, e a regra do `slug` (S5, T-028)
+- Captcha, 2FA do admin e cabeçalhos de segurança (portão de abertura, DL-063)
 - As 6 landing pages
 - Consentimento, exportação e exclusão de dados (LGPD)
 

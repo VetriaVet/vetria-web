@@ -3,38 +3,54 @@
 > Fila viva. **Uma task em execução por vez** no que escreve código.
 > Atualizado por quem executa, no início e no fim de cada task.
 >
-> **Semana atual:** **S4, aberta em 21/09/2026** · **Anterior:** a **S3, FECHADA em 20/09** —
-> ver o bloco de fechamento abaixo · **Fase:** F3 · **Entrega:** 25/11/2026
+> **Semana atual:** **S5 (5 de 13), aberta em 23/09/2026** · **Fase:** **F4, Motor B2C** (começa
+> hoje) · **Anterior:** a **S4, FECHADA em 23/09**, e com ela a **F3 ENCERRADA COM 5 DE 6, sem se
+> declarar concluída** (**DL-062**) · **Entrega:** 25/11/2026
 >
-> ### 🎉 20/09/2026 — o PR #2 foi mergeado, e a `main` voltou a andar depois de 20 dias
+> ### 23/09/2026 — a F3 encerra. Não "conclui".
 >
-> `eb6e2d6` na `main`: **14 commits, 61 arquivos, +7512 −619**. Entraram **T-007**, **T-016** e
-> **T-008**, os três funis de cadastro consertados, o `/ajuda` do **DL-058**, o pré-voo do
-> `ci.yml` (**R-053**) e a suíte de testes indo de **15 para 40**. O CI rodou os **40, todos
-> verdes** — a primeira vez na história do projeto que a suíte inteira executa e passa.
+> A **T-024** entrou na `main` (`22fbefd..6a8d86a`) depois de provada em tela pelo Elber, e o **item
+> 3 do DoD fechou**: admin aprova, a conta entra no painel, o email chega, a trilha fica em
+> `audit_logs`. O item 4 fechou ao pé da letra com conta `tutor`. **Sobrou o item 5 parcial**: o CI
+> cobre os itens 2 e 4, e **os itens 1 e 3 não têm E2E** porque o **R-033** está sem resposta desde
+> 28/08. Isso é **5 de 6**, e este quadro não escreve "6 de 6 com ressalva". O item 5 virou a
+> **T-029**, com dono e **data dura, 06/10**. A F4 começa hoje porque o que falta é rede de teste,
+> não capacidade (DL-062).
 >
-> ⚠️ **E o custo, dito em número:** antes disso a `main` estava em **`e07f967`, de 31/08**.
-> **Vinte dias de calendário sem uma linha de código em produção.** O trabalho existia — estava
-> escrito, revisado e aprovado, na árvore — e não estava no ar. **O gargalo desta fase não foi
-> escrever; foi mergear.** Se a S4 repetir isso, a fase termina com código pronto e produto
-> parado, que é a forma mais cara de atraso que existe.
+> ⚠️ **O atraso, dito em número:** a S3 fechou 5 dias depois do calendário e a S4 abriu em 21/09 em
+> vez de 16/09. A fronteira F3/F4 chegou com **1 dia** de diferença, mas carregando dívida: a T-017
+> (quatro semanas sem data), o R-033 (quase um mês sem decisão) e ~3 dias de endurecimento que o
+> plano não tinha (portão de abertura, **DL-063**). **Em trabalho, estamos cerca de uma semana
+> atrás.** O plano de recuperação está no `01-PLANO.md` §Atraso. **O buffer da S13 ainda não foi
+> tocado.** Se a sessão presencial não acontecer até 29/09, ele começa a ser comido na S6, e isso
+> vai ser dito na S6.
 >
-> ⚠️ **Divergência de doc corrigida aqui, porque o código é a verdade:** este quadro e o
-> `02-ESTADO.md` diziam, em 16/09, que *"o último commit da `main` continua sendo `451b2e4`"*.
-> **Não era.** `git log --first-parent main` mostra a `main` pulando direto de **`e07f967`
-> (31/08)** para **`eb6e2d6` (20/09)**: `451b2e4` era o topo da **branch**, não da `main`. O
-> número que o quadro citava estava errado, o fato que ele descrevia estava certo — e era
-> **pior** do que o quadro dizia.
+> ### 🔴 Precisa de sessão presencial com o Elber — AGENDE, até 29/09
 >
-> ### 🔴 Precisa de sessão presencial com o Elber — AGENDE
+> 1. **T-027**, a migration `0004` de endurecimento. **Absorveu a T-017**, que estava sem data havia
+>    quatro semanas. O furo foi **medido em 23/09** (`estado='ZZ'` aceito pelo banco). Prazo duro:
+>    antes da F4/S7 (07/10) e antes do primeiro admin comum ou profissional de fora.
+> 2. **T-028**, a migration `0005` dos dados de busca e do `slug`. **Sem ela a S6 (`/buscar`) não tem
+>    o que ler.** Idealmente na mesma sessão, **depois** da `0004`, com auditoria separada.
+> 3. **A decisão do R-033** (onde criar conta de teste nova a cada rodada). Recomendação do
+>    `vetria-qa` e do `vetria-maestro`: **projeto Supabase só de teste** (`vetria-e2e`), o CI inteiro
+>    apontando para ele, e a `service_role` **do projeto de teste** como secret do CI. Pede um **DL**
+>    trocando a regra do `ci.yml` de "nunca `service_role`" para "nunca a de produção". É essa decisão
+>    que fecha o item 5 da F3 e o item 5 da F4 (card **T-029**).
 >
-> 1. **A T-017 é migration.** Continua 🔴, continua **sem data**, e continua sem começar. É a
->    quarta semana seguida em que ela aparece aqui. **Prazo duro: dentro da F3** — depois da
->    F4/S7 a coluna `clinic_profiles.site` vira link clicável em página pública e a correção
->    deixa de ser preventiva. **Agende.**
-> 2. **A T-026** (WhatsApp gravado antes do conserto do R-041) é 🟢 para **medir** e 🔴 para
->    **corrigir**: `update` em dado de produção não acontece sem o Elber na sala. **Meça
->    primeiro** — se der zero, a sessão nem precisa existir.
+> **Sugestão do `vetria-maestro`: um horário fixo por semana para 🔴.** A T-017 não escorregou por
+> ser difícil, escorregou por falta de agenda. Um horário fixo (ex.: toda terça à noite) tira a
+> pergunta "quando?" da fila.
+>
+> ### Gestos do Elber, de 1 minuto cada, sem card
+>
+> - **SEC-105 / R-064:** senha mínima 8 no painel do Supabase (Auth → Providers → Email), e conferir
+>   tentando cadastrar com 7 caracteres
+> - **Conferir o CI de `6a8d86a`** na aba Actions do GitHub (o push da T-024 foi feito, o verde não foi
+>   visto por ninguém ainda)
+> - **Conferir a `RESEND_API_KEY` nas variáveis da Vercel (Production).** A prova do email foi em
+>   `localhost`, com a chave do `.env.local`. **Sem a chave na Vercel, em produção a decisão funciona e
+>   o email sai como "desligado"**, e a tela avisa o admin
 
 ---
 
@@ -76,6 +92,214 @@ _(vazio)_
 
 ---
 
+# ⬜ FILA — F4 / S5 (aberta 23/09/2026) · a primeira semana do motor B2C
+
+> **Semana aberta pelo `vetria-maestro` em 23/09.** **5 cards**, em ordem de dependência real. O
+> `01-PLANO.md` §S5 pede *"dados de busca"* (tabelas de apoio, `slug`, índices) e isso é **migration**:
+> a S5 inteira depende de uma sessão presencial, e é por isso que ela vem com duas `0004`/`0005` no
+> topo e o resto do trabalho em volta delas.
+>
+> | # | Card | O que destrava | Cap. | Nível |
+> |---|---|---|:---:|:---:|
+> | 1 | **T-027** a `0004`: o banco passa a recusar o que a Action recusa | fecha **R-039** (medido), **SEC-096/097b/098/093**, **R-059**. É item 1 do portão de abertura e tem prazo duro na S7. **Reescreve `admin_definir_status`, que a T-028 também toca: por isso vem antes** | E1, E3 | 🔴 |
+> | 2 | **T-028** a `0005`: tabelas de apoio, regra do `slug`, índices da busca | **sem ela a S6 (`/buscar`) não tem o que ler** e as contas já aprovadas não têm endereço público (**R-065**) | E4 | 🔴 |
+> | 3 | **T-029** a infraestrutura de E2E e o item 5 da F3, com o `vetria-qa` | a F3 passar a "concluída" e o E2E da F4 existir. Roda **em paralelo** com tudo. ⚠️ **Travada na decisão 🔴 do Elber sobre o projeto de teste** | E2, E3 | 🟡/🔴 |
+> | 4 | **T-030** o onboarding para de brigar com quem preenche | **R-060** (limite de especialidades só no passo 4) e o botão de arquivo em inglês. Atrito no funil que alimenta a busca | E2 | 🟡 |
+> | 5 | **T-020** teto do bucket e rate limit em `/api/documentos/*` | item 2 do portão de abertura. **Se não couber na S5, abre a S6**, e isso não é escorregão: o portão vence em 20/10 | E1 | 🟡 |
+>
+> **Por que T-027 antes de T-028, e não o contrário:** a T-028 gera o `slug` na aprovação, e a
+> aprovação passa por `admin_definir_status`, que a T-027 reescreve (SEC-096). Duas migrations
+> reescrevendo a mesma função na mesma semana, em ordem trocada, é a segunda desfazendo a primeira em
+> silêncio. A **escrita** das duas pode andar junto; a **aplicação** é nesta ordem.
+>
+> ### Decisões tomadas na abertura, e onde foi parar cada pedido
+>
+> - **A prévia real do perfil público** (pedido do Elber em 23/09: ler o banco, só leitura). **Não é
+>   card da S5 e não vai com a T-019.** Vai para a **F4/S7, dentro do card do perfil público (E5)**:
+>   a prévia é **o mesmo componente** da página pública, lendo a linha do próprio dono e mostrado em
+>   `/app/*/perfil`. Construí-la agora seria desenhar o perfil público duas vezes, e clone herda defeito
+>   (R-017). Esperar a T-019 (F6/S11) seria esperar sete semanas por uma leitura. Enquanto isso, a copy
+>   de `/perfil` já diz a verdade desde a T-025 (*"Ainda em construção"*). Capacidade: **E5**.
+> - **O botão de arquivo sempre em português:** entra na **T-030**. É o `<input type="file">` nativo
+>   de `components/app/EnvioDeDocumento.tsx:234`, que segue o idioma do navegador. **E2.**
+> - **SEC-091 (trilha de leitura do dossiê):** **F6/S11**, decisão aceita pelo Elber (**DL-062** item 4).
+> - **Captcha, 2FA do admin e cabeçalhos** (avaliação de 23/09): viram **T-031, T-032 e T-033**, já
+>   escritos abaixo, **para a S6 e a S7**. Com os 5 da S5 e o gesto da senha, são o **portão de
+>   abertura** (**DL-063**): nenhum profissional de fora antes de os seis estarem provados. Prazo 20/10.
+> - **Cloudflare: não** (DL-063). Registrado em §Ideias para a pergunta não voltar sem o DL.
+> - **Onboarding do responsável** (coleta cidade e animal e descarta): continua sem card. Não tem item
+>   de DoD em nenhuma fase e a busca da F4 não depende dele (o responsável busca sem conta).
+>
+> ### O portão de abertura (DL-063), como lista de checagem
+>
+> | # | Item | Card | Estado |
+> |:-:|---|---|:-:|
+> | 1 | `0004` aplicada e provada | T-027 | ⬜ |
+> | 2 | Teto do bucket + rate limit da Vercel em `/api/documentos/*` | T-020 | ⬜ |
+> | 3 | Captcha Turnstile nas 6 telas de auth | T-031 | ⬜ |
+> | 4 | 2FA TOTP de admin e master, na tela e no `is_admin()` | T-032 | ⬜ |
+> | 5 | Cabeçalhos de segurança | T-033 | ⬜ |
+> | 6 | Senha mínima 8 no Supabase | gesto do Elber (R-064) | ⬜ |
+
+### T-027 — A `0004`: o banco passa a recusar o que a Action recusa
+- **Estado:** ⬜ **fila, S5, item 1.** 🔴 **Sessão presencial com o Elber: AGENDE, até 29/09.** Escrever o SQL e mandar para a auditoria pode começar já; **aplicar**, só com o Elber na sala
+- **Fase / Semana:** F4 / S5
+- **Capacidade:** **E1** (*"`vet_profiles` e `clinic_profiles` existem com RLS"*) e **E3** (*"aprovar muda o status pra `active`"*, e só quem está na fila), mais a transversal **Segurança**
+- **Nível:** 🔴 — migration, RLS, função usada em policy
+- **Agente dono:** vetria-backend, **com o Elber na sala** · **auditoria obrigatória antes de aplicar:** vetria-seguranca, e **correção volta para a auditoria** (a `0002` levou quatro rodadas)
+- **Depende de:** nada para escrever. **A T-028 depende dela** para aplicar
+- **Por quê:** cinco achados, um arquivo. Hoje o banco aceita o que a aplicação recusa, e **medido**: em 23/09 o Elber fez `PATCH estado='ZZ'` em `vet_profiles` com a conta de teste, só com a `anon key` e o login, e o banco gravou (restaurado). A regra *"ninguém fica ativo sem passar pela fila"* e *"reprova tem motivo"* (DL-061, R-051) vive só na Server Action. E a finalidade do dossiê (DL-061: só enquanto há validação) vale na tela e não vale no PostgREST
+- **O que entra, e de onde vem cada linha:**
+  - **T-017 / R-039 / SEC-060** (absorvida em 23/09, **DL-062**): CHECK ou `domain` em `crmv_uf` e `estado` (UF brasileira válida); whitelist em `titulo` e `experiencia` espelhando o `campos.ts`, com o `campos.ts` passando a apontar para a constraint; teto de comprimento em `bio`/`sobre`; **teto de tamanho** nos arrays `especialidades` e `servicos` (a **pertença à lista** vai para a T-028, onde as tabelas nascem); **`clinic_profiles.site` só `http`/`https`**, a linha mais importante
+  - **R-059:** formato do **número** do CRMV, no CHECK **e** na Action, pela mesma regra escrita uma vez
+  - **SEC-096 (fecha SEC-099):** `admin_definir_status` passa a exigir `status = 'pending_validation'` na origem para os destinos `active` e `incomplete` (`update ... where ... and status = 'pending_validation'` + `if not found then raise`), e **motivo não vazio** quando o destino é `incomplete`. A matriz responde antes se o admin comum pode `active → incomplete`; se puder, é ramo explícito com motivo obrigatório
+  - **SEC-097(b):** `perfil_privado_select_admin`, `vet_profiles_select_admin` e `clinic_profiles_select_admin` passam a exigir alvo em `pending_validation` para o admin comum, via função `SECURITY DEFINER`
+  - **SEC-093:** as mesmas três policies ganham a cláusula de role (`vet`/`clinic`) que `profiles_select_admin` já tem
+  - **SEC-098:** `concluir_onboarding_profissional()` exige que exista objeto em `storage.objects` com `bucket_id = 'documentos'` e `name = documento_path`
+- **Feito quando:**
+  - [ ] **Antes da primeira linha de SQL**, os `select` que a auditoria não conseguiu fazer, registrados aqui: `pg_get_functiondef` de `admin_definir_status` em produção; `select policyname, cmd, qual, with_check from pg_policies where tablename in ('vet_profiles','clinic_profiles','profiles','perfil_privado')`; a consulta de `documento_path` sem objeto no bucket (item 3 do "Não consegui verificar" da SEC-2026-09-23-T024); e **as linhas que violariam cada CHECK novo** (há dado real desde 31/08: `add constraint` sobre dado fora da regra falha na hora de aplicar)
+  - [ ] Matriz `06-PERMISSOES.md` §5 atualizada **antes** do SQL, se a regra do admin comum mudar
+  - [ ] `0004` escrita, **aditiva**, com toda função de policy `SECURITY DEFINER` + `SET search_path = public` (DL-014/015)
+  - [ ] Auditoria do `vetria-seguranca` **APROVADA**, com a rodada de correção revista
+  - [ ] **Backup** e aplicação com o Elber presente
+  - [ ] **A prova de depois, a mesma de antes:** o `PATCH estado='ZZ'` é **recusado**; `rpc/admin_definir_status` numa conta `incomplete` para `active` é **recusado**; reprova sem motivo é **recusada**; `GET /rest/v1/perfil_privado?id=eq.<conta active>` com token de admin comum devolve **zero linha**. E a fila do admin **continua cheia** (é a prova de que as policies de leitura não caíram)
+  - [ ] Os 41 testes continuam verdes no CI
+- **Não fazer:** não mexer em `is_admin()` aqui (é a T-032, e tem ordem própria). Não criar as tabelas de apoio nem o `slug` (T-028). Não encostar no CHECK all-or-nothing de `perfil_privado.documento_*`. Não renomear coluna nem enum (DL-043). Não resolver o R-040 de carona sem DL.
+- **Resultado:** _(a preencher)_
+
+### T-028 — A `0005`: tabelas de apoio da busca, a regra do `slug` e os índices
+- **Estado:** ⬜ **fila, S5, item 2.** 🔴 **Sessão presencial**, idealmente a mesma da T-027, **depois** dela
+- **Fase / Semana:** F4 / S5 (`01-PLANO.md` §S5)
+- **Capacidade:** **E4** — *"`/buscar` filtra por cidade + especialidade + tipo de atendimento"*
+- **Nível:** 🔴 — migration
+- **Agente dono:** vetria-backend · decisão do `slug` levada pelo `vetria-maestro`, **decidida pelo Elber** · **auditoria obrigatória:** vetria-seguranca
+- **Depende de:** **T-027** para aplicar (as duas mexem na aprovação). Para escrever, de nada
+- **Por quê:** a S6 constrói `/buscar`, e hoje não há lista de especialidades, de cidades nem de serviços no banco: há três cópias em `campos.ts` e texto livre de cidade (R-059). E desde a T-024 existem contas `active` **com `slug` nulo** (R-065), então a página pública da S7 não teria endereço para elas
+- **Feito quando:**
+  - [ ] **DL do `slug` em `05-DECISOES.md` antes do SQL:** formato (ex.: `nome-cidade`), unicidade, o que acontece em colisão, se muda quando o nome muda (e se muda, o que acontece com o link antigo), e **quem gera: o servidor, na aprovação**. O dono continua sem escrever o próprio `slug` (SEC-008)
+  - [ ] Tabelas `especialidades`, `cidades` (com UF) e `servicos`, com **seed real**, leitura pública, escrita só por migration. `campos.ts` deixa de ser fonte e passa a ser leitura (ou some)
+  - [ ] **Pertença à lista** de `especialidades` e `servicos` nas colunas de perfil (o que a T-027 deixou de fora de propósito, DL-062 item 5), validada contra a tabela, e não contra uma segunda cópia
+  - [ ] `slug` gerado na aprovação **e preenchido nas contas que já estão `active`** (R-065). A pergunta *"e o que já está gravado?"* respondida aqui, não depois (R-055)
+  - [ ] Índices e full-text em português para os três filtros. **A visibilidade continua sendo a policy** `perfil_esta_ativo(id, role)`: índice não é filtro
+  - [ ] Pré-voo com as linhas de hoje que não batem com as listas novas (dado de teste de 31/08 e 20/09), e o que se faz com elas decidido antes de aplicar
+  - [ ] Auditoria **APROVADA**, backup, aplicação com o Elber, e um `select` por tabela provando o seed
+- **Não fazer:** não construir `/buscar` (S6). Não fazer mapa nem raio (V2). Não trocar Postgres por Typesense/Meilisearch (fora do escopo). Não expor `perfil_privado` em nenhuma view de busca.
+- **Resultado:** _(a preencher)_
+
+### T-029 — A infraestrutura de E2E e o item 5 do DoD da F3: os itens 1 e 3 ganham teste
+- **Estado:** ⬜ **fila, S5, item 3, em paralelo com tudo.** **Data dura: 06/10** (DL-062). A F3 só vira "concluída" quando isto estiver verde no CI. ⚠️ **Travada numa decisão 🔴 do Elber** (abaixo). Já existe trabalho na árvore: o `vetria-qa` escreveu em 23/09 `tests/e2e/admin-validacoes.spec.ts` (**19 testes, segundo ele, nenhum escreve no banco**) e mexeu em `tests/apoio/credenciais.ts` e `tests/apoio/sessao.ts`. A suíte foi de **41 para 60 escritos, sem rodar e sem commit**
+- **Fase / Semana:** F4 / S5 e S6 (é dívida da F3, com prazo)
+- **Capacidade:** **E2** (item 1: o que se digita persiste e reaparece) e **E3** (item 3: aprovar muda o status e dispara email), mais a transversal **Testes**
+- **Nível:** 🟡 para os testes e o `ci.yml` · 🔴 para a **decisão** e para criar o projeto e os secrets (Elber)
+- **Agente dono:** vetria-qa (`tests/` e `ci.yml`) · o Elber decide e cria o projeto
+- **Depende de:** parte A, de nada. Partes B e C, da **decisão do R-033**
+- **Por quê:** o DoD da F3 diz *"E2E cobrindo 1 a 4 passando em CI"*. Cobre 2 e 4. Os dois que faltam são justamente os que mudam dado de gente: gravar o onboarding e aprovar. E a F4 precisa da mesma infra para o E2E dela (DoD da F4 item 5)
+- **🔴 A decisão do Elber, recomendada pelo `vetria-qa` e pelo `vetria-maestro`:** um **projeto Supabase só de teste** (`vetria-e2e`), com as migrations `0000` a `0003` (e `0004`/`0005` quando existirem), *"Confirm email"* desligado, e **o CI inteiro apontando para ele**, nunca para produção. A `SUPABASE_SERVICE_ROLE_KEY` **do projeto de teste** vira secret do CI, para criar e apagar conta a cada rodada. Isso **exige um DL** trocando a regra escrita no `ci.yml:11` de *"NUNCA `SUPABASE_SERVICE_ROLE_KEY`"* para *"nunca a de produção"*: a chave de teste ignora a RLS de um banco vazio de gente. Secrets novos: `E2E_TUTOR_*` e `E2E_ADMIN_*` (admin comum, **só no projeto de teste**). É a saída (b) do R-033 com a peça que faltava para ela funcionar
+- **Feito quando:**
+  - [ ] **Decisão do R-033 registrada em DL**, com a troca da regra do `ci.yml`
+  - [ ] **Parte A, sem infra nova e já agora:** o skip calado vira falha. **Se a conta `E2E_VET_EMAIL` sair de `pending_validation`, 16 testes pulam e o CI fica verde sem avisar** (é o R-053 de novo, achado do `vetria-qa`). No CI, `E2E_EXIGIR_FILA=1` transforma esse pulo em falha, e o pré-voo do `ci.yml` confere os secrets novos como já confere os dois primeiros
+  - [ ] **Parte A também:** `admin-validacoes.spec.ts` revisado, rodado local e commitado, com os pulos com motivo escrito
+  - [ ] **Parte B, com o projeto de teste:** cadastro novo → onboarding → documento → concluir → a conta está na fila (**item 1 inteiro**, incluindo a primeira conclusão `incomplete → pending_validation`); e admin comum de teste aprova → a conta entra no painel (**item 3**). O email **não** é asserção de E2E; a asserção é o `status` e o painel
+  - [ ] **Parte C:** o CI rodando **verde contra o projeto de teste**, com o número de testes executados (não pulados) escrito aqui
+  - [ ] Enquanto a decisão não existir, a parte B fica **escrita e pulando com o motivo escrito**, nunca verde à toa
+- **Descobertas do `vetria-qa` em 23/09, e para onde foram:** (1) o skip calado: parte A deste card. (2) **conta vet aprovada não tem caminho pela interface de volta à fila**: hoje isso só atrapalha o teste (conta de teste aprovada é conta perdida), e o projeto de teste resolve o lado do teste; o lado do produto é o **R-066**, que encosta na T-019. (3) **a Action de concluir sem documento grava os dados antes de recusar**: é o comportamento desenhado na T-024 (a mensagem diz *"Seus dados foram salvos, mas..."*); registrado aqui, sem card
+- **Não fazer:** não pôr a `service_role` **de produção** em lugar nenhum do CI. Não criar conta em produção sem combinar como ela é limpa. Não aprovar nem reprovar a conta `E2E_VET_EMAIL` enquanto o CI apontar para produção.
+- **Resultado:** _(a preencher)_
+
+### T-030 — O onboarding para de brigar com quem preenche: limite de especialidades e botão de arquivo em português
+- **Estado:** ⬜ **fila, S5, item 4**
+- **Fase / Semana:** F4 / S5
+- **Capacidade:** **E2** — *"o que o vet/estabelecimento digita no onboarding persiste"*. Hoje ele digita, avança três passos e é mandado de volta ao primeiro
+- **Nível:** 🟡 — `components/` e dois formulários
+- **Agente dono:** vetria-ui
+- **Depende de:** nada
+- **Por quê:** **R-060**, visto pelo Elber na prova da T-024: os chips do passo 1 deixam marcar mais especialidades que o limite, e só o passo 4 avisa, mandando de volta ao passo 1. E o `<input type="file">` de `components/app/EnvioDeDocumento.tsx:234` mostra *"Choose file / No file chosen"* em navegador em inglês, no passo que decide se a pessoa entra na fila
+- **Feito quando:**
+  - [ ] O chip recusa a quinta especialidade **no ato**, com o motivo visível, e o passo 1 não avança fora do limite. **A regra do servidor não muda** e continua sendo a que vale
+  - [ ] **Conferido o clone:** o `ClinicOnboardingForm` tem limite parecido (serviços) com o mesmo defeito? Se tiver, sai junto (R-017)
+  - [ ] O botão de arquivo é **nosso**, em português, em qualquer idioma de navegador: input nativo escondido, `<label>` visível com texto próprio, nome do arquivo escolhido mostrado por nós, foco visível e ativação por teclado mantidos
+  - [ ] De carona, nos mesmos dois formulários: `cursor-pointer` nos 9 `<button>` que não têm (DL-040, achado 9 da T-025)
+  - [ ] Sem travessão (DL-038). Responsivo em 360 px. Os testes de `onboarding-vet.spec.ts` continuam verdes
+- **Não fazer:** não mexer na Server Action nem no limite. Não mexer em `/api/documentos/upload`. Não construir o editor de perfil (T-019).
+- **Resultado:** _(a preencher)_
+
+### T-020 — Teto de volume, cota e limpeza do bucket `documentos` (SEC-081) 🟠
+- **Estado:** ⬜ **fila, S5, item 5. Se não couber, abre a S6.** ⛔ **É o item 2 do portão de abertura (DL-063), prazo 20/10.** Enquanto só houver conta de teste, não bloqueia nada
+- **Fase / Semana:** F4 / S5 (se não couber, S6). ~~F6/S11~~: saiu de lá em 23/09, porque o portão de abertura vence antes
+- **Capacidade:** **E1** mais a transversal obrigatória **LGPD** (`00-ESCOPO.md` §2)
+- **Nível:** 🟡 — é a rota, e é `/api/*`. ⚠️ **Vira 🔴 se a saída escolhida for apagar objeto**
+- **Agente dono:** vetria-backend · **auditoria obrigatória:** vetria-seguranca
+- **Depende de:** **T-008 ✅**
+- **Por quê:** **SEC-081, o único 🟠 aberto da auditoria da T-008.** A rota limita o **tamanho de cada arquivo** (10485760, conferido duas vezes) e **não limita mais nada**: nem número de envios, nem total por conta, nem taxa. Cada envio gera caminho novo, e a `0003` §3 decidiu, por escrito, que **o objeto anterior não é apagado**. Cadastro com email descartável nasce `incomplete`, que está em `PODEM_ENVIAR` de propósito, e um laço de `curl` com um arquivo válido de 10 MiB produz **mil objetos, ~10 GB, 999 sem linha que os aponte**. **Não é vazamento** — o bucket tem zero policy. É **custo sem teto e retenção indevida de documento de identidade**, que é o R-023 acontecendo na criação e em escala
+- **Feito quando** — direção, não desenho fechado:
+  - [ ] Teto de envios por conta por janela, decidido **no servidor**, lendo a contagem de objetos sob o prefixo `<uuid>/` **antes** do passo 7
+  - [ ] ⚠️ **Se a saída escolhida for apagar a versão anterior, isso contraria a `0003` §3** (*"o admin pode precisar comparar o que aprovou com o que chegou depois"*) e **vira decisão registrada em `05-DECISOES.md`**, não conserto de rota. E apagar objeto é 🔴
+  - [ ] Conferir se o plano do Supabase oferece cota de bucket, antes de escrever código que a emule
+  - [ ] **Rate limit no firewall da Vercel** para `/api/documentos/*`, ~20 pedidos/min por IP (painel, sem código, gesto do Elber guiado pelo card; `SEC-2026-09-23-rate-limit-captcha-2fa.md` §1). Conferir no painel e escrever aqui a regra aplicada
+  - [ ] De carona, o **R-056** (o corpo do pedido é materializado inteiro antes do teto), que é conserto natural desta mesma rota
+- **Não fazer:** não escrever cron. Não antecipar a rotina de exclusão da T-018. Não baixar o teto de 10 MiB sem falar com o produto: documento de identidade fotografado por celular passa de 4 MB com facilidade.
+- **Resultado:** _(a preencher)_
+
+---
+
+# 🚪 PRÓXIMAS — o portão de abertura (DL-063): cards escritos, fila da S6 e da S7
+
+> **Não estão na fila da S5 e não disputam com ela.** Estão escritos agora porque nasceram hoje
+> (avaliação `SEC-2026-09-23-rate-limit-captcha-2fa.md`) e porque **trava sem card é trava que
+> ninguém confere no dia**. Com a T-027, a T-020 e o gesto da senha (R-064), fecham o portão. **Prazo
+> do portão: 20/10.** Sugestão de encaixe: **T-033 e T-031 na S6**, **T-032 na S7**.
+
+### T-031 — Captcha Turnstile nas 6 telas de autenticação (SEC-102)
+- **Estado:** ⬜ **próxima, S6.** 🔴 **auth: sessão presencial para ligar no painel**
+- **Fase / Semana:** F4 / S6
+- **Capacidade:** **E2** — *"um profissional consegue se cadastrar"*: sem captcha, um script esgota o teto de email do projeto e o cadastro de verdade não recebe a confirmação. Mais a transversal **Segurança**
+- **Nível:** 🔴 — auth. O código é 🟡; **ligar no painel do Supabase é 🔴 e é o Elber**
+- **Agente dono:** vetria-ui (o widget nas telas) + vetria-backend (conferência) · **auditoria:** vetria-seguranca
+- **Depende de:** nada. Chave do Turnstile criada pelo Elber (🔴 `.env`)
+- **Por quê:** **R-061.** Login, cadastro e recuperação de senha vão do navegador direto ao Supabase. Firewall da Vercel não vê esse tráfego; Cloudflare também não (DL-063)
+- **Feito quando:**
+  - [ ] Widget Turnstile em `/login`, nos 3 `/cadastro/*`, em `/recuperar-senha` e nos "reenviar email", passando o token nas chamadas do Supabase Auth
+  - [ ] ⚠️ **A ordem, sem exceção:** código → deploy → conferir em produção que o token está indo → **só então** o Elber liga o captcha no painel. Na ordem inversa, ninguém entra, nem o Elber
+  - [ ] Prova em tela depois de ligado: cadastrar, entrar, recuperar senha, com conta de teste. E uma chamada sem token **recusada**
+  - [ ] Os testes de login do CI continuam passando (a chave de teste do Turnstile existe para isso)
+- **Não fazer:** não pôr Cloudflare na frente da Vercel. Não construir limite próprio de tentativas.
+- **Resultado:** _(a preencher)_
+
+### T-032 — 2FA obrigatório para admin e master, na tela e no banco (SEC-103)
+- **Estado:** ⬜ **próxima, S7.** 🔴 **auth + migration: sessão presencial.** ⛔ **Trava própria, mais cedo que o portão: antes do segundo admin** (R-014), mesmo que a abertura atrase
+- **Fase / Semana:** F4 / S7
+- **Capacidade:** **E3** — *"`/admin/validacoes` ... aprova ou reprova"*: quem aprova precisa ser quem diz que é. Mais a transversal **Segurança**
+- **Nível:** 🔴 — auth, e `is_admin()` é função de policy
+- **Agente dono:** vetria-backend · **auditoria obrigatória:** vetria-seguranca
+- **Depende de:** **T-027** aplicada (as duas mexem em policies de admin; uma de cada vez)
+- **Por quê:** **R-062.** Senha vazada do master entrega o dossiê da base inteira
+- **Feito quando:**
+  - [ ] Tela de cadastro e desafio do TOTP (Supabase MFA) para `role = 'admin'`
+  - [ ] `requireAdmin` (`lib/auth/admin.ts`) exige `aal2`; sem ele, manda para o desafio
+  - [ ] ⚠️ **A ordem:** tela no ar → o Elber cadastra o TOTP dele e prova que entra → **só então** a migration faz o `is_admin()` exigir `aal2` no JWT. `SECURITY DEFINER` + `SET search_path = public` (DL-014/015)
+  - [ ] Prova: com senha só, a tela manda para o desafio **e** o PostgREST com o token `aal1` devolve zero linha nas tabelas de admin
+  - [ ] Plano de recuperação escrito: o que acontece se o Elber perder o celular (códigos de recuperação guardados fora do repositório)
+- **Não fazer:** não obrigar 2FA para profissional (§Ideias, mês 4).
+- **Resultado:** _(a preencher)_
+
+### T-033 — Cabeçalhos de segurança no `next.config.ts` (SEC-104)
+- **Estado:** ⬜ **próxima, S6**
+- **Fase / Semana:** F4 / S6
+- **Capacidade:** **E3** — o botão *Aprovar* não pode ser clicado dentro de um iframe alheio (clickjacking). Mais a transversal **Segurança**
+- **Nível:** 🟡 — config
+- **Agente dono:** vetria-backend · **auditoria:** vetria-seguranca
+- **Depende de:** nada
+- **Por quê:** **R-063.** `next.config.ts` só configura `X-Robots-Tag`
+- **Feito quando:**
+  - [ ] `frame-ancestors 'none'` / `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`
+  - [ ] Conferido que o `/entrega-fase-2` e o logo SVG (DL-040, `dangerouslyAllowSVG` com CSP sandbox) continuam funcionando
+  - [ ] HSTS medido no domínio de produção (`curl -I https://vetriabrasil.com.br`), com a saída escrita aqui
+  - [ ] Teste em `publico.spec.ts` conferindo os cabeçalhos
+- **Não fazer:** CSP completa com nonce (F6).
+- **Resultado:** _(a preencher)_
+
+---
+
 # ✅ FECHADA — F3 / S3 (aberta 09/09, fechada 20/09/2026)
 
 **A S3 entregou, e desta vez entregou em produção:**
@@ -102,29 +326,34 @@ _(vazio)_
 |:-:|---|---|:-:|
 | **1** | Cadastro novo de vet → onboarding preenchido → sair e voltar → **os dados estão lá** | **vet:** prova manual da T-006, 31/08, conta real. **clinic:** prova do **Elber** em 20/09, conta de estabelecimento real — o `select` devolveu `whatsapp = 62992653278` da linha que a Action da T-007 gravou | ✅ **fechado, nas duas personas** |
 | **2** | Esse veterinário vê "aguardando" e **não consegue** entrar no dashboard | **9 navegações em tela**, conta `vet` real em `pending_validation`, feitas pelo **Elber** em 20/09: `/app` → `/aguardando`; `/app/veterinario`, `/contatos`, `/plano` e `/agenda` **voltam**; `/perfil` e `/ajuda` **abrem**. Mais `tests/e2e/portao-status.spec.ts` verde no CI | ✅ **fechado e medido** |
-| **3** | **Admin aprova → o veterinário entra no dashboard e recebe o email** | **PROVADO EM TELA em 23/09/2026 pelo Elber (T-024, `localhost` contra o Supabase de produção):** conta vet nova criada por `/cadastro/veterinario`, onboarding concluído (o servidor **recusou** concluir sem documento, SEC-088(a)), admin aprovou, faixa *"O email foi enviado"*, **email "Olá, Tiego Oliveira! Validamos seu cadastro" recebido**, a conta caiu no dashboard. Reprovação com motivo provada em duas contas (motivo na caixa âmbar do onboarding). `audit_logs` com 4 linhas `definir_status` e o uuid do admin em `actor_id` | ✅ **FECHADO** (falta só o push da T-024) |
+| **3** | **Admin aprova → o veterinário entra no dashboard e recebe o email** | **PROVADO EM TELA em 23/09/2026 pelo Elber (T-024, `localhost` contra o Supabase de produção):** conta vet nova criada por `/cadastro/veterinario`, onboarding concluído (o servidor **recusou** concluir sem documento, SEC-088(a)), admin aprovou, faixa *"O email foi enviado"*, **email "Olá, Tiego Oliveira! Validamos seu cadastro" recebido**, a conta caiu no dashboard. Reprovação com motivo provada em duas contas (motivo na caixa âmbar do onboarding). `audit_logs` com 4 linhas `definir_status` e o uuid do admin em `actor_id` | ✅ **FECHADO e em produção** (`6a8d86a`, push de 23/09 · o verde do CI ainda não foi conferido por ninguém) |
 | **4** | Um responsável logado que digite `/app/veterinario` é redirecionado | Na mesma passada de 20/09: a conta `vet` digitando `/app/estabelecimento` e `/admin` **foi devolvida ao painel dela**. É o mesmo mapa de prefixo do `middleware.ts`, exercitado em dois cruzamentos, mais o teste *"a conta vet nao entra no painel do estabelecimento nem no admin"* verde no CI | ✅ **FECHADO em 23/09/2026, ao pé da letra:** o Elber entrou com conta `tutor` em `localhost:3000`, digitou `/app/veterinario` e **foi devolvido** para `/app/responsavel/onboarding` (a conta ainda não concluiu o onboarding do responsável, então é o destino certo dela). Nada do painel vet apareceu |
-| **5** | Teste E2E cobrindo 1 a 4 passando em CI | CI de 20/09: **40 testes, todos verdes** — a primeira execução completa da suíte na história do projeto. `portao-status.spec.ts` (10) e `onboarding-vet.spec.ts` (9) nasceram nesta semana | 🟡 **parcial, e a parte que falta é nomeada:** cobre os itens 2 e 4. **O item 1 continua sem E2E** (**R-033**: conta nova a cada rodada) e o item 3 não existe para ser testado |
-| **6** | Relatório de segurança da fase **sem achado 🔴 aberto** | **Quatro** relatórios na fase: `SEC-2026-09-15-T007` (🔴 0 · 🟠 0 · 🟡 3), `SEC-2026-09-16-T016`, `SEC-2026-09-16-T008` (🔴 0 · 🟠 1 · 🟡 9) e `SEC-2026-09-21-T023` (🔴 0 · 🟠 0 · 🟡 5), **o primeiro em que um usuário lê a linha de outra pessoa**. **Zero 🔴 em todos** | ✅ **fechado** · ⚠️ o 🟠 que sobra é a **SEC-081** (volume e limpeza do bucket), virou **T-020**, e tem trava escrita: **antes do primeiro profissional de fora** |
+| **5** | Teste E2E cobrindo 1 a 4 passando em CI | CI de 20/09: **40 testes, todos verdes** — a primeira execução completa da suíte na história do projeto. `portao-status.spec.ts` (10) e `onboarding-vet.spec.ts` (9) nasceram nesta semana | 🟡 **PARCIAL, e é o único item que não fechou:** cobre os itens 2 e 4. **Os itens 1 e 3 não têm E2E** (**R-033**: conta nova a cada rodada, sem lugar limpo para criá-la). Virou a **T-029**, data dura **06/10** (DL-062). Em 23/09 o `vetria-qa` escreveu `admin-validacoes.spec.ts` (19 testes de leitura, **sem rodar e sem commit**) |
+| **6** | Relatório de segurança da fase **sem achado 🔴 aberto** | **Quatro** relatórios na fase: `SEC-2026-09-15-T007` (🔴 0 · 🟠 0 · 🟡 3), `SEC-2026-09-16-T016`, `SEC-2026-09-16-T008` (🔴 0 · 🟠 1 · 🟡 9) e `SEC-2026-09-21-T023` (🔴 0 · 🟠 0 · 🟡 5), **o primeiro em que um usuário lê a linha de outra pessoa**. **Zero 🔴 em todos** · **23/09:** `SEC-2026-09-23-T024` (🔴 0 · 🟠 2 · 🟡 4) e a avaliação de rate limit, captcha e 2FA (🔴 0 · 🟠 2 · 🟡 2). **Continua zero 🔴** | ✅ **fechado** · ⚠️ o 🟠 que sobra é a **SEC-081** (volume e limpeza do bucket), virou **T-020**, e tem trava escrita: **antes do primeiro profissional de fora** |
 
-### ⛔ A F3 FECHA COM 5 DE 6. Ela NÃO é uma fase concluída, e este quadro não vai chamá-la assim.
+### ⛔ 23/09/2026 — A F3 ENCERRA COM 5 DE 6. Ela NÃO é uma fase concluída, e este quadro não vai chamá-la assim.
 
-**Decisão do Elber, registrada em DL-059.** O item 3 — *admin aprova, o profissional entra e
-recebe o email* — **não tem uma linha escrita** e vai para a **S4**, que é exatamente onde o
-`01-PLANO.md` sempre o colocou. **Não é escorregão de escopo: é a fase acabando com a semana que
-faltava dentro dela.**
+**Reconferido item por item pelo `vetria-maestro` em 23/09, no fechamento (DL-062):** 1 ✅ · 2 ✅ ·
+**3 ✅** (fechou hoje, em produção) · **4 ✅** (fechou hoje, ao pé da letra) · **5 🟡** · 6 ✅.
 
-**Por que não se força o item 3 em dois dias:** foi assim que a dívida da S2 nasceu — código
-escrito no limite, sem tempo de prova, parado na árvore por semanas. E **declarar a fase
-"concluída" com 5 de 6 é o R-034 outra vez**: doc que afirma mais do que aconteceu, que é o
-mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
+**Por que 5 de 6 e não "6 de 6 com ressalva":** item parcial é item não feito. Contar metade como
+inteiro é o **R-034**, que já custou duas auditorias a este projeto. **Por que a F4 começa assim
+mesmo:** o que falta é rede de teste, não capacidade; nada da F4 depende do item 5 (no DL-059 era o
+contrário: a busca dependia do item 3, e por isso a F3 não fechou em 20/09). **O que obriga:** o item
+5 tem card (T-029), dono (`vetria-qa`), decisão com dono (o Elber, R-033) e data (06/10). A F3 vira
+"concluída" no dia em que o CI rodar os itens 1 e 3 verdes, e **o `/roadmap` diz "5 de 6
+comprovados"** até lá. **E a T-017, que o DL-059 mandou decidir se a F3 terminasse sem ela:** entrou na
+T-027, com sessão presencial até 29/09 e prazo duro antes da S7.
 
-**O que isso obriga:** o `/roadmap`, que é a janela dos donos, passa a dizer **F3 em andamento,
-5 de 6, item 3 na S4** — e **não** "F3 concluída". Ver o handoff de 20/09.
+_(O texto de 20/09, quando a F3 estava com 5 de 6 e o item que faltava era o 3, está no DL-059.)_
 
 ---
 
-# ⬜ FILA — F3 / S4 (aberta 21/09/2026) · a última semana da fase
+# ✅ FECHADA — F3 / S4 (aberta 21/09, fechada 23/09/2026) · a última semana da fase
+
+**A S4 entregou, e em produção:** **T-023** (a fila real do admin), **T-024** (aprovar e reprovar com motivo, o email, a trilha; **fecha o item 3**), **T-025** (o caminho de volta ao onboarding) e **T-021** (doc). **T-022** decidida (DL-061) e implementada dentro da T-024. **T-026** fechada por medição. **Não entregou:** a T-017 (absorvida pela T-027) e o item 5 do DoD (T-029). A T-020 passou para a S5.
+
+_(O texto abaixo é o da abertura, de 21/09, mantido como registro.)_
 
 > **Semana aberta pelo `vetria-maestro` em 21/09.** **4 cards na fila** (a **T-021** já fechou;
 > sobram três), mais quatro que correm
@@ -172,7 +401,7 @@ mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
   - **O botão *"Abrir documento em uma aba nova"* mostrou o contador (55 s) e o documento ABRIU**, confirmado pelo Elber
   - **O que a prova mostrou além do que ela media:** 3 de 4 contas estão na fila sem documento, todas anteriores à T-008. É a **SEC-088 / T-022 em dado real**, e o badge âmbar do ponto 5 funciona como prometido. O cadastro do Elder Lucas é incoerente (CRMV de uma UF, número com a sigla de outra, cidade de um estado com UF de outro) e virou o **R-059**
   - ⏭️ **Falta só o push** para esta task sair de 🟡. Ele vai junto com o da T-025, depois da prova dela
-- **Estado:** 🟡 **commitada em 21/09 (`4a355b0`), auditada e APROVADA, prova em tela ✅ em 23/09, aguardando push.** `npm run build` e `npm run lint` verdes. A auditoria do `vetria-seguranca` saiu em `docs/relatorios/SEC-2026-09-21-T023-fila-de-validacao.md`: **APROVADO para merge, 🔴 0 · 🟠 0 · 🟡 5**, com a frase *"dá para colocar gente real nesta tela hoje"*. ⚠️ **NÃO EMPURRADA para a `origin/main` de propósito:** push na `main` dispara deploy em produção, e falta o gesto que fecha esta task, que é do Elber e não é código: **abrir `/admin/validacoes` com conta admin e ver a fila cheia.** Ponto 8 do Resultado: fila vazia e policy revogada produzem a mesma tela
+- **Estado:** ✅ **CONCLUÍDA. Em produção desde `22fbefd` (23/09).** _(anterior:)_ 🟡 **commitada em 21/09 (`4a355b0`), auditada e APROVADA, prova em tela ✅ em 23/09, aguardando push.** `npm run build` e `npm run lint` verdes. A auditoria do `vetria-seguranca` saiu em `docs/relatorios/SEC-2026-09-21-T023-fila-de-validacao.md`: **APROVADO para merge, 🔴 0 · 🟠 0 · 🟡 5**, com a frase *"dá para colocar gente real nesta tela hoje"*. ⚠️ **NÃO EMPURRADA para a `origin/main` de propósito:** push na `main` dispara deploy em produção, e falta o gesto que fecha esta task, que é do Elber e não é código: **abrir `/admin/validacoes` com conta admin e ver a fila cheia.** Ponto 8 do Resultado: fila vazia e policy revogada produzem a mesma tela
 - **Fase / Semana:** F3 / S4
 - **Capacidade:** **E3** — *"`/admin/validacoes` lista fila real, abre o documento"* (`00-ESCOPO.md` §2)
 - **Nível:** 🟡 — páginas de admin, leitura de dado de terceiro, mais de 3 arquivos
@@ -199,7 +428,7 @@ mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
   - **8. ⚠️ O ponto cego, e ele é honesto:** fila vazia e policy revogada produzem **a mesma tela**, porque RLS não devolve erro, devolve zero linha. Enquanto houver conta em `pending_validation` no banco, a tela cheia é a prova de que as policies estão lá.
 
 ### T-024 — Aprovar e reprovar com motivo, o email, e a trilha em `audit_logs`
-- **Estado:** ✅ **PROVADA EM TELA em 23/09/2026 pelo Elber e commitada; aguardando push.** Aprovar (2 contas, uma delas conta nova ponta a ponta), reprovar com motivo (2 contas), 404 do detalhe depois da decisão, recusa sem documento, email de aprovação **recebido** pelo Resend, trilha em `audit_logs`. Auditoria: `docs/relatorios/SEC-2026-09-23-T024-aprovar-e-reprovar.md`, APROVADO, 🔴 0 · 🟠 2 · 🟡 4, com SEC-097(a), SEC-100, SEC-098 (comentário) e SEC-101 (frase) aplicados no mesmo diff. Os 🟠 restantes vão para a **T-027** (migration, trava: antes do primeiro admin comum). _(Estado anterior:)_ 🟡 **escrita em 23/09/2026, na árvore de trabalho, PARADA NO DIFF.** `npm run build` (`EXIT=0`) e `npm run lint` (`EXIT=0`) verdes. Nenhum `git add`, nenhum commit, nada empurrado. Falta: (1) a **auditoria do `vetria-seguranca`** (obrigatória no card), (2) a aprovação do diff pelo Elber, (3) a **`RESEND_API_KEY`** no `.env.local` e na Vercel (🔴 `.env`, gesto do Elber; sem ela a decisão funciona e o email sai como "desligado"), (4) a prova em tela, que é o item 3 do DoD
+- **Estado:** ✅ **CONCLUÍDA. Em produção desde `6a8d86a` (push de 23/09; o verde do CI falta conferir).** Provada em tela em 23/09/2026 pelo Elber. Aprovar (2 contas, uma delas conta nova ponta a ponta), reprovar com motivo (2 contas), 404 do detalhe depois da decisão, recusa sem documento, email de aprovação **recebido** pelo Resend, trilha em `audit_logs`. Auditoria: `docs/relatorios/SEC-2026-09-23-T024-aprovar-e-reprovar.md`, APROVADO, 🔴 0 · 🟠 2 · 🟡 4, com SEC-097(a), SEC-100, SEC-098 (comentário) e SEC-101 (frase) aplicados no mesmo diff. Os 🟠 restantes vão para a **T-027** (migration, trava: antes do primeiro admin comum). _(Estado anterior:)_ 🟡 **escrita em 23/09/2026, na árvore de trabalho, PARADA NO DIFF.** `npm run build` (`EXIT=0`) e `npm run lint` (`EXIT=0`) verdes. Nenhum `git add`, nenhum commit, nada empurrado. Falta: (1) a **auditoria do `vetria-seguranca`** (obrigatória no card), (2) a aprovação do diff pelo Elber, (3) a **`RESEND_API_KEY`** no `.env.local` e na Vercel (🔴 `.env`, gesto do Elber; sem ela a decisão funciona e o email sai como "desligado"), (4) a prova em tela, que é o item 3 do DoD
 - **Fase / Semana:** F3 / S4
 - **Capacidade:** **E3** — *"aprovar ou reprovar. Aprovar muda o status pra `active` e dispara email"*
 - **Nível:** 🟡 — escreve `profiles.status` de terceiro e dispara email. ⚠️ **Vira 🔴 se pedir migration ou policy nova.** A RPC `admin_definir_status` já existe (`0002:697-712`) e é por ela que a escrita passa. **Se alguém propuser escrever `profiles.status` direto da aplicação, para:** `status` nunca é escrito fora da RPC, e nunca pelo próprio usuário
@@ -212,8 +441,8 @@ mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
   - [x] **O R-051 fecha aqui, e esta é a outra metade dele:** o `page.tsx` do onboarding das **duas** personas passa a ler `status_motivo` e a **exibi-lo** quando `status = 'incomplete'` e o motivo não for nulo. É leitura da própria linha, **sem migration e sem policy**. Hoje o reprovado recebe formulário em modo "novo", reenvia o mesmo dado, e a fila recicla
   - [x] **Email de aprovação e email de reprova com o motivo.** Os 3 emails do app estão versionados e **desligados esperando a F3**; saem de `contato@vetriabrasil.com.br` pelo Resend, que já está verificado _(código pronto; acende quando a `RESEND_API_KEY` existir no ambiente)_
   - [x] **`audit_logs` registra toda ação de admin**, com `actor_id` preenchido. ⚠️ `authenticated` **não tem INSERT em `audit_logs`** (`0002` §11b): a trilha sai por `service_role`, com `actor_id` **explícito**, como a rota `/api/documentos/abrir` já faz _(corrigido na leitura do código: a RPC é SECURITY DEFINER e já grava a trilha na mesma transação, com `actor_id = auth.uid()` do admin. Nada duplicado, ver Resultado)_
-  - [ ] **Prova em tela, e ela é o item 3 do DoD:** aprovar a conta `vet` de teste que está em `pending_validation` desde 31/08 → ela **entra no dashboard** → **o email chega**. Registrada aqui, com o que aconteceu
-  - [ ] E2E do caminho, na medida em que o **R-033** permitir. Se não permitir, o teste fica **escrito e pulando com o motivo escrito** — nunca verde à toa
+  - [x] **(23/09, Elber: ver a linha 3 da tabela do DoD)** **Prova em tela, e ela é o item 3 do DoD:** aprovar a conta `vet` de teste que está em `pending_validation` desde 31/08 → ela **entra no dashboard** → **o email chega**. Registrada aqui, com o que aconteceu
+  - [ ] **→ T-029.** E2E do caminho, na medida em que o **R-033** permitir. Se não permitir, o teste fica **escrito e pulando com o motivo escrito** — nunca verde à toa
 - **Não fazer:** não escrever `status` fora da RPC. Não mandar email para endereço de gente que não é conta de teste. Não construir suspensão em massa. Não encostar no enum de `role` (DL-043).
 - **Resultado:**
 
@@ -271,7 +500,7 @@ mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
 **Commits:** nenhum. Task 🟡, parada no diff. Com as correções da auditoria, `app/api/documentos/abrir/route.ts` entrou na lista de modificados. 4 arquivos novos (`app/admin/validacoes/[conta]/actions.ts`, `DecisaoForm.tsx`, `decisao.ts`, `lib/email/validacao.ts`) e 14 modificados (`app/admin/AdminEmptyScreen.tsx`, `app/admin/validacoes/fila.ts`, `app/admin/validacoes/page.tsx`, `app/admin/validacoes/[conta]/page.tsx`, as duas `onboarding/actions.ts`, as duas `onboarding/page.tsx`, os dois formulários de onboarding, `lib/supabase/admin.ts`, `package.json`, `package-lock.json`, `docs/06-PERMISSOES.md`), mais este card.
 
 ### T-025 — O caminho de volta ao onboarding existe na interface
-- **Estado:** ✅ **commitada em 23/09/2026, aprovada pelo Elber (*"decida por mim"*, depois da prova em tela das duas personas), aguardando push junto com a T-023.** _(texto de 21/09, antes da aprovação:)_ escrita em 21/09, na árvore de trabalho, aguardando aprovação do diff pelo Elber. `npm run build` e `npm run lint` **verdes** (build `EXIT=0`, eslint sem uma linha de saída). 4 arquivos de código mais este card, nenhum `git add`, nada empurrado para a `origin`. A task é 🟡 pelo semáforo do `CLAUDE.md` (mexe em `components/` e passa de 3 arquivos), então ela **para no diff**
+- **Estado:** ✅ **CONCLUÍDA. Em produção desde `22fbefd` (23/09).** Commitada em 23/09/2026 (`46cd9e6`), aprovada pelo Elber (*"decida por mim"*, depois da prova em tela das duas personas), aguardando push junto com a T-023.** _(texto de 21/09, antes da aprovação:)_ escrita em 21/09, na árvore de trabalho, aguardando aprovação do diff pelo Elber. `npm run build` e `npm run lint` **verdes** (build `EXIT=0`, eslint sem uma linha de saída). 4 arquivos de código mais este card, nenhum `git add`, nada empurrado para a `origin`. A task é 🟡 pelo semáforo do `CLAUDE.md` (mexe em `components/` e passa de 3 arquivos), então ela **para no diff**
 - **Fase / Semana:** F3 / S4
 - **Capacidade:** **E2** — *"o que o vet/estabelecimento digita no onboarding persiste e reaparece"*. Reaparecer só para quem sabe a URL não é reaparecer
 - **Nível:** 🟡 — são as duas `aguardando/page.tsx` e provavelmente os dois `perfil`; passa de 3 arquivos
@@ -301,23 +530,8 @@ mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
   - **8. ⚠️ Passou do que o card pediu, e é separável:** o cartão que aponta para `/perfil` dizia *"Adiantar foto e bio · Deixe seu perfil pronto pra aparecer na busca assim que validar"*, e o `VetProfileForm`/`ClinicProfileForm` tem **"Salvar (em breve)" desabilitado** até a T-019. Era promessa falsa ao lado do link novo, então virou *"Ver a prévia do seu perfil público"* / *"Mostra como o responsável vai ver você na busca. Salvar ainda não está disponível nessa tela: o que vale hoje é o que você mandou no cadastro."* **Se o `vetria-maestro` preferir, são duas linhas de copy e saem sozinhas.**
   - **9. Fora do escopo desta task, achado e não corrigido:** as duas `onboarding/page.tsx` guardam com `const PODEM_EDITAR_AQUI = ["incomplete","pending_validation"]`, que é uma **cópia** da constante `ONBOARDING`, não uma importação. São duas terceiras cópias da matriz §4 em arquivos de guard, e mexer nelas é aperto de autorização, que volta ao `vetria-seguranca`. Junto: os **9 `<button>`** dos dois formulários de onboarding não têm `cursor-pointer` (**DL-040**), e é para lá que este link novo manda a pessoa.
 
-### T-020 — Teto de volume, cota e limpeza do bucket `documentos` (SEC-081) 🟠
-- **Estado:** ⬜ **fila, correndo por fora da S4.** ⛔ **Trava escrita: fechada ANTES de o onboarding ser aberto para conta de fora.** Enquanto só houver conta de teste, não bloqueia nada
-- **Fase / Semana:** F3 / S4 se couber; **senão F6/S11, junto com a T-018**
-- **Capacidade:** **E1** mais a transversal obrigatória **LGPD** (`00-ESCOPO.md` §2)
-- **Nível:** 🟡 — é a rota, e é `/api/*`. ⚠️ **Vira 🔴 se a saída escolhida for apagar objeto**
-- **Agente dono:** vetria-backend · **auditoria obrigatória:** vetria-seguranca
-- **Depende de:** **T-008 ✅**
-- **Por quê:** **SEC-081, o único 🟠 aberto da auditoria da T-008.** A rota limita o **tamanho de cada arquivo** (10485760, conferido duas vezes) e **não limita mais nada**: nem número de envios, nem total por conta, nem taxa. Cada envio gera caminho novo, e a `0003` §3 decidiu, por escrito, que **o objeto anterior não é apagado**. Cadastro com email descartável nasce `incomplete`, que está em `PODEM_ENVIAR` de propósito, e um laço de `curl` com um arquivo válido de 10 MiB produz **mil objetos, ~10 GB, 999 sem linha que os aponte**. **Não é vazamento** — o bucket tem zero policy. É **custo sem teto e retenção indevida de documento de identidade**, que é o R-023 acontecendo na criação e em escala
-- **Feito quando** — direção, não desenho fechado:
-  - [ ] Teto de envios por conta por janela, decidido **no servidor**, lendo a contagem de objetos sob o prefixo `<uuid>/` **antes** do passo 7
-  - [ ] ⚠️ **Se a saída escolhida for apagar a versão anterior, isso contraria a `0003` §3** (*"o admin pode precisar comparar o que aprovou com o que chegou depois"*) e **vira decisão registrada em `05-DECISOES.md`**, não conserto de rota. E apagar objeto é 🔴
-  - [ ] Conferir se o plano do Supabase oferece cota de bucket, antes de escrever código que a emule
-- **Não fazer:** não escrever cron. Não antecipar a rotina de exclusão da T-018. Não baixar o teto de 10 MiB sem falar com o produto: documento de identidade fotografado por celular passa de 4 MB com facilidade.
-- **Resultado:** _(a preencher)_
-
 ### T-022 — DECISÃO DO ELBER: a obrigatoriedade do documento vive na Server Action ou na fila do admin? (SEC-088)
-- **Estado:** ⬜ **fila, correndo por fora. É uma decisão, não uma implementação.** Sai como linha em `05-DECISOES.md`
+- **Estado:** ✅ **DECIDIDA em 23/09/2026: (a), a Server Action recusa concluir sem documento** (**DL-061** item 2), e **implementada dentro da T-024** (`6a8d86a`). Provada em tela: o servidor recusou concluir sem documento. O furo que sobra (a RPC chamada direto) é a **SEC-098**, na T-027. _(anterior:)_ fila, correndo por fora. É uma decisão, não uma implementação
 - **Fase / Semana:** F3 / S4 — **antes da T-023, se possível:** é ela que define se a fila precisa tratar "sem documento" como estado de primeira classe
 - **Capacidade:** **E3** — é a qualidade da fila que o admin valida
 - **Nível:** 🟠 — escopo ambíguo, pergunta antes
@@ -325,9 +539,9 @@ mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
 - **Depende de:** nada
 - **Por quê:** **SEC-088.** Hoje a obrigatoriedade do documento é **regra de tela**: o botão de concluir fica `disabled` sem `documento_enviado_em`, e as duas `actions.ts` **não conferem documento nenhum**. Duas portas, e a primeira nem é ataque: (1) DevTools, remover o `disabled`, clicar — a Action roda, chama a RPC, e o profissional entra em `pending_validation` **sem documento**; (2) POST com `Next-Action`, que o portão de rota não alcança. **Não vaza dado e não cruza usuário** — o admin simplesmente reprova. O custo é **operacional**. ⚠️ **A alternativa que não pode ficar é a de hoje: nenhuma das duas está escrita em lugar nenhum**
 - **Feito quando:**
-  - [ ] O Elber escolhe **uma**: **(a)** a Server Action passa a exigir `documento_enviado_em` não nulo antes de chamar a RPC — fila limpa, e a pessoa **trava no passo 4** se o upload falhar; ou **(b)** a fila do admin assume o filtro, e a T-023 mostra "sem documento" como estado de primeira classe
-  - [ ] A escolha vira **DL** em `05-DECISOES.md`, com "o que se perde" escrito
-  - [ ] Se for **(a)**, vira uma linha no card das duas Actions e **volta ao `vetria-seguranca`** — aperto de autorização também volta para revisão
+  - [x] O Elber escolhe **uma**: **(a)** a Server Action passa a exigir `documento_enviado_em` não nulo antes de chamar a RPC — fila limpa, e a pessoa **trava no passo 4** se o upload falhar; ou **(b)** a fila do admin assume o filtro, e a T-023 mostra "sem documento" como estado de primeira classe
+  - [x] A escolha vira **DL** em `05-DECISOES.md`, com "o que se perde" escrito (DL-061)
+  - [x] Se for **(a)**, vira uma linha no card das duas Actions e **volta ao `vetria-seguranca`** (SEC-2026-09-23-T024) — aperto de autorização também volta para revisão
 - **Não fazer:** não implementar as duas. Não deixar a decisão implícita no código de quem chegar primeiro.
 - **Resultado:** _(a preencher)_
 
@@ -345,7 +559,7 @@ mecanismo pelo qual este projeto já perdeu duas auditorias de vista.
   - [ ] **Mais que zero** → cada linha é conta de teste ou conta de gente. Se houver conta de gente, **é sessão presencial**, e a regra de sempre vale: backup antes, `update` sobre `id` conhecido, nunca em massa
   - [ ] Fica escrito que **normalização na escrita não retroage**, e que a próxima normalização que este projeto adotar nasce com a pergunta *"e o que já está gravado?"* respondida dentro do card
 - **Não fazer:** **não rodar `update` sem o Elber.** Não normalizar na leitura para esconder o problema: dado sujo escondido é dado sujo que ninguém conserta.
-- **Resultado:** _(a preencher)_
+- **Resultado:** fechada por medição em 23/09 (ver Estado). Uma linha suja, conta de teste, corrigida pela dona pela interface; a consulta voltou zero. **R-055 fechado.** Nenhum `update` 🔴.
 
 ---
 ## 🗂️ HISTÓRICO — a fila da S3, aberta em 09/09 e FECHADA em 20/09
@@ -557,7 +771,7 @@ Elber, e é o mais barato dos três que faltam.
 
 ### T-017 — Constraints de conteúdo em `vet_profiles` e `clinic_profiles` (R-039 / SEC-060) 🔴
 - 📏 **MEDIDO em 23/09/2026 pelo Elber: o furo é REAL.** Script só com `anon key` + login da conta vet de teste (Elder Lucas, `e5a1a020…`), sem `service_role`: leu `estado = "AP"`, fez `PATCH estado='ZZ'` direto no PostgREST → **HTTP 200, e a releitura devolveu `"ZZ"`**. O banco gravou uma UF que não existe, passando por cima da Action. **Restaurado para `"AP"` no `finally`, conferido ✅.** O card não encolhe nem morre: **é 🔴 de verdade e precisa da sessão presencial**, agora sabendo exatamente o que consertar. Candidato a andar com a T-027 (SEC-096/097b/098 da auditoria da T-024) numa migration só.
-- **Estado:** ⏸️ **aguardando sessão presencial com o Elber. AGENDE. ⚠️ Carregada da S3 para a S4 em 21/09, sem data pela quarta semana seguida — e a F3 acaba nesta semana.** O card mora aqui, na fila, e não em BLOQUEADAS, porque ele **não bloqueia ninguém** — quem está bloqueado é ele, pela agenda
+- **Estado:** 🚫 **ABSORVIDA PELA T-027 em 23/09/2026 (DL-062).** O card fica aqui como registro da medição e do raciocínio; **o trabalho mora na T-027**, e a pertença à lista de especialidades e serviços mora na T-028. _(anterior:)_ ⏸️ **aguardando sessão presencial com o Elber. AGENDE. ⚠️ Carregada da S3 para a S4 em 21/09, sem data pela quarta semana seguida — e a F3 acaba nesta semana.** O card mora aqui, na fila, e não em BLOQUEADAS, porque ele **não bloqueia ninguém** — quem está bloqueado é ele, pela agenda
 - **Fase / Semana:** F3 / **S3 se a sessão couber nesta semana; senão S4.** **Prazo duro: dentro da F3.** A F4/S7 (perfil público, 07/10–13/10) é onde a coluna `site` vira link clicável numa página pública, e depois disso a correção deixa de ser preventiva
 - **Capacidade:** **E1** — núcleo de dados: *"`vet_profiles` e `clinic_profiles` existem com RLS"* — mais a transversal obrigatória **Segurança**
 - **Nível:** 🔴 — **é migration.** Migration, RLS e mudança de policy são 🔴 por regra do projeto e **não acontecem sem o Elber presente**. Nenhum agente aplica isto sozinho, e nenhum agente escreve a `0004` "só pra deixar pronta" antes de a medição abaixo existir
@@ -637,15 +851,9 @@ Elber, e é o mais barato dos três que faltam.
 
 # ⏸️ BLOQUEADAS
 
-**21/09 — a S4 tem um card ⏸️, e é o mesmo de sempre: a T-017.** O card dela mora **na fila**,
-não aqui: ela é 🔴, é migration e espera sessão presencial com o Elber — mas **não bloqueia
-nenhuma outra task**. Quem está bloqueado é ela, pela agenda, **pela quarta semana seguida**, e
-o prazo duro dela é **dentro da F3, que acaba nesta semana**. **🔴 Agende.**
-
-**Nada mais na fila da S4 espera terceiro.** T-007, T-008 e T-016 fecharam em 20/09 e estão em
-✅ CONCLUÍDAS. As quatro medições que faltam (a conta `tutor`, a varredura de órfãos, o `select`
-do WhatsApp e a decisão da T-022) **são do Elber e não bloqueiam nenhum card** — nenhuma delas
-impede a T-023 de começar hoje.
+**23/09 — nenhuma task bloqueada por outra task.** O que espera é **gente e agenda**, e está escrito
+no topo deste quadro: a sessão presencial da T-027/T-028 (até 29/09) e a decisão do R-033, que trava
+as partes B e C da T-029. A T-017 saiu desta seção: foi absorvida pela T-027.
 
 ---
 

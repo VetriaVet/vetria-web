@@ -29,17 +29,62 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 > **A S13 é buffer de verdade.** Não planeje nada nela. Ela existe porque
 > todo projeto atrasa, e o que separa entrega de desastre é ter previsto o atraso.
 
+### Onde estamos em 23/09/2026 (início da S5)
+
+| Fase | Estado | DoD |
+|---|---|---|
+| **F3** | ⛔ **ENCERRADA, não concluída** (DL-062) | **5 de 6** provados · item 5 parcial → T-029, data 06/10 |
+| **F4** | 🔵 **começa hoje** | 0 de 6 · base já existe no banco (ver §F4 "já adiantado") |
+| **F5** | ⬜ | 0 de 3 · os textos das 6 páginas já estão escritos |
+| **F6** | ⬜ | 0 de 4 · parte da auditoria já foi feita ao longo da F3 |
+| **F7** | ⬜ | buffer intacto |
+
+---
+
+## ATRASO E RECUPERAÇÃO (escrito em 23/09/2026, pelo `vetria-maestro`)
+
+**Estamos atrasados, e o número honesto é: cerca de uma semana de trabalho, não de calendário.**
+
+- **No calendário, a fronteira F3/F4 chegou com 1 dia de diferença** (o item 3 entrou em produção em
+  23/09; o plano dizia 22/09). Isso esconde o resto.
+- **A S3 terminou 5 dias depois do previsto** (20/09 em vez de 15/09), e a S4 foi espremida em três
+  dias (21 a 23/09). **A `main` ficou 20 dias sem código** (31/08 a 20/09): o gargalo da F3 não foi
+  escrever, foi mergear e provar.
+- **A F3 deixa três dívidas para a F4 carregar:** o item 5 do DoD (T-029, R-033 sem decisão desde
+  28/08); a **T-017**, quatro semanas sem data, agora dentro da **T-027**; e **~3 dias de
+  endurecimento que o plano original não tinha** (o portão de abertura do DL-063: captcha, 2FA do
+  admin, cabeçalhos, teto do bucket).
+- **A própria S5 é migration** (tabelas de busca e `slug`), então **a semana inteira depende de uma
+  sessão presencial.**
+
+**O que se faz para recuperar, sem cortar escopo contratado:**
+1. **Uma sessão presencial fixa por semana para 🔴** (sugestão: terça à noite). A T-017 não
+   escorregou por ser difícil; escorregou por falta de agenda. **A primeira é até 29/09**, e aplica
+   a `0004` (T-027) e, se couber, a `0005` (T-028), cada uma com a sua auditoria.
+2. **Prova em tela e push no mesmo dia.** A S4 fez isso (T-023, T-024 e T-025 foram de "provada" a
+   "em produção" em horas) e é o que tem que continuar.
+3. **Nada é construído duas vezes.** A prévia do perfil que o Elber pediu **é** o componente do
+   perfil público da S7, lendo a linha do dono; não vira uma tela à parte agora.
+4. **Os cortes já feitos continuam cortados:** editores de perfil na F6 (DL-056), onboarding do
+   responsável sem card, foto e horários em §Ideias.
+5. **O buffer da S13 não foi tocado.** **Gatilho escrito:** se a sessão da `0004`/`0005` não
+   acontecer até 29/09, a S6 (`/buscar`) começa sem ter o que ler, e **o buffer começa a ser comido
+   na S6**. Isso vai ser dito na abertura da S6, não na S13.
+6. **Se ainda assim não couber**, a pergunta ao Elber é *o que sai em troca* (emenda, `00-ESCOPO.md`
+   §5), e o primeiro candidato é o E2E da F4 ficar com o fluxo principal só, não o prazo.
+
 ---
 
 ## FASE 3 — NÚCLEO DE DADOS (S1–S4)
 
 **Objetivo:** matar a casca. Tudo que a tela mostra passa a vir do banco.
 
-> ⚠️ **Estado em 21/09/2026: EM ANDAMENTO, 5 de 6 itens do DoD.** A S3 fechou em 20/09 com o
-> **PR #2** (`eb6e2d6`), que pôs T-007, T-016 e T-008 em produção. **O item 3 do DoD — admin
-> aprova, o profissional entra e recebe o email — não tem uma linha escrita** e é a S4 inteira.
-> **A fase não se declara concluída** (**DL-059**). O detalhe item por item, com a prova de cada
-> um, está em `03-TAREFAS.md`, no bloco de fechamento da S3.
+> ⛔ **Estado em 23/09/2026: ENCERRADA COM 5 DE 6. NÃO É UMA FASE CONCLUÍDA** (**DL-062**). O item
+> 3 fechou em 23/09 com a T-024 em produção (`6a8d86a`), o item 4 fechou ao pé da letra com conta
+> `tutor`. **O item 5 ficou parcial** (os itens 1 e 3 sem E2E, R-033) e virou a **T-029**, data dura
+> **06/10**. A F4 começa hoje porque o que falta é rede de teste, não capacidade. A T-017 entrou na
+> **T-027**. O detalhe item por item, com a prova de cada um, está em `03-TAREFAS.md`.
+> _(Estado de 21/09, para registro: em andamento, 5 de 6, o item 3 sem uma linha escrita, DL-059.)_
 
 ### S1 — Fundação do schema 🔴
 - `0000_baseline.sql`: dump do schema que já existe em produção, versionado (fecha R-006).
@@ -86,7 +131,12 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
   contratado:** o `00-ESCOPO.md` §2 não cita editor de perfil em nenhuma das seis capacidades, e
   nenhum dos 6 itens do DoD da F3 depende dele. **Não há emenda a fazer.** Ver **DL-056**.
 
-### S4 — Validação real pelo admin
+### S4 — Validação real pelo admin ✅ **entregue em 23/09/2026** (`22fbefd`, `6a8d86a`)
+> **O que a S4 entregou de fato, tudo provado em tela pelo Elber e em produção:** **T-023** (a fila
+> real, 4 contas, o documento abrindo), **T-024** (aprovar e reprovar com motivo, email recebido,
+> `audit_logs` com o admin como autor, conta nova recusada sem documento), **T-025** (o caminho de
+> volta ao onboarding nas duas personas) e **T-021** (doc). **Não entregou:** a T-017 (→ T-027).
+>
 > **Aberta em 21/09/2026.** É **a última semana da F3** e carrega o **único item do DoD que
 > falta**, o 3. Os quatro bullets abaixo viraram dois cards por dependência real — **T-023**
 > (ler a fila e abrir o documento) e **T-024** (aprovar, reprovar com motivo, email e trilha) —
@@ -103,17 +153,22 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 
 ### ✅ Definition of Done da F3 (verificável, não opinião)
 
-> **CONFERIDO ITEM POR ITEM EM 20/09/2026, com prova de cada um: 5 fechados, 1 aberto.**
-> **1** ✅ (as duas personas) · **2** ✅ (9 navegações em tela) · **3** ❌ **não tem uma linha
-> escrita, vai para a S4** · **4** ✅ o mecanismo, ⚠️ falta a passada literal com conta `tutor`
-> · **5** 🟡 parcial (40 testes verdes, mas o item 1 segue sem E2E — R-033) · **6** ✅ zero 🔴
-> em três relatórios. **A tabela com a medição de cada item está em `03-TAREFAS.md`.**
-1. Cadastro novo de veterinário → onboarding preenchido → sair e voltar → **os dados estão lá**.
-2. Esse veterinário vê a tela "aguardando" e **não consegue** entrar no dashboard.
-3. Admin aprova → o veterinário entra no dashboard e recebe o email.
-4. Um responsável logado que digite `/app/veterinario` é redirecionado.
-5. Teste E2E cobrindo 1–4 passando em CI.
-6. Relatório de segurança da fase sem achado 🔴 aberto.
+> **RECONFERIDO ITEM POR ITEM EM 23/09/2026, no fechamento: 5 fechados, 1 parcial.**
+> (Em 20/09 eram 5 fechados e o 3 aberto; o 4 estava provado pelo mecanismo, não pela frase.)
+> **A tabela com a medição de cada item está em `03-TAREFAS.md`.**
+1. ✅ Cadastro novo de veterinário → onboarding preenchido → sair e voltar → **os dados estão lá**.
+   *Prova: T-006 (31/08, vet) e Elber em 20/09 (estabelecimento), contas reais.*
+2. ✅ Esse veterinário vê a tela "aguardando" e **não consegue** entrar no dashboard.
+   *Prova: 9 navegações do Elber em 20/09 + `portao-status.spec.ts` verde no CI.*
+3. ✅ Admin aprova → o veterinário entra no dashboard e recebe o email.
+   *Prova: Elber em 23/09, conta nova ponta a ponta, email recebido, `audit_logs`; em produção em `6a8d86a`.*
+4. ✅ Um responsável logado que digite `/app/veterinario` é redirecionado.
+   *Prova: Elber em 23/09, conta `tutor`, devolvida para o painel dela.*
+5. 🟡 **Teste E2E cobrindo 1–4 passando em CI. PARCIAL:** cobre 2 e 4. **1 e 3 sem E2E (R-033).**
+   → **T-029**, data dura 06/10.
+6. ✅ Relatório de segurança da fase sem achado 🔴 aberto.
+   *Prova: 11 relatórios de segurança em `docs/relatorios/` desde 26/08, nenhum 🔴 aberto. Há 🟠
+   abertos com trava escrita (DL-062, DL-063).*
 
 ---
 
@@ -121,28 +176,53 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 
 **Objetivo:** o tutor encontra e fala com o profissional. É aqui que a Vetria vira Vetria.
 
-### S5 — Dados de busca
-- Tabelas de apoio: `especialidades`, `cidades`, `servicos` (seed real, não mock).
-- `slug` único e estável por perfil (regra decidida e registrada em `05-DECISOES.md`).
-- Índices Postgres + full-text search em português.
+> **Começa em 23/09/2026** (DL-062), carregando três dívidas da F3 (ver §Atraso) e o **portão de
+> abertura** (DL-063), que vence no fim desta fase.
 
-### S6 — `/buscar`
+### Já adiantado antes da F4 começar (cada item com a prova, nenhum conta como item de DoD)
+- ✅ **A regra de visibilidade já vive no Postgres desde 26/08:** `vet_profiles_select_publico` e
+  `clinic_profiles_select_publico` só deixam ler quem é do role certo **e** está `active`
+  (`perfil_esta_ativo`, `0002_nucleo.sql:499-535`). Não foi exercitada por busca nenhuma ainda.
+- ✅ **Já existem contas `active`** (as de teste aprovadas pela T-024 em 23/09): a busca terá o que
+  mostrar desde o primeiro dia. ⚠️ **Sem `slug`** (R-065, T-028).
+- ✅ **A tabela `contatos` existe desde 26/08** (DL-047), com o desenho do contato anônimo por
+  `anon_id`. Vazia.
+- ✅ **Telefone e WhatsApp já moram separados do perfil público**, em `perfil_privado`, e a
+  normalização do WhatsApp (`lib/contato/whatsapp.ts`) já vale para as duas personas.
+- 🟡 **O campo de busca da Home existe no design**, desabilitado. Não leva a lugar nenhum.
+
+### S5 — Dados de busca (23/09 → 29/09) · fila em `03-TAREFAS.md`
+- Tabelas de apoio: `especialidades`, `cidades`, `servicos` (seed real, não mock). → **T-028** 🔴
+- `slug` único e estável por perfil (regra decidida e registrada em `05-DECISOES.md`), **gerado na
+  aprovação e preenchido nas contas que já estão `active`** (R-065). → **T-028** 🔴
+- Índices Postgres + full-text search em português. → **T-028** 🔴
+- ⬇️ **Recebido da F3:** a `0004` de endurecimento (**T-027** 🔴, com a T-017 dentro) e o item 5 do
+  DoD da F3 (**T-029**). ⬇️ **Recebido da auditoria:** T-020 (teto do bucket), T-030 (atrito do
+  onboarding). 🔴 **Sessão presencial até 29/09.**
+
+### S6 — `/buscar` (30/09 → 06/10)
 - Filtros: cidade + especialidade + tipo de atendimento. Ordenação definida.
 - **Filtro de visibilidade no backend**, nunca no front: `role IN (vet, clinic) AND status = active`.
 - Cards de resultado, paginação, estado vazio honesto, responsivo.
 - Busca da Home passa a levar pra `/buscar` de verdade.
+- ⬇️ **Portão de abertura:** **T-031** (captcha) e **T-033** (cabeçalhos). **06/10: data dura da T-029.**
 
-### S7 — Perfil público
+### S7 — Perfil público (07/10 → 13/10)
 - `/veterinario/[slug]` e `/estabelecimento/[slug]` com dados reais.
 - SSR + metadata dinâmica (OG tags, title, description) para SEO.
 - `noindex` automático em quem não está `active`.
 - 404 correto pra slug inexistente.
+- `clinic_profiles.site` vira link aqui: **só depois da T-027 aplicada** (esquema `http`/`https` no banco).
+- ⬇️ **Pedido do Elber em 23/09:** a **prévia do perfil público** em `/app/*/perfil` é **o mesmo
+  componente**, lendo a linha do próprio dono, só leitura. Não é o editor (T-019, F6).
+- ⬇️ **Portão de abertura:** **T-032** (2FA do admin). **R-032** (endereço público) decidido antes.
 
-### S8 — Contato
+### S8 — Contato (14/10 → 20/10)
 - CTA WhatsApp com mensagem pré-preenchida.
 - Cada clique registra em `contatos` (quem, pra quem, quando).
 - `/app/responsavel/historico` passa a listar contatos reais. **Atenção:** hoje essa tela promete "Seus agendamentos" e desenha cards de consulta. Agendamento está fora dos 3 meses, então ela precisa virar "Seus contatos" (DL-047).
 - Painel do profissional mostra contagem real de contatos recebidos.
+- **20/10: o portão de abertura fecha** (DL-063), antes de a F5 publicar LP com CTA de cadastro.
 
 ### ✅ Definition of Done da F4
 1. Buscar "São Paulo + Clínica geral" retorna **só** profissionais `active`.
@@ -150,12 +230,20 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 3. Clicar no card abre o perfil público com dado real, indexável pelo Google.
 4. Clicar em WhatsApp abre a conversa **e** o contato aparece no histórico do responsável.
 5. E2E do fluxo busca → perfil → contato passando em CI.
+6. **Portão de abertura fechado** (DL-063, acrescentado em 23/09): os seis itens provados, não escritos.
 
 ---
 
 ## FASE 5 — VENDA (S9–S10)
 
 **Objetivo:** o funil comercial que o `Coração Cerne do Projeto` descreve.
+
+> **Já adiantado (23/09):** os **textos das 6 páginas existem** e são a copy aprovada, em `..`
+> (`Copy 1 - Vetria Pro - Veterinários.docx`, `Copy 2 - ... Clínicas e Hospitais.docx`, `Copy 3 - ...
+> Empresas Vet e Agrovet.docx` e as três `Copy Preço - ....docx`). A marca, a paleta e o design
+> system também. **Nenhuma página foi construída.** ⚠️ **Pendência de produto com prazo aqui:** o
+> **R-011** (vet e estabelecimento entregam o mesmo produto por preços diferentes) precisa de resposta
+> antes da S10. ⚠️ **As LPs só vão ao ar com o portão de abertura fechado** (DL-063).
 
 ### S9 — LPs de valor
 - `/para-veterinarios`, `/para-estabelecimentos`, `/para-empresas`.
@@ -178,6 +266,18 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 ## FASE 6 — ENDURECIMENTO (S11–S12)
 
 **Objetivo:** o que separa "funciona na minha máquina" de "pode receber gente real".
+
+> **Já adiantado ao longo da F3 (23/09), cada um com prova, nenhum fecha item de DoD sozinho:**
+> - ✅ **11 auditorias de segurança** em `docs/relatorios/`, uma por entrega; RLS escrita e revisada
+>   em todas as tabelas da `0002`/`0003`. **Falta a auditoria completa com cada policy testada.**
+> - ✅ **Isolamento entre painéis provado em tela** (R-001, 20/09) e com conta `tutor` (23/09).
+> - ✅ **41 testes E2E no CI** (verdes em 20/09 com 40; o 41º veio com a T-025). Mais 19 escritos pelo
+>   `vetria-qa` em 23/09, sem rodar. **A suíte completa depende do projeto de teste (R-033).**
+> - ✅ **A chave `service_role` virou erro de build se vazar para o cliente** (`server-only`, DL-061).
+> - ✅ **Toda ação de admin grava trilha** em `audit_logs` (T-024).
+> - ⬜ LGPD (consentimento, exportação, exclusão), Termos e Política: **nada ainda.**
+> - ⬇️ **Recebido em 23/09:** **SEC-091** (trilha de leitura do dossiê, DL-062) e a **CSP completa com
+>   nonce** (DL-063). Os demais itens da avaliação de rate limit foram para a F4 (portão de abertura).
 
 ### S11 — Segurança + LGPD
 - Auditoria completa de RLS: **toda** tabela com policy testada.

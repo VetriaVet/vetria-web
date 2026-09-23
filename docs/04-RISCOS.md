@@ -18,6 +18,10 @@ de crítico foi medido.** A seção 🟠 logo abaixo continua com quatro entrada
 quinta hoje** (**R-057**), e o 🟠 da auditoria da T-008 (SEC-081) está no card **T-020**, com
 trava escrita: **antes do primeiro profissional de fora.**
 
+**23/09/2026 — continua sem 🔴 de severidade.** A auditoria da T-024 e a avaliação de rate limit
+somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admin). Todas as travas
+"antes de abrir" viraram **uma lista só, o portão de abertura** (**DL-063**), com prazo 20/10.
+
 ## 🟠 ABERTOS — ALTOS
 
 > **R-020, R-021, R-022 e R-025 FECHARAM em 26/08**, quando a `0003` foi aplicada em produção
@@ -95,11 +99,83 @@ trava escrita: **antes do primeiro profissional de fora.**
   esquema, destinada a virar link na F4/S7. `javascript:` passa.**
 - **Correção é migration (🔴, presencial):** CHECK/domain nas colunas de faceta e teto nas de
   texto, **ou** revogar UPDATE do dono e escrever tudo por RPC `SECURITY DEFINER`.
-- **Task:** **T-017**
+- 📏 **23/09/2026 — MEDIDO pelo Elber: o furo é real.** `PATCH estado='ZZ'` com a conta vet de
+  teste, só `anon key` + login: HTTP 200 e a releitura devolveu `"ZZ"`. Restaurado para `"AP"`.
+- **Task:** ~~T-017~~ → **T-027** (a T-017 foi absorvida pela T-027 em 23/09, **DL-062**)
+
+### R-061 — O teto de email do projeto vira arma: cadastro e recuperação de senha sem captcha (SEC-102)
+- **Descoberto:** 23/09/2026, `docs/relatorios/SEC-2026-09-23-rate-limit-captcha-2fa.md`
+- **O quê:** login, cadastro e recuperação de senha **não passam pelo nosso servidor**: o navegador
+  fala direto com o Supabase. O Supabase tem teto de envio de email **do projeto inteiro** (~30/h
+  com SMTP próprio). Um script com 30 endereços quaisquer esgota o teto da hora, e o profissional
+  de verdade que se cadastra em seguida **não recebe a confirmação**. Repetível a cada hora, de um
+  IP só. Os emails para endereço inexistente voltam e sujam a reputação do domínio (R-009).
+- **Por que 🟠:** não vaza dado, mas derruba o funil inteiro de cadastro sem esforço.
+- **Correção:** captcha **Turnstile** nas 6 telas (`/login`, os 3 `/cadastro/*`, `/recuperar-senha`
+  e os "reenviar email"). ⚠️ **Ordem:** código com o widget → deploy → só então ligar no painel do
+  Supabase. Ligar antes tranca todo mundo para fora, o Elber incluído. Aumentar o teto só encarece
+  o ataque. **Firewall da Vercel e Cloudflare não ajudam aqui**, porque não veem esse tráfego (DL-063).
+- **Task:** **T-031** (🔴 auth). **Trava:** portão de abertura (DL-063), prazo 20/10
+
+### R-062 — Admin e master entram só com senha, e a conta master enxerga o dossiê de todo mundo (SEC-103)
+- **Descoberto:** 23/09/2026, mesma avaliação
+- **O quê:** uma senha vazada do master entrega documento, CRMV e CNPJ de toda a base. Não há
+  segundo fator.
+- **Correção:** TOTP do Supabase (grátis), exigindo `aal2` **nos dois lugares**: no `requireAdmin`
+  (`lib/auth/admin.ts`) **e** no `is_admin()` do banco, lendo o `aal` do JWT. Só na tela não basta:
+  o PostgREST seguiria aceitando só a senha (é a lição da SEC-096/097). ⚠️ **Ordem:** a tela de
+  cadastro do TOTP vai ao ar, o Elber cadastra o dele, e só então a migration muda o `is_admin()`.
+  `is_admin()` é usada em policy: `SECURITY DEFINER` + `SET search_path = public` (DL-014/015).
+- **Task:** **T-032** (🔴 auth + migration). **Trava própria, mais cedo que o portão: antes do
+  segundo admin** (R-014), mesmo que a abertura atrase
 
 ---
 
 ## 🟡 ABERTOS — MÉDIOS
+
+### R-063 — Faltam os cabeçalhos de segurança, e o botão *Aprovar* pode ser clicado dentro de um iframe alheio (SEC-104)
+- **Descoberto:** 23/09/2026, mesma avaliação
+- **O quê:** `next.config.ts` só configura `X-Robots-Tag`. Um site carrega
+  `/admin/validacoes/<conta>` num iframe invisível e induz o admin a clicar em *Aprovar*
+  (clickjacking). Faltam também `nosniff`, `Referrer-Policy` e `Permissions-Policy`. HSTS no
+  domínio não foi confirmado.
+- **Correção:** `frame-ancestors 'none'` / `X-Frame-Options: DENY`, `X-Content-Type-Options:
+  nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`. ~1 h. CSP
+  completa com nonce fica para a F6.
+- **Task:** **T-033** (🟡 config). **Trava:** portão de abertura (DL-063)
+
+### R-064 — Senha mínima de 8 só existe na tela; o Supabase aceita 6 (SEC-105)
+- **Descoberto:** 23/09/2026, mesma avaliação
+- **O quê:** o padrão do Supabase é 6, e o modo "criar conta" do `/login` (`app/login/page.tsx:30`)
+  nem confere o tamanho.
+- **Correção:** mínimo 8 no painel do Supabase (Auth → Providers → Email). **1 minuto, gesto do
+  Elber**, 🔴 por ser configuração de auth. **Sem card:** fecha quando o Elber mudar e conferir
+  tentando cadastrar com 7 caracteres.
+- **Prazo:** agora. Faz parte do portão de abertura (DL-063)
+
+### R-065 — Conta aprovada vira `active` com `slug` nulo, e a página pública precisa do slug
+- **Descoberto:** 23/09/2026, pelo `vetria-maestro`, abrindo a F4 (leitura de `0002_nucleo.sql:243`
+  e `:269`: *"slug nulo até virar 'active' (F4/S5 define a regra)"*)
+- **O quê:** desde a T-024 existem contas `active` em produção (as de teste aprovadas em 23/09) e
+  **todas têm `slug` nulo**, porque a regra do slug é da F4/S5 e ainda não existe. A policy impede
+  o dono de escrever o próprio slug (SEC-008, certo). Sem slug, `/veterinario/[slug]` não tem
+  endereço para essas contas.
+- **Não é bug hoje:** a página pública não existe. Vira bug no dia em que ela existir.
+- **Correção:** a regra do slug (DL novo) e a geração **no servidor** na aprovação, **mais o
+  preenchimento das contas que já estão `active`** (a pergunta *"e o que já está gravado?"* do
+  R-055, respondida antes). É migration.
+- **Task:** **T-028** (🔴). 🟡
+
+### R-066 — Conta aprovada não tem caminho pela interface de volta à fila
+- **Descoberto:** 23/09/2026, pelo `vetria-qa`, escrevendo `admin-validacoes.spec.ts`
+- **O quê:** depois de `active`, nada na interface devolve a conta a `pending_validation`: o
+  onboarding não é mais alcançável pelo portão de `active`, o editor de perfil é casca (T-019) e o
+  trigger de revalidação só dispara por escrita que hoje só o PostgREST faz. **Para o teste**, conta
+  de teste aprovada é conta perdida (o projeto de teste da T-029 resolve). **Para o produto**, o
+  profissional aprovado que precisa corrigir CRMV ou nome não tem por onde.
+- **Por que 🟡:** ninguém de fora está `active` ainda; a pergunta de produto já está escrita no
+  card da **T-019** (*"quais campos um profissional `active` pode editar sem voltar para a fila"*).
+- **Task:** lado do teste na **T-029**; lado do produto na **T-019** (F6/S11). 🟡
 
 ### R-040 — `onboarding_completed` é escrito pelo próprio usuário e é o sinal em que o app roteia (SEC-061)
 - **Descoberto:** 09/09/2026, revisão independente da T-006 (R-034)
@@ -422,7 +498,7 @@ trava escrita: **antes do primeiro profissional de fora.**
 - **O quê:** o passo 1 diz *"1 principal e até 3 secundárias"*, mas os chips aceitam mais. Nada avisa até o **passo 4**, quando *"Concluir cadastro"* devolve *"Não deu pra salvar. Passo 1: escolha no máximo 4 especialidades"*. A validação do servidor está certa; falta a do cliente, no lugar certo.
 - **Impacto:** atrito no funil de cadastro profissional. Sem risco de dado ou segurança. 🟡
 - **Correção:** travar a seleção no próprio chip ao atingir 4 (ou avisar ao tentar a quinta) e conferir antes de sair do passo 1. Conferir se o `ClinicOnboardingForm` tem limite parecido (serviços) com o mesmo defeito, porque clone herda defeito (R-017).
-- **Task:** sem card, 🟡 (`components`/formulário). Pequena, candidata à S5.
+- **Task:** **T-030** (S5, 🟡, `vetria-ui`), junto com o botão de arquivo em português.
 
 ### R-059 — O número do CRMV é texto livre, e cidade e estado não são conferidos um contra o outro
 - **Descoberto:** 23/09/2026, pelo **Elber**, na prova em tela da T-023. **Visto em dado real**
@@ -440,7 +516,8 @@ trava escrita: **antes do primeiro profissional de fora.**
   aceita**. Se a T-017 escrever CHECK no formato do número, cobre as duas portas de uma vez.
 - **Correção:** formato do número do CRMV na Action (e no CHECK da T-017, se ela nascer), e
   cidade escolhida de lista por UF, ou aviso ao admin quando não bater.
-- **Task:** sem card. Candidato a entrar junto com a **T-017**. 🟡
+- **Task:** **T-027** (o CHECK do formato do número na `0004`) e a linha espelho na Action vai no
+  mesmo card. A cidade escolhida de lista por UF depende da tabela `cidades` da **T-028**. 🟡
 
 ### R-058 — `lib/supabase/admin.ts` não tem `import "server-only"`, e o número de importadores dobrou (SEC-089)
 - **Descoberto:** 16/09/2026, auditoria da T-008
@@ -581,6 +658,16 @@ trava escrita: **antes do primeiro profissional de fora.**
   resolvido, e ele continua sem resposta escrita.** 🟡
 - **Por que isso vence antes do que parece:** a T-007 clona a T-006 no estabelecimento e a T-008 escreve arquivo em bucket. **As três são exatamente o tipo de mudança que E2E pega e revisão humana não**, e nenhuma delas vai ter cobertura enquanto isto estiver aberto.
 - **Prazo:** resposta antes do fim da F3, que é quando o item 5 do DoD ("testes automáticos dos fluxos críticos") é cobrado. 🟡
+- ⚠️ **23/09/2026 — O PRAZO VENCEU SEM RESPOSTA, e é por isso que a F3 encerra com 5 de 6** (DL-062).
+  O item 5 virou a **T-029**, com **data dura 06/10**. **Recomendação do `vetria-qa` e do
+  `vetria-maestro`: a saída (b) com a peça que faltava**: projeto Supabase só de teste (`vetria-e2e`),
+  migrations `0000` a `0003` (mais `0004`/`0005` quando existirem), *"Confirm email"* desligado, o CI
+  inteiro apontando para ele, e a `service_role` **do projeto de teste** como secret do CI para criar
+  e apagar conta. A objeção à (a) era a chave que ignora a RLS **de produção** no CI; a chave de um
+  banco sem gente não carrega esse risco. **Pede DL** trocando a regra do `ci.yml:11` de *"NUNCA
+  `SUPABASE_SERVICE_ROLE_KEY`"* para *"nunca a de produção"*. Secrets novos: `E2E_TUTOR_*`,
+  `E2E_ADMIN_*`. **Decisão do Elber**, 🔴 (novo projeto, secrets). A F4 precisa
+  da mesma resposta para o E2E dela (DoD da F4 item 5), então adiar esta decisão agora é adiar duas.
 
 ### R-035 — O arquivo de verificação afirmava uma medição que ninguém tinha feito
 - **Descoberto:** 31/08/2026, ao fechar a T-013.
@@ -702,6 +789,9 @@ trava escrita: **antes do primeiro profissional de fora.**
 > Registrar aqui é o que permite dizer "não" sem perder a ideia.
 
 - **Horários de funcionamento do estabelecimento.** Boa ideia, e o `01-PLANO.md` §S2 chegou a prometer. Não existe campo no formulário nem coluna na tabela, e criar coluna é migration presencial. Fora do escopo dos 3 meses (`00-ESCOPO.md` §2 não cita horário em nenhuma das seis capacidades). **Anotada pro mês 4.** Ver R-019.
+- **2FA opcional para o profissional.** Boa ideia, fora do escopo dos 3 meses: obrigar agora aumenta abandono no cadastro sem ganho à altura. O 2FA **do admin** não é ideia, é a T-032. **Anotada pro mês 4.** (SEC-2026-09-23-rate-limit)
+- **Tempo de inatividade da sessão e bloqueio de senha vazada.** Só existem no plano pago do Supabase. Se o projeto já for Pro, ligar para admin é 15 minutos; senão, depois da entrega. **Anotada pro mês 4.**
+- **Cloudflare na frente da Vercel.** Decidido **não** (DL-063): não protege o login, que vai direto ao Supabase, e traz problema de cache, SSL e IP. Registrado aqui só para a pergunta não voltar sem o DL.
 - **Foto de perfil com upload.** Precisa de um segundo bucket, público, com regra própria de moderação de imagem. Não é requisito de E1 a E6. Volta como decisão na F4/S7, quando o perfil público existir e a falta dela custar conversão. Ver R-019.
 
 ---

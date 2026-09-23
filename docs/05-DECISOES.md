@@ -655,3 +655,103 @@ dado incompleto; e deixar o `server-only` para depois é deixar a única barreir
 sensível do projeto como convenção.
 **Consequência:** a T-024 deixa de estar travada. Os itens 1 e 3 entram nela; o item 2 é a T-022,
 que anda junto ou antes.
+**Status:** ✅ aplicada na T-024 (`6a8d86a`, em produção em 23/09)
+
+---
+
+### DL-062 — A F3 encerra com 5 de 6 e o item 5 parcial, a F4 começa, e a T-017 entra na T-027
+**Data:** 23/09/2026 · **Fase/Task:** fechamento da F3 · abertura da F4/S5 · T-017, T-027, T-029, SEC-091
+**Quem decidiu:** o `vetria-maestro`, a pedido do Elber (*"quero partir e atualizar o roadmap desta fase e das
+próximas"*). O item 4 (SEC-091) é recomendação **aceita pelo Elber em 23/09**. Os itens 1, 2, 3 e 5 valem como
+decisão de fechamento de fase e **se confirmam na leitura deste diff**; se o Elber discordar, outro DL revoga este.
+**Contexto:** em 23/09 a T-024 entrou na `main` (`22fbefd..6a8d86a`) depois de provada em tela pelo Elber:
+aprovar, reprovar com motivo, email recebido, `audit_logs` com o `actor_id` do admin. Com isso o **item 3 do DoD
+fechou**, e o item 4 fechou ao pé da letra com conta `tutor`. O DoD ficou assim, item por item, com prova:
+**1** ✅ · **2** ✅ · **3** ✅ · **4** ✅ · **5** 🟡 · **6** ✅. O item 5 (*"E2E cobrindo 1 a 4 passando em CI"*)
+cobre os itens 2 e 4; **os itens 1 e 3 não têm E2E**, porque os dois precisam de conta nova a cada rodada e o
+**R-033** (onde criar essa conta) não tem resposta desde 28/08. O `01-PLANO.md` diz *"não avança sem passar"*, e o
+calendário diz que a F4 começa hoje. E o DL-059 deixou escrito que, se a F3 terminasse sem a T-017, isso viraria
+decisão explícita, não silêncio. Terminou sem ela.
+**Decisão:**
+1. **A F3 ENCERRA em 23/09 com 5 de 6 itens fechados e o item 5 PARCIAL. Não se declara "concluída".** A contagem
+   honesta é **5 de 6**, e não "6 de 6 com ressalva" nem "5,5 de 6": item parcial é item não feito, e contar metade
+   como inteiro é o R-034 com outra roupa. O `/roadmap` diz *"5 de 6 comprovados, falta automatizar dois testes"*.
+2. **A F4 começa hoje assim mesmo**, porque o item 5 não trava nada da F4. É a diferença exata para o DL-059: lá o
+   item que faltava (aprovar) era pré-requisito da busca (*"busca sem validação é busca vazia"*); aqui o que falta é
+   **rede de teste**, não capacidade. Segurar a F4 por ele queimaria a semana 5 esperando uma decisão de infra.
+3. **O item 5 não vira "card residual" sem dono** (a alternativa que o DL-059 recusou pelo nome). Vira a **T-029**,
+   com dono (`vetria-qa`), decisão com dono (o Elber escolhe a saída do R-033) e **data dura: 06/10, fim da S6**. A
+   parte que não depende de infra (persistência por reedição, pelo caminho da T-025) anda já. **A F3 só passa a
+   "concluída" no dia em que o CI rodar os itens 1 e 3 verdes.** Se 06/10 chegar sem isso, é DL novo, não silêncio.
+4. **SEC-091 (trilha de leitura do dossiê) fica para a F6/S11**, junto com a auditoria completa de RLS e o
+   inventário de operadores. Motivo: a exposição pela **tela** caiu com a SEC-092(a) (o detalhe só abre quem está na
+   fila); a exposição pelo **PostgREST** fecha na T-027 com a SEC-097(b). O que sobra é registrar *leitura*, que pede
+   desenho (trilha por abertura de página? por consulta?) e cabe melhor onde a LGPD inteira é tratada. **Enquanto só
+   o Elber for admin, o risco é teórico**; a trava da T-027 e da T-032 (antes do primeiro admin comum) cobre o
+   intervalo.
+5. **A T-017 deixa de ser card próprio e entra na T-027**, uma migration só (`0004`). Motivo: as duas mexem nas
+   mesmas tabelas, pedem a mesma sessão presencial, a mesma auditoria e o mesmo backup; separadas, seriam duas
+   rodadas de auditoria sobre o mesmo arquivo. A medição de 23/09 (`PATCH estado='ZZ'` aceito e restaurado) passa
+   para a T-027 como a prova de antes. **Uma exceção, por dependência real:** a lista fechada de *especialidades* e
+   *serviços* não vira CHECK na `0004`, porque a F4/S5 cria as tabelas de apoio (T-028) e a fonte da verdade passa a
+   ser a tabela. Escrever a lista em CHECK agora e em tabela na semana seguinte é o R-039 (duas cópias) nascendo de
+   propósito. O **teto de tamanho** dos arrays entra na `0004`; a **pertença à lista** entra na `0005`.
+**Alternativas descartadas:**
+- **Declarar a F3 concluída com o item 5 "parcial declarado".** Recusada: é a frase exata que o R-034 proíbe.
+- **Manter a F3 aberta e não começar a F4.** Recusada: o que falta é decisão de infra (R-033), não trabalho da fase,
+  e o prazo de 25/11 não tem folga para uma semana parada.
+- **Mandar o item 5 para a F6** (DoD da F6 item 2, *"suíte E2E completa"*). Recusada: seria empurrar dívida da F3
+  para a fase de endurecimento sem dizer, e a F4 precisa da mesma infra para o E2E dela (DoD da F4 item 5).
+- **T-017 ao lado da T-027, em migrations separadas.** Recusada pelo custo de auditoria dobrado. A `0002` levou
+  quatro rodadas; ninguém ganha com duas `0004`.
+**Implicações:**
+- **A S5 abre hoje, 23/09**, e volta a bater com o calendário do `01-PLANO.md` (S5 = 23/09 a 29/09). O rótulo
+  "S4 aberta em 21/09" registrava cinco dias de deriva; a deriva não some, **vira dívida nomeada** (ver
+  `01-PLANO.md` §Atraso).
+- **🔴 A sessão presencial da T-027 (e da T-028, se couber) precisa acontecer até 29/09.** O prazo duro que era da
+  T-017 continua valendo: antes da F4/S7 (07/10), quando `clinic_profiles.site` vira link em página pública.
+- **Item 6 do DoD segue ✅ ao pé da letra** (zero achado de severidade 🔴), mas nada esconde que há 🟠 abertos com
+  trava escrita: R-039, SEC-096, SEC-097(b), SEC-081, R-057, SEC-102, SEC-103.
+**Status:** ✅ decidida (itens 1, 2, 3 e 5 pelo `vetria-maestro`, confirmar na leitura do diff) · ✅ item 4 aceito
+pelo Elber
+
+---
+
+### DL-063 — Abrir para profissional de fora tem portão com lista fechada, e a Cloudflare não entra
+**Data:** 23/09/2026 · **Fase/Task:** F4/S5 · SEC-102 a SEC-105, SEC-081, T-020, T-027, T-031, T-032, T-033
+**Quem decidiu:** o `vetria-maestro`, sobre a avaliação `docs/relatorios/SEC-2026-09-23-rate-limit-captcha-2fa.md`,
+pedida pelo Elber (*"estamos seguros?"*). Confirmar na leitura do diff.
+**Contexto:** três cards já carregavam a mesma trava escrita de jeitos diferentes (*"antes do primeiro profissional
+de fora"*, *"antes do primeiro admin comum"*, *"antes de abrir"*), e a avaliação de 23/09 somou mais quatro. Trava
+espalhada em card é trava que ninguém confere no dia. E o login, o cadastro e a recuperação de senha **não passam
+pelo nosso servidor**: o navegador fala direto com o Supabase, então firewall de borda não os protege.
+**Decisão:**
+1. **Existe um "portão de abertura", com lista fechada.** Nenhum profissional que não seja conta de teste recebe
+   convite, link de cadastro ou LP publicada antes de os itens abaixo estarem **provados** (não escritos):
+   - **T-027** — a `0004` aplicada (T-017 + SEC-096 + SEC-097b + SEC-098 + SEC-093 + formato do CRMV)
+   - **T-020** — teto de volume do bucket **mais** a regra de rate limit do firewall da Vercel em `/api/documentos/*`
+   - **T-031** — captcha Turnstile nas 6 telas de auth (SEC-102)
+   - **T-032** — 2FA TOTP obrigatório para admin e master, na tela **e** no `is_admin()` (SEC-103). Trava própria,
+     mais cedo: **antes do segundo admin**, mesmo que a abertura atrase
+   - **T-033** — cabeçalhos de segurança no `next.config.ts` (SEC-104)
+   - **SEC-105** — senha mínima 8 no painel do Supabase (gesto do Elber, 1 minuto, sem card)
+2. **Prazo do portão: 20/10, fim da F4.** Motivo por dependência: a F5 publica as LPs, e **o CTA de toda LP leva ao
+   cadastro**. LP no ar com o portão aberto é convite a quem quiser esgotar o teto de email do projeto (SEC-102).
+3. **Ordem obrigatória nos dois 🔴 de auth:** captcha e 2FA são **código primeiro, deploy, e só então ligar no
+   painel** (ou aplicar o `is_admin()` com `aal2`). Na ordem inversa ninguém entra, nem o Elber. O Elber cadastra o
+   próprio TOTP **antes** da migration do `is_admin()`.
+4. **Cloudflare: não.** A Vercel já tem firewall, DDoS e BotID básico; Cloudflare na frente da Vercel traz problema de
+   cache, SSL e IP do visitante e **não veria o tráfego de login**, que vai direto ao Supabase. **Só o Turnstile
+   interessa, e ele funciona sem a Cloudflare na frente.** **Upstash: não agora**, só se um dia precisar de limite
+   por usuário.
+**Alternativas descartadas:** Cloudflare como proxy (acima); hCaptcha (funciona igual no Supabase, mas o Turnstile é
+grátis e quase sempre invisível, o que custa menos conversão no cadastro); 2FA obrigatório para profissional
+(aumenta abandono sem ganho à altura; fica opcional, depois da entrega, em §Ideias); CSP completa com nonce agora (1
+dia, fica para a F6; a T-033 entrega o que fecha o clickjacking do botão *Aprovar*).
+**Implicações:**
+- O `02-ESTADO.md` passa a mostrar o portão como lista de checagem, e o `/roadmap` ganha na F4 o item *"Proteções
+  antes de abrir para profissionais de fora"*.
+- **Nada disto é escopo novo:** os seis itens apontam para E2 (cadastro), E3 (admin) e para a transversal
+  **Segurança** do `00-ESCOPO.md` §2. Não há emenda. **Mas é trabalho que o plano original não tinha**, estimado em
+  ~3 dias de backend, e ele entra na F4 junto com a busca. Ver `01-PLANO.md` §Atraso.
+**Status:** ✅ decidida pelo `vetria-maestro`, confirmar na leitura do diff · ⬜ portão: 0 de 6 provados
