@@ -107,6 +107,7 @@ const SPRINTS: Sprint[] = [
       { label: "Cada contato recebido fica registrado para o profissional", status: "todo" },
       { label: "O banco de dados recusa informação inválida no cadastro (CRMV, estado, endereço de site)", status: "done" },
       { label: "Senhas mais fortes, com mensagens de erro em português e opção de mostrar a senha", status: "done" },
+      { label: "Campos com formato automático no cadastro (CRMV, CNPJ, telefone, CEP e email), para ninguém digitar errado", status: "done" },
       { label: "Proteções antes de abrir para profissionais de fora: verificação contra robôs no cadastro, segundo fator de acesso para a equipe Vetria e limites de envio", status: "todo" },
     ],
     result:
