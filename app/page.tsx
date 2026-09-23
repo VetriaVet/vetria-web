@@ -24,8 +24,9 @@ import {
 } from "lucide-react";
 
 // Home pública (landing do consumidor) — fiel ao vetria-visualizador-v2.html.
-// Honesto (DL-020/DL-034): a busca fica desabilitada (módulo de busca é fase
-// futura) e "Novos perfis" usa cards GHOST (sem profissional inventado).
+// Honesto (DL-020/DL-034): a busca envia para /buscar, que diz "abre em
+// breve" enquanto a 0005 não entra, e "Novos perfis" usa cards GHOST (sem
+// profissional inventado).
 // Deslogado vê a Home; logado vai direto pro painel (/app).
 
 export default async function Home({
@@ -119,10 +120,14 @@ function PublicHeader() {
 
 /* ---------------- Hero + busca ---------------- */
 function Hero() {
+  // As abas viram o filtro `atendimento` da /buscar. "Todos" é o padrão:
+  // qualquer aba marcada tira os estabelecimentos da lista (só veterinário
+  // tem forma de atendimento), então nenhuma delas pode vir marcada sozinha.
   const tabs = [
-    { icon: Building2, label: "Presencial", active: true },
-    { icon: HomeIcon, label: "Domiciliar", active: false },
-    { icon: Video, label: "Online", active: false },
+    { icon: null, label: "Todos", valor: "" },
+    { icon: Building2, label: "Presencial", valor: "presencial" },
+    { icon: HomeIcon, label: "Domiciliar", valor: "domiciliar" },
+    { icon: Video, label: "Online", valor: "teleorientacao" },
   ];
   return (
     <section className="border-b border-neutro-border bg-fundo-claro">
@@ -148,43 +153,70 @@ function Hero() {
             com confiança.
           </p>
 
-          {/* Busca — desabilitada (módulo de busca é fase futura) */}
-          <div className="mt-7 rounded-2xl bg-white p-3 shadow-md">
-            <div className="mb-3 flex gap-2">
-              {tabs.map((t) => (
-                <span
-                  key={t.label}
-                  className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-[13px] font-medium ${
-                    t.active
-                      ? "bg-principal text-white"
-                      : "bg-neutro-bg-alt text-corpo-texto"
-                  }`}
-                >
-                  <t.icon size={14} />
-                  {t.label}
-                </span>
-              ))}
-            </div>
+          {/* Busca: formulário GET para /buscar, no contrato de lib/busca/pedido.ts.
+              Funciona sem JavaScript. Enquanto a 0005 não entra, a /buscar
+              responde "A busca abre em breve". */}
+          <form
+            action="/buscar"
+            method="get"
+            role="search"
+            aria-label="Buscar veterinários e estabelecimentos"
+            className="mt-7 rounded-2xl bg-white p-3 shadow-md"
+          >
+            <fieldset className="mb-3">
+              <legend className="sr-only">Forma de atendimento</legend>
+              <div className="flex flex-wrap gap-2">
+                {tabs.map((t) => (
+                  <label
+                    key={t.label}
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-pill bg-neutro-bg-alt px-3 py-1.5 text-[13px] font-medium text-corpo-texto transition has-[:checked]:bg-principal has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-principal/40 has-[:focus-visible]:ring-offset-1"
+                  >
+                    <input
+                      type="radio"
+                      name="atendimento"
+                      value={t.valor}
+                      defaultChecked={t.valor === ""}
+                      className="sr-only"
+                    />
+                    {t.icon && <t.icon size={14} aria-hidden />}
+                    {t.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             <div className="flex flex-col gap-2 sm:flex-row">
+              <label htmlFor="home-busca-q" className="sr-only">
+                O que você procura
+              </label>
               <input
-                disabled
+                id="home-busca-q"
+                name="q"
+                type="search"
+                maxLength={80}
                 placeholder="Especialidade, serviço ou tipo de animal"
-                className="flex-1 rounded-pill border border-neutro-border bg-neutro-bg-alt/50 px-4 py-3 text-[14px] text-titulo outline-none placeholder:text-corpo-texto/60 disabled:cursor-not-allowed"
+                className="flex-1 rounded-pill border border-neutro-border bg-neutro-bg-alt/50 px-4 py-3 text-[14px] text-titulo outline-none transition placeholder:text-corpo-texto/60 focus:border-principal focus:bg-white focus:ring-2 focus:ring-principal/20"
               />
+              <label htmlFor="home-busca-cidade" className="sr-only">
+                Cidade
+              </label>
               <input
-                disabled
+                id="home-busca-cidade"
+                name="cidade"
+                type="text"
+                maxLength={60}
+                autoComplete="address-level2"
                 placeholder="Cidade ou região"
-                className="flex-1 rounded-pill border border-neutro-border bg-neutro-bg-alt/50 px-4 py-3 text-[14px] text-titulo outline-none placeholder:text-corpo-texto/60 disabled:cursor-not-allowed sm:max-w-[40%]"
+                className="flex-1 rounded-pill border border-neutro-border bg-neutro-bg-alt/50 px-4 py-3 text-[14px] text-titulo outline-none transition placeholder:text-corpo-texto/60 focus:border-principal focus:bg-white focus:ring-2 focus:ring-principal/20 sm:max-w-[40%]"
               />
-              <span className="inline-flex items-center justify-center gap-2 rounded-pill bg-principal/40 px-6 py-3 text-[14px] font-semibold text-white">
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center gap-2 rounded-pill bg-principal px-6 py-3 text-[14px] font-semibold text-white transition hover:bg-principal-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-principal/40 focus-visible:ring-offset-2"
+              >
                 Pesquisar
-                <ArrowRight size={16} />
-              </span>
+                <ArrowRight size={16} aria-hidden />
+              </button>
             </div>
-            <p className="mt-2 pl-1 text-[11px] uppercase tracking-wider text-corpo-texto/50">
-              Busca em breve
-            </p>
-          </div>
+          </form>
         </div>
 
         {/* Painel decorativo (sem foto stock — honesto) */}
