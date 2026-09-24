@@ -236,7 +236,7 @@ _(vazio)_
 **(g) Push do código**, depois de (f) e **só depois de corrigir os CRMVs de teste** (Descobri 4). No mesmo commit, trocar os dois comentários "SEC-098: a regra ainda NÃO vive no banco" dos formulários. `npm run build` e `npm run lint` verdes. Na tela, em produção: digitar "GO-0155" no CRMV do onboarding → a frase do passo 1 aparece e nada é gravado; concluir o onboarding de uma conta de teste nova com documento → ela vai para a fila.
 
 ### T-028 — A `0005`: tabelas de apoio da busca, a regra do `slug` e os índices
-- **Estado:** ⬜ **fila, S5, item 2.** 🔴 **Sessão presencial**, idealmente a mesma da T-027, **depois** dela
+- **Estado:** 🔵 **SQL escrito e ensaiado localmente em 23/09/2026, NÃO aplicado.** Falta auditoria do `vetria-seguranca`, o DL-067 confirmado pelo Elber e o roteiro do Resultado. _(anterior:)_ ⬜ fila, S5, item 2. 🔴 Sessão presencial, depois da T-027
 - **Fase / Semana:** F4 / S5 (`01-PLANO.md` §S5)
 - **Capacidade:** **E4** — *"`/buscar` filtra por cidade + especialidade + tipo de atendimento"*
 - **Nível:** 🔴 — migration
@@ -252,7 +252,61 @@ _(vazio)_
   - [ ] Pré-voo com as linhas de hoje que não batem com as listas novas (dado de teste de 31/08 e 20/09), e o que se faz com elas decidido antes de aplicar
   - [ ] Auditoria **APROVADA**, backup, aplicação com o Elber, e um `select` por tabela provando o seed
 - **Não fazer:** não construir `/buscar` (S6). Não fazer mapa nem raio (V2). Não trocar Postgres por Typesense/Meilisearch (fora do escopo). Não expor `perfil_privado` em nenhuma view de busca.
-- **Resultado:** _(a preencher)_
+- **Resultado:** 🔵 **SQL ESCRITO e ENSAIADO LOCALMENTE em 23/09/2026, NÃO APLICADO em banco nenhum.** Nada commitado. Falta, nesta ordem: auditoria do `vetria-seguranca` → confirmação do DL-067 (slug) pelo Elber → o roteiro abaixo, começando pelo `vetria-e2e`. Checklist: DL do slug ✅ escrito (DL-067, proposta) · tabelas + seed ✅ escritos (cidades: 5571 do IBGE, seed gerado) · pertença ✅ (trigger contra a tabela) · slug na aprovação + preenchimento ✅ · índices + full-text ✅ · pré-voo ✅ escrito · auditoria, backup e aplicação ⬜. `campos.ts` **continua sendo a fonte da tela** (não "leitura" ainda): a tela só pode ler as tabelas depois da `0005` aplicada, e isso é da S6 (DL-068).
+
+## HANDOFF — vetria-backend — T-028 — 23/09/2026
+
+**Fiz** (nada aplicado, nada commitado):
+- **`supabase/migrations/0005_dados_da_busca_e_slug.sql`**, uma transação, aditiva, idempotente, **não reescreve nenhuma função existente**:
+  - **§1 pré-voo** (tudo `raise exception`): 1.1 a `0004` está aplicada (os 12 CHECKs e as duas `admin_pode_ver_*`), Postgres 14+, configuração `portuguese`; 1.2 as policies de escrita de `vet_profiles`/`clinic_profiles` são só as da `0002` e as `*_own` ainda pinam o `slug` (SEC-008); 1.3 nenhum objeto com os nomes desta migration que não seja dela (R-006).
+  - **§2** funções de texto IMMUTABLE (`sem_acento`, `chave_de_nome`, `slugificar`, `slug_truncado`, `juntar_textos`), com EXECUTE mantido para `anon` de propósito (SEC-014: a busca anônima vai usá-las).
+  - **§3** `especialidades` (12), `servicos` (9) e `cidades` (código IBGE, `chave` e `slug` gerados), RLS ligada, **uma** policy de leitura para `anon, authenticated`, grants de escrita revogados.
+  - **§4** pertença à lista por trigger `conferir_itens_de_lista` (SECURITY DEFINER + search_path): item fora da lista, nulo ou repetido vira 23514; confere em INSERT e em UPDATE só quando a lista muda.
+  - **§5** slug (DL-067): CHECK de formato, `gerar_slug_do_perfil` (sem EXECUTE para ninguém de fora), trigger `trg_profiles_slug_ao_ativar` em `profiles.status` (aprovação e reativação), e o **preenchimento das contas já `active`** (R-065).
+  - **§6** coluna gerada `busca` (tsvector português com peso, só colunas públicas, sem `endereco` por causa do R-032) e índices: GIN em `busca`, `(estado, chave_de_nome(cidade))`, `cidades.chave` para autocompletar.
+  - **§9** select final (36 linhas, todas `true`), **§10** reversão completa, na ordem certa.
+- **`supabase/seed-0005-cidades-ibge.sql`** (205 KB, 5571 municípios, um bloco por UF, idempotente, com conferência por UF no fim), **gerado** por **`supabase/gerar-seed-cidades.mjs`** (Node puro, sem dependência nova; baixa da API do IBGE, confere 27 UFs, código único, zero colisão de nome normalizado na mesma UF e que a normalização do JS e a do SQL batem letra por letra; sha256 da fonte no cabeçalho).
+- **`supabase/prevoo-0005.sql`** (9 consultas, só leitura), **`supabase/backup-antes-da-0005.sql`** (4 queries), **`supabase/verificar-apos-0005.sql`** (6 sondas, uma por vez; a sonda 2 tem 33 casos com controle positivo).
+- **Docs:** DL-067 (slug, proposta) e DL-068 (modelo dos dados da busca) em `05-DECISOES.md`; `06-PERMISSOES.md` §3 com as linhas do `slug` e das três tabelas; README das migrations; comentário dos dois `campos.ts` apontando para as tabelas e os triggers.
+
+**Ensaio (a lição do DL-050: revisão não substitui execução).** Sem Postgres nem Docker ligados na máquina, rodei tudo num Postgres 18 em WebAssembly (PGlite, instalado só na pasta temporária da sessão, fora do repo), sobre um esboço do que o Supabase fornece (`auth.uid()`, `anon`/`authenticated`, `storage.*`) e o `montar-vetria-e2e.sql` + a `0004` do repo: pré-voo e backup rodaram; a `0005` deu **36/36 `true`**; rodada de novo, **36/36** (idempotente); seed **29/29 `ok`**, e de novo sem duplicar; sondas 1 a 6 **todas verdes, 33/33 OK na sonda 2**; duas contas `active` "Dra. Ana Souza, Goiânia" ganharam `dra-ana-souza-goiania-go` e `-2`; com uma conta vet só, os casos 27/28 viram `NAO MEDIDO`, como previsto; a sonda 6 pegou "Goiânia / AP" e sugeriu "Goiânia/GO"; o pré-voo **parou** sem um CHECK da 0004 (nada entrou) e **parou** com uma policy de escrita desconhecida; a reversão da §10 **removeu tudo** e a `0005` entrou limpa de novo. ⚠️ PGlite não é o Supabase: a diferença de versão (18 × a de produção) e os grants por default privileges só se provam no `vetria-e2e`.
+
+**Não fiz:**
+- Aplicar ou consultar qualquer banco do projeto.
+- `campos.ts` virar leitura das tabelas: só depois da `0005` aplicada (antes quebraria a tela em produção). É da S6.
+- Tornar a cidade obrigatória da lista: o formulário é texto livre; a busca casa por chave normalizada (DL-068). A tela com lista de cidades da UF é card futuro.
+- Mexer nas Actions de onboarding: não precisou. Elas já conferem a mesma lista e já traduzem 23514.
+
+**Descobri:**
+1. **O IBGE tem 5571 municípios hoje, não 5570:** Boa Esperança do Norte (MT, código 5101837) foi instalado depois da contagem antiga.
+2. ⚠️ **Nomenclatura:** o slug do serviço "Pet shop" sai `pet-shop`, e a regra legal diz que "pet" não aparece em URL (a exceção vale para o nome do serviço). Decidir antes de a S6 pôr esse slug numa URL; trocar é uma linha de migration. Registrado no DL-068.
+3. Em produção, as 3 contas que estavam `active` voltaram para a fila na aplicação da `0004` (SEC-111). Se continuarem na fila, o preenchimento da §5.4 não acha ninguém, e é a aprovação que gera o slug delas (trigger).
+
+**Bloqueios:** auditoria do `vetria-seguranca` (obrigatória) · confirmação do DL-067 pelo Elber.
+**Próximo passo óbvio:** o `vetria-seguranca` audita a `0005` e os quatro arquivos de apoio; correção volta para ele. Depois, o roteiro.
+**Docs que atualizei:** este card · `docs/05-DECISOES.md` (DL-067, DL-068) · `docs/06-PERMISSOES.md` §3 · `supabase/migrations/README.md`.
+**Commits:** nenhum.
+
+### Roteiro de aplicação da 0005 (sessão presencial; cada etapa só começa com a anterior verde)
+
+⚠️ **SQL Editor:** rode cada arquivo **inteiro** quando o roteiro disser "inteiro", e **uma consulta ou sonda por vez** quando disser "uma por vez". Os marcadores de bloco entre cifrões são só letras (sem número), como na `0004`.
+
+**(a) `vetria-e2e` primeiro** (conferir o nome do projeto no topo da tela antes de colar cada arquivo):
+1. `prevoo-0005.sql`, uma consulta por vez. Esperado: C1 `12 | 12 | true` e só as 6 policies da `0002`, as `*_own` com `cita slug=true`; C2, C3, C4 e C6 **zero linhas**; C7 `true | true`.
+2. `migrations/0005_dados_da_busca_e_slug.sql`, **inteiro**. Esperado: todas as linhas do select final `true` (a linha 30 diz "0 municipios": é o lembrete do seed).
+3. `seed-0005-cidades-ibge.sql`, **inteiro** (205 KB; se o editor recusar o tamanho, rode bloco por bloco de UF e o select do fim por último). Esperado: 29 linhas, todas `ok = true`, "5571 de 5571".
+4. `verificar-apos-0005.sql`, **uma sonda por vez**. Esperado: sonda 1, 10 linhas `true`; **sonda 2, todas OK** (27 e 28 podem vir `NAO MEDIDO` se o projeto tiver uma conta vet só); sonda 3, OK em todas (ou vazia); sonda 4, zero linhas; sonda 5, `OK`; sonda 6, informativa. **Qualquer FALHA ou SONDA INVALIDA para aqui: volta para o backend, e a correção volta para a auditoria.**
+5. Rodar a `0005` inteira **de novo**: tudo `true` de novo (prova de que ela é idempotente no Supabase de verdade).
+
+**(b) Produção:**
+1. `prevoo-0005.sql`, uma por vez, **anotando neste card** C0, C2, C3, C4 e C5 (C5 é a lista de quem vai ganhar endereço e a prévia de cada um). Se C2, C3 ou C4 vierem com linha: a `0005` aplica mesmo assim (DL-068 item 2), anote os ids.
+2. `backup-antes-da-0005.sql`: query 0 anotada, queries 1 a 3 em CSV para `supabase/backups/` (fora do git), conferir que os arquivos abrem.
+3. `0005`, **inteira**. Esperado: tudo `true`. Se o pré-voo parar, nada foi aplicado: leia a mensagem, não force.
+4. Seed, **inteiro**. Esperado: 29/29 `ok`.
+5. Verificar, **uma sonda por vez**, com o mesmo esperado de (a4). A sonda 2 escreve e desfaz tudo no fim (mesmo desenho da sonda 3 da `0004`). Anotar aqui os endereços da sonda 3.
+6. **Prova em tela:** aprovar em `/admin/validacoes` uma conta de teste que esteja na fila e, no SQL Editor, `select slug from vet_profiles where id = '<id>'` (ou `clinic_profiles`): o endereço aparece no formato `nome-cidade-uf`. Anotar a data no `supabase/migrations/README.md`.
+
+**Reverter, se precisar:** a §10 da `0005` (ensaiada: remove tudo o que ela criou, e ela volta a entrar limpa). O slug preenchido fica, e é inofensivo; zerar está explicado na §10. **Código:** nada depende da `0005` para subir; os comentários dos `campos.ts` e os docs podem ir no mesmo commit do SQL.
 
 ### T-029 — A infraestrutura de E2E e o item 5 do DoD da F3: os itens 1 e 3 ganham teste
 - **Estado:** ⬜ **fila, S5, item 3, em paralelo com tudo.** **Data dura: 06/10** (DL-062). A F3 só vira "concluída" quando isto estiver verde no CI. ⚠️ **Travada numa decisão 🔴 do Elber** (abaixo). Já existe trabalho na árvore: o `vetria-qa` escreveu em 23/09 `tests/e2e/admin-validacoes.spec.ts` (**19 testes, segundo ele, nenhum escreve no banco**) e mexeu em `tests/apoio/credenciais.ts` e `tests/apoio/sessao.ts`. A suíte foi de **41 para 60 escritos, sem rodar e sem commit**

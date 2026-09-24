@@ -810,3 +810,80 @@ duas contas de teste); a migration normalizar o CRMV sozinha (revalidação em m
 **Consequência:** `docs/06-PERMISSOES.md` §5 ganhou a subseção de 23/09 (T-027). A moderação de conta `incomplete` ou
 `suspended` pelo admin comum deixa de ser alcançável pelo PostgREST; não há tela que a use.
 **Status:** 🟡 proposta, escrita na `0004` · ⬜ confirmar com o Elber · ⬜ aplicada
+
+---
+
+### DL-067 — O slug: `nome-cidade-uf`, gerado pelo servidor quando a conta vira `active`, e estável
+**Data:** 23/09/2026 · **Fase/Task:** F4/S5 · T-028 · R-065, SEC-008
+**Quem decidiu:** o `vetria-backend`, ao escrever a `0005`, seguindo o padrão de mercado de diretório profissional. **Proposta: o
+card pede que o Elber decida; confirmar na sessão presencial, antes de aplicar.** Cada item abaixo é uma linha da `0005` §5.
+**Contexto:** a página pública da S7 é `/veterinario/[slug]` e `/estabelecimento/[slug]`. A coluna `slug` existe desde a `0002`,
+nula, e a policy impede o dono de escrevê-la (SEC-008). Desde 23/09 existem contas `active` com `slug` nulo (R-065).
+**Decisão:**
+1. **Formato:** `<nome>-<cidade>-<uf>`, só `[a-z0-9]` e hífen simples, sem acento (ex.: `dra-ana-souza-goiania-go`,
+   `clinica-bicho-feliz-sao-paulo-sp`). Nome é `nome_exibicao` (vet) ou `nome_fantasia` (estabelecimento). O nome é cortado em
+   60 caracteres e a cidade em 40, na fronteira de palavra; o todo fica abaixo de 120 (CHECK no banco). Sem nome, a parte do nome
+   vira `veterinario` ou `estabelecimento`. Os três pedaços já são públicos na busca: o endereço não revela nada novo.
+2. **Unicidade:** por tabela (as rotas são separadas). **Colisão:** sufixo `-2`, `-3`, ... por ordem de chegada; a trava
+   `pg_advisory_xact_lock` impede duas aprovações simultâneas de escolherem o mesmo.
+3. **Quem gera: o servidor, quando a conta PASSA a `active`**, por trigger em `profiles.status` (aprovação e reativação pelo
+   master). **Não** reescreve `admin_definir_status` (a `0004` acabou de reescrevê-la). O dono continua sem escrever o próprio
+   slug, e o pré-voo da `0005` para se aparecer policy de escrita que não pine o slug.
+4. **Estável:** gerado uma vez e **nunca trocado sozinho**. Mudar o nome ou a cidade não muda o endereço (o nome muda, a conta
+   volta para a fila, é aprovada de novo e mantém o slug). Link compartilhado e resultado do Google continuam valendo.
+5. **Trocar o slug é gesto manual do master pelo SQL Editor** (ex.: pedido do profissional depois de mudar de nome), e **o link
+   antigo deixa de existir** (404). Guardar endereços antigos com redirecionamento 301 fica para quando houver o primeiro pedido
+   real (tabela de slugs antigos, mês 4+), registrado aqui para a pergunta não voltar sem este DL.
+6. **O que já está gravado (R-065):** a `0005` preenche o slug de toda conta vet/clinic que já está `active`, da mais antiga para a
+   mais nova. É o único dado de usuário que ela escreve; o `updated_at` dessas linhas vira a hora da migration.
+**Alternativas descartadas:** `nome` sozinho (colide cedo: "ana-souza" de Goiânia e de Belém disputariam o mesmo endereço); `uuid`
+ou número no endereço (feio, sem valor de busca, e expõe o id interno); slug que acompanha o nome (quebra link já compartilhado a
+cada correção de cadastro); o dono escolher o próprio endereço (squatting de nome, SEC-008); gerar na Server Action da aprovação
+(deixaria de fora a reativação do master e qualquer caminho futuro para `active`).
+**Implicações:** a S7 lê `slug` e devolve 404 para o que não existe ou não é `active` (a policy pública já esconde). A prévia do
+perfil (S7) pode mostrar o endereço, mas só o servidor o grava.
+**Status:** 🟡 proposta, escrita na `0005` · ⬜ confirmar com o Elber · ⬜ aplicada
+
+### DL-068 — Os dados da busca: listas em tabela, pertença por trigger, cidade por chave normalizada, full-text em português
+**Data:** 23/09/2026 · **Fase/Task:** F4/S5 · T-028 · DL-062 item 5, R-059
+**Quem decidiu:** o `vetria-backend`, ao escrever a `0005`. Confirmar na leitura do diff.
+**Contexto:** a busca da S6 filtra por cidade, especialidade e tipo de atendimento (E4). Hoje as listas de especialidades e de
+serviços moram só nos `campos.ts`, e a cidade é texto livre (R-059: "Goiânia / AP" na fila de 23/09). O DL-062 deixou a pertença
+à lista para esta migration, "contra a tabela, e não contra uma segunda cópia".
+**Decisão:**
+1. **`especialidades` e `servicos` são tabelas** (`nome`, `slug`, `ordem`), leitura pública, escrita só por migration. O `nome` é
+   **exatamente** o texto que o formulário já grava ("Clínica geral", "Banho & tosa"): a tabela adota o dado que existe, e nenhuma
+   linha de perfil precisa mudar. O seed é a lista do `campos.ts`, na mesma ordem.
+2. **A pertença é conferida por trigger** (`conferir_itens_de_lista`), porque CHECK não consulta outra tabela e o Postgres não tem
+   chave estrangeira em elemento de array. Recusa com 23514 (o código de CHECK que as Actions já traduzem) item fora da lista, nulo
+   ou repetido. Confere em todo INSERT e em UPDATE **só quando a lista muda**: linha antiga fora da lista não impede a dona de
+   salvar outra coluna, a mesma lógica do `NOT VALID` da `0004`.
+3. **`cidades` é a lista oficial do IBGE** (API de localidades, **5571** municípios em 23/09/2026; o 5571º é Boa Esperança do Norte,
+   MT, instalado depois da contagem de 5570), carregada por um **seed separado e gerado** (`supabase/seed-0005-cidades-ibge.sql`,
+   feito por `supabase/gerar-seed-cidades.mjs`, Node puro, sem dependência nova no app, com o sha256 da fonte no cabeçalho). Chave:
+   código IBGE. `chave` e `slug` são colunas geradas.
+4. **O perfil continua gravando cidade em texto livre, e a busca casa por chave:** `(estado, chave_de_nome(cidade))` contra
+   `(uf, chave)` da lista, onde `chave_de_nome` tira acento, caixa, espaço e pontuação ("goiania " casa com "Goiânia"). **Não** há
+   chave estrangeira nem obrigação de cidade da lista agora: o formulário é texto livre, e obrigar quebraria o cadastro. Quem grava
+   uma cidade que não existe na UF (o "Goiânia / AP") não aparece no filtro daquela cidade até corrigir; a sonda 6 do
+   `verificar-apos-0005.sql` lista essas contas. Trocar o campo de texto por uma lista de cidades da UF é trabalho de tela, para um
+   card próprio.
+5. **Full-text em português** numa coluna **gerada** `busca` (tsvector com peso: nome, depois especialidades/serviços, depois cidade,
+   depois bio), sem acento dos dois lados (`sem_acento`, `translate` com mapa explícito, IMMUTABLE de verdade; a função da extensão
+   `unaccent` não é IMMUTABLE e não serve em coluna gerada nem em índice). Só coluna pública entra; `endereco` fica fora enquanto o
+   R-032 não decidir.
+6. **Índice não é filtro.** A visibilidade continua sendo a policy `*_select_publico` (`perfil_esta_ativo`), intocada. Índices: GIN
+   em `busca`, `(estado, chave_de_nome(cidade))` nas duas tabelas, `cidades.chave` para autocompletar, e os GIN de
+   `especialidades`/`servicos` que já existem desde a `0002`. Tipo de atendimento (três booleanos) fica sem índice: coluna de dois
+   valores não seleciona nada sozinha.
+**Alternativas descartadas:** tabela de junção `vet_especialidades` (reescreveria o formulário, a Action e o dado de 31/08 para ganhar
+o que o trigger já dá); guardar o `slug` da especialidade no perfil (migração de dado e mudança de código sem ganho para a busca);
+`unaccent` com invólucro que declara IMMUTABLE o que não é (funciona até o dicionário mudar); colar 5571 linhas à mão (erro de
+digitação vira cidade que não existe); Typesense/Meilisearch (fora do escopo, `00-ESCOPO.md` §3).
+**Implicações:** acrescentar especialidade ou serviço é migration (🔴) **mais** a linha no `campos.ts`, no mesmo commit; se só o
+`campos.ts` crescer, a pessoa escolhe o item novo e o banco recusa. Os `campos.ts` continuam sendo a fonte da **tela** até a S6 ler
+as tabelas, o que só pode acontecer depois da `0005` aplicada (ler antes quebraria a tela em produção). A S6 normaliza o termo com
+`sem_acento()` antes do `plainto_tsquery('portuguese', ...)`. ⚠️ **Pendente de nomenclatura (memória de nomenclatura legal):** o
+slug do serviço "Pet shop" sai `pet-shop`, e a regra diz que "pet" não aparece em URL; "Pet shop" é exceção só como nome de serviço.
+Decidir antes de a S6 pôr esse slug numa URL (trocar é um `update` de uma linha numa migration).
+**Status:** 🟡 escrita na `0005` · ⬜ aplicada
