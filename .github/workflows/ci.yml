@@ -20,9 +20,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+# DL-064 (T-029): o CI inteiro aponta para o projeto de TESTE (vetria-e2e).
+#   ENTRA  TESTE_SUPABASE_URL / TESTE_SUPABASE_ANON_KEY   do vetria-e2e
+#   ENTRA  TESTE_SUPABASE_SERVICE_ROLE_KEY  a do vetria-e2e, so no passo E2E
+#   ENTRA  TESTE_{VET,TUTOR,ADMIN,CLINIC}_{EMAIL,SENHA}  contas fixas do vetria-e2e
+#   NUNCA  a service_role de PRODUCAO. Nem aqui, nem em secret nenhum do repo.
+#          tests/apoio/alvo.ts e o pre-voo abaixo recusam URL de producao.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-vetria-e2e        # um banco de teste para todos os branches
+  cancel-in-progress: false
 
 jobs:
   ci:
@@ -31,10 +37,18 @@ jobs:
     timeout-minutes: 20
 
     env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      E2E_VET_EMAIL: ${{ secrets.E2E_VET_EMAIL }}
-      E2E_VET_SENHA: ${{ secrets.E2E_VET_SENHA }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TESTE_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.TESTE_SUPABASE_ANON_KEY }}
+      E2E_VET_EMAIL: ${{ secrets.TESTE_VET_EMAIL }}
+      E2E_VET_SENHA: ${{ secrets.TESTE_VET_SENHA }}
+      E2E_TUTOR_EMAIL: ${{ secrets.TESTE_TUTOR_EMAIL }}
+      E2E_TUTOR_SENHA: ${{ secrets.TESTE_TUTOR_SENHA }}
+      E2E_ADMIN_EMAIL: ${{ secrets.TESTE_ADMIN_EMAIL }}
+      E2E_ADMIN_SENHA: ${{ secrets.TESTE_ADMIN_SENHA }}
+      E2E_CLINIC_EMAIL: ${{ secrets.TESTE_CLINIC_EMAIL }}
+      E2E_CLINIC_SENHA: ${{ secrets.TESTE_CLINIC_SENHA }}
+      E2E_ALVO: teste
+      E2E_EXIGIR_FILA: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -51,40 +65,27 @@ jobs:
       # chaves públicas e ficar verde à toa. Sem elas o `middleware.ts` estoura
       # em toda rota e a suíte inteira falharia com 500 — melhor parar aqui,
       # com o motivo escrito, do que depurar 500 no relatório do Playwright.
-      - name: Conferir que as chaves públicas do Supabase existem
+      - name: Conferir que o alvo e o projeto de TESTE e que nenhum secret falta
+        env:
+          SERVICE_KEY: ${{ secrets.TESTE_SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
-            echo "::error::Faltam os secrets NEXT_PUBLIC_SUPABASE_URL e/ou NEXT_PUBLIC_SUPABASE_ANON_KEY."
-            echo "::error::Crie os dois em Settings > Secrets and variables > Actions. Ver README, secao Testes."
+          falta=""
+          for v in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SERVICE_KEY                    E2E_VET_EMAIL E2E_VET_SENHA E2E_TUTOR_EMAIL E2E_TUTOR_SENHA                    E2E_ADMIN_EMAIL E2E_ADMIN_SENHA E2E_CLINIC_EMAIL E2E_CLINIC_SENHA; do
+            [ -z "${!v}" ] && falta="$falta $v"
+          done
+          if [ -n "$falta" ]; then
+            echo "::error::Faltam secrets do projeto de teste:$falta (Settings > Secrets > Actions, nomes TESTE_*)."
+            echo "::error::Sem eles os testes pulariam; com E2E_EXIGIR_FILA=1 pulo e falha."
             exit 1
           fi
-          echo "Chaves públicas presentes."
-
-      # ⚠️ SEC-074 / R-053 (15/09/2026) — o modo de falha que faltava guardar.
-      # Sem estas duas, `login.spec.ts` não falha: ele PULA, e o job fica verde
-      # com 13 de 15. Os 2 que somem são os únicos que exercitam sessão real,
-      # cookie real, `middleware.ts` real e o isolamento entre painéis — ou
-      # seja, some exatamente a cobertura que justifica a suíte existir, e some
-      # em silêncio. Foi o que aconteceu na execução #2 e ninguém percebeu por
-      # duas semanas: o card da T-003 anotou "conferir se rodaram ou pularam" e
-      # a resposta ficou em aberto até alguém somar 13 + 2.
-      #
-      # `tests/apoio/credenciais.ts` já tinha escrito o diagnóstico ("Pular é
-      # diferente de passar... e não como suíte verde mentindo"). O que faltava
-      # não era saber, era o workflow recusar.
-      #
-      # Por que ERRO e não aviso: aviso em Actions é decoração, e este projeto
-      # já aprendeu isso uma vez na T-014, com o `continue-on-error` do lint.
-      - name: Conferir que a credencial de teste E2E existe
-        run: |
-          if [ -z "$E2E_VET_EMAIL" ] || [ -z "$E2E_VET_SENHA" ]; then
-            echo "::error::Faltam os secrets E2E_VET_EMAIL e/ou E2E_VET_SENHA."
-            echo "::error::Sem eles os 2 testes de login PULAM e o CI fica verde mentindo: 13 de 15."
-            echo "::error::Crie os dois em Settings > Secrets and variables > Actions, com a conta"
-            echo "::error::de teste de role vet criada a mao. Ver README, secao Testes, e o card T-003."
-            exit 1
-          fi
-          echo "Credencial de teste presente: os 15 testes vao rodar."
+          case "$NEXT_PUBLIC_SUPABASE_URL" in
+            https://*.supabase.co) ;;
+            *) echo "::error::TESTE_SUPABASE_URL tem que ser a URL completa: https://<ref>.supabase.co"; exit 1;;
+          esac
+          case "$NEXT_PUBLIC_SUPABASE_URL" in
+            *gdqnnrozbxrtaaquarnd*) echo "::error::RECUSADO: TESTE_SUPABASE_URL e a de PRODUCAO (DL-064)."; exit 1;;
+          esac
+          echo "Alvo: projeto de teste. Secrets presentes."
 
       - name: Build
         run: npm run build
@@ -108,6 +109,7 @@ jobs:
         run: npx playwright test
         env:
           CI: "true"
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TESTE_SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Guardar o relatório quando algo falha
         if: ${{ failure() }}
