@@ -14,8 +14,9 @@
 //   NÃO SERVE para fazer o que o produto deveria fazer. Aprovar, reprovar,
 //          concluir onboarding e subir documento pelo produto são feitos pela
 //          TELA ou pela API com a sessão do usuário. A `service_role` escreve
-//          `profiles.status` num lugar só (`garantirVetFixoNaFila`), e é
-//          preparação: devolver a conta fixa ao estado de partida.
+//          `profiles.status` em dois lugares: `garantirVetFixoNaFila`, que é
+//          preparação (devolver a conta fixa ao estado de partida), e
+//          `suspenderNoLugarDoMaster` (F4), cuja exceção está escrita nela.
 //
 // ⚠️ Nenhuma função daqui imprime chave, senha ou token. As mensagens de erro
 // levam o `code` e a `message` do Supabase, que não carregam segredo.
@@ -408,18 +409,41 @@ async function preparar(credencial: Credencial): Promise<void> {
  * É a matéria-prima do item 3: cada decisão de admin gasta uma conta, porque
  * `pending_validation → active` só acontece uma vez.
  */
-export async function semearVetNaFila(nome: string): Promise<ContaDescartavel> {
+export async function semearVetNaFila(
+  nome: string,
+  // F4 (busca): a conta que vai aparecer na busca precisa de especialidade,
+  // cidade e CRMV próprios, senão todo teste acha todo mundo. Opcional: sem
+  // isto, é a conta de sempre.
+  dados: Partial<typeof VET_FIXO> = {},
+  // O contato PRIVADO (perfil_privado), escrito pelo dono sob RLS, como a
+  // tela faria. Existe para o teste provar que ele NÃO sai no HTML público
+  // (DL-047). Escrito antes da fila: whatsapp não é dado vigiado pela
+  // revalidação (0002 §5), mas assim nem a dúvida existe.
+  privado: { whatsapp?: string; telefone?: string } = {}
+): Promise<ContaDescartavel> {
   const conta = await criarContaDescartavel("vet", nome);
   const { cliente } = await clienteDoUsuario(conta);
 
   const { error: erroVet } = await cliente
     .from("vet_profiles")
-    .upsert({ id: conta.id, ...VET_FIXO, nome_exibicao: nome }, { onConflict: "id" })
+    .upsert({ id: conta.id, ...VET_FIXO, ...dados, nome_exibicao: nome }, { onConflict: "id" })
     .select("id")
     .single();
   if (erroVet) throw new Error(`semearVetNaFila(vet_profiles): ${erroVet.code}: ${erroVet.message}`);
 
   await subirDocumentoDeTeste(conta.id);
+
+  if (privado.whatsapp || privado.telefone) {
+    const { error: erroPrivado } = await cliente
+      .from("perfil_privado")
+      .update({ whatsapp: privado.whatsapp ?? null, telefone: privado.telefone ?? null })
+      .eq("id", conta.id)
+      .select("id")
+      .single();
+    if (erroPrivado) {
+      throw new Error(`semearVetNaFila(perfil_privado): ${erroPrivado.code}: ${erroPrivado.message}`);
+    }
+  }
 
   const { error: erroRpc } = await cliente.rpc("concluir_onboarding_profissional");
   if (erroRpc) throw new Error(`semearVetNaFila(rpc): ${erroRpc.code}: ${erroRpc.message}`);
@@ -430,4 +454,62 @@ export async function semearVetNaFila(nome: string): Promise<ContaDescartavel> {
   }
   await cliente.auth.signOut().catch(() => {});
   return conta;
+}
+
+// ---------------------------------------------------------------------------
+// F4 — BUSCA E PERFIL PÚBLICO (só fazem sentido depois da 0005)
+// ---------------------------------------------------------------------------
+
+/**
+ * Aprova pela RPC `admin_definir_status`, com a sessão do ADMIN DE TESTE
+ * (cliente anon + login, sob RLS), que é exatamente o que a Server Action da
+ * tela faz por baixo. Nenhum `service_role` aqui: a aprovação é do produto.
+ * Depois da 0005, é esta transição que faz o slug nascer (trigger
+ * `trg_profiles_slug_ao_ativar`).
+ */
+export async function aprovarPelaRpc(admin: SupabaseClient, id: string): Promise<void> {
+  const { error } = await admin.rpc("admin_definir_status", {
+    target_user_id: id,
+    novo_status: "active",
+    motivo: null,
+  });
+  if (error) throw new Error(`aprovarPelaRpc: ${error.code}: ${error.message}`);
+  const depois = await lerPerfil(id);
+  if (depois.status !== "active") {
+    throw new Error(`aprovarPelaRpc: a RPC nao reclamou, e o status lido e '${depois.status}'.`);
+  }
+}
+
+/** O slug gravado no banco (leitura com service_role: prova, não atalho). */
+export async function lerSlugDoVet(id: string): Promise<string | null> {
+  const { data, error } = await clienteDeServico()
+    .from("vet_profiles")
+    .select("slug")
+    .eq("id", id)
+    .single<{ slug: string | null }>();
+  if (error) throw new Error(`lerSlugDoVet: ${error.code}: ${error.message}`);
+  return data.slug;
+}
+
+/**
+ * Suspende a conta com `service_role`, NO LUGAR DO MASTER.
+ *
+ * ⚠️ É a segunda escrita de `profiles.status` com `service_role` da suíte, e a
+ * exceção está escrita aqui de propósito. Suspender exige `master` (0004,
+ * SEC-005), e a conta admin de teste é COMUM, por regra (R-033: nunca a do
+ * Elber, nunca master). O que o teste que usa isto prova NÃO é a suspensão
+ * (essa é da tela do master, e não é deste arquivo): é que uma conta que SAI
+ * de `active` some da busca e do perfil na requisição seguinte, sem cache.
+ * Para isso interessa o estado do banco, não quem o escreveu.
+ */
+export async function suspenderNoLugarDoMaster(id: string): Promise<void> {
+  const { error } = await clienteDeServico()
+    .from("profiles")
+    .update({ status: "suspended", status_motivo: "Suspensa pela suite E2E (teste de cache da busca)." })
+    .eq("id", id);
+  if (error) throw new Error(`suspenderNoLugarDoMaster: ${error.code}: ${error.message}`);
+  const depois = await lerPerfil(id);
+  if (depois.status !== "suspended") {
+    throw new Error(`suspenderNoLugarDoMaster: status lido depois do update e '${depois.status}'.`);
+  }
 }
