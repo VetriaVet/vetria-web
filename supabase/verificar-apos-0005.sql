@@ -39,7 +39,11 @@ select * from (
   select 4, 'especialidades: 12', (select count(*) from public.especialidades) = 12,
          (select string_agg(slug, ', ' order by ordem) from public.especialidades)
   union all
-  select 5, 'servicos: 9', (select count(*) from public.servicos) = 9,
+  select 5, 'servicos: 9, com loja-veterinaria e sem pet-shop (DL-070 B)',
+         (select count(*) from public.servicos) = 9
+         and exists (select 1 from public.servicos where nome = 'Loja veterinária' and slug = 'loja-veterinaria')
+         and not exists (select 1 from public.servicos where slug like '%pet%')
+         and not exists (select 1 from public.clinic_profiles where 'Pet shop' = any(servicos)),
          (select string_agg(slug, ', ' order by ordem) from public.servicos)
   union all
   select 6, 'RLS ligada nas 3 tabelas de apoio',

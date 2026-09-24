@@ -252,7 +252,7 @@ _(vazio)_
   - [ ] Pré-voo com as linhas de hoje que não batem com as listas novas (dado de teste de 31/08 e 20/09), e o que se faz com elas decidido antes de aplicar
   - [ ] Auditoria **APROVADA**, backup, aplicação com o Elber, e um `select` por tabela provando o seed
 - **Não fazer:** não construir `/buscar` (S6). Não fazer mapa nem raio (V2). Não trocar Postgres por Typesense/Meilisearch (fora do escopo). Não expor `perfil_privado` em nenhuma view de busca.
-- **Resultado:** 🔵 **SQL ESCRITO e ENSAIADO LOCALMENTE em 23/09/2026, NÃO APLICADO em banco nenhum.** Nada commitado. Falta, nesta ordem: auditoria do `vetria-seguranca` → confirmação do DL-067 (slug) pelo Elber → o roteiro abaixo, começando pelo `vetria-e2e`. Checklist: DL do slug ✅ escrito (DL-067, proposta) · tabelas + seed ✅ escritos (cidades: 5571 do IBGE, seed gerado) · pertença ✅ (trigger contra a tabela) · slug na aprovação + preenchimento ✅ · índices + full-text ✅ · pré-voo ✅ escrito · auditoria, backup e aplicação ⬜. `campos.ts` **continua sendo a fonte da tela** (não "leitura" ainda): a tela só pode ler as tabelas depois da `0005` aplicada, e isso é da S6 (DL-068).
+- **Resultado:** 🔵 **SQL ESCRITO e ENSAIADO LOCALMENTE em 23/09/2026, NÃO APLICADO em banco nenhum.** Nada commitado. Falta, nesta ordem: auditoria do `vetria-seguranca` → confirmação do DL-067 (slug) pelo Elber → o roteiro abaixo, começando pelo `vetria-e2e`. Checklist: DL do slug ✅ escrito (DL-067, proposta) · tabelas + seed ✅ escritos (cidades: 5571 do IBGE, seed gerado) · pertença ✅ (trigger contra a tabela) · slug na aprovação + preenchimento ✅ · índices + full-text ✅ · pré-voo ✅ escrito · auditoria, backup e aplicação ⬜. `campos.ts` **continua sendo a fonte da tela** (não "leitura" ainda): a tela só pode ler as tabelas depois da `0005` aplicada, e isso é da S6 (DL-068). **Adendo 23/09 (DL-070 item B), ainda NÃO aplicado:** o serviço "Pet shop" virou **"Loja veterinária"** (slug `loja-veterinaria`) no seed da `0005`, nos dois `campos.ts`/`ClinicProfileForm.tsx`, no pré-voo e na sonda 1; a `0005` ganhou a §3.1, um `update` idempotente que troca "Pet shop" por "Loja veterinária" nas linhas gravadas **antes** de o trigger de pertença existir (sem ele, essas contas ouviriam 23514 no próximo salvamento). Não devolve ninguém para a fila: `revalidar_ao_mudar_dado_sensivel` (versão da `0003`) não olha `servicos`. O select final continua com 36 linhas. Novo no pré-voo: **C3b** conta as linhas com "Pet shop" (esperado 0 ou contas de teste; anotar aqui). ⚠️ Esta mudança da `0005` também precisa passar pela auditoria.
 
 ## HANDOFF — vetria-backend — T-028 — 23/09/2026
 
@@ -279,7 +279,7 @@ _(vazio)_
 
 **Descobri:**
 1. **O IBGE tem 5571 municípios hoje, não 5570:** Boa Esperança do Norte (MT, código 5101837) foi instalado depois da contagem antiga.
-2. ⚠️ **Nomenclatura:** o slug do serviço "Pet shop" sai `pet-shop`, e a regra legal diz que "pet" não aparece em URL (a exceção vale para o nome do serviço). Decidir antes de a S6 pôr esse slug numa URL; trocar é uma linha de migration. Registrado no DL-068.
+2. ~~**Nomenclatura:** o slug do serviço "Pet shop" sai `pet-shop`.~~ **Resolvido pelo DL-070 item B:** o serviço é "Loja veterinária" (`loja-veterinaria`), trocado na `0005` antes de ela ser aplicada, com o dado gravado renomeado na §3.1.
 3. Em produção, as 3 contas que estavam `active` voltaram para a fila na aplicação da `0004` (SEC-111). Se continuarem na fila, o preenchimento da §5.4 não acha ninguém, e é a aprovação que gera o slug delas (trigger).
 
 **Bloqueios:** auditoria do `vetria-seguranca` (obrigatória) · confirmação do DL-067 pelo Elber.
@@ -292,14 +292,14 @@ _(vazio)_
 ⚠️ **SQL Editor:** rode cada arquivo **inteiro** quando o roteiro disser "inteiro", e **uma consulta ou sonda por vez** quando disser "uma por vez". Os marcadores de bloco entre cifrões são só letras (sem número), como na `0004`.
 
 **(a) `vetria-e2e` primeiro** (conferir o nome do projeto no topo da tela antes de colar cada arquivo):
-1. `prevoo-0005.sql`, uma consulta por vez. Esperado: C1 `12 | 12 | true` e só as 6 policies da `0002`, as `*_own` com `cita slug=true`; C2, C3, C4 e C6 **zero linhas**; C7 `true | true`.
+1. `prevoo-0005.sql`, uma consulta por vez. Esperado: C1 `12 | 12 | true` e só as 6 policies da `0002`, as `*_own` com `cita slug=true`; C2, C3, C4 e C6 **zero linhas**; C3b é um número (quantas contas a §3.1 renomeia de "Pet shop" para "Loja veterinária"); C7 `true | true`.
 2. `migrations/0005_dados_da_busca_e_slug.sql`, **inteiro**. Esperado: todas as linhas do select final `true` (a linha 30 diz "0 municipios": é o lembrete do seed).
 3. `seed-0005-cidades-ibge.sql`, **inteiro** (205 KB; se o editor recusar o tamanho, rode bloco por bloco de UF e o select do fim por último). Esperado: 29 linhas, todas `ok = true`, "5571 de 5571".
-4. `verificar-apos-0005.sql`, **uma sonda por vez**. Esperado: sonda 1, 10 linhas `true`; **sonda 2, todas OK** (27 e 28 podem vir `NAO MEDIDO` se o projeto tiver uma conta vet só); sonda 3, OK em todas (ou vazia); sonda 4, zero linhas; sonda 5, `OK`; sonda 6, informativa. **Qualquer FALHA ou SONDA INVALIDA para aqui: volta para o backend, e a correção volta para a auditoria.**
+4. `verificar-apos-0005.sql`, **uma sonda por vez**. Esperado: sonda 1, 10 linhas `true` (a linha 5 agora também prova `loja-veterinaria` no seed e nenhum "Pet shop" gravado); **sonda 2, todas OK** (27 e 28 podem vir `NAO MEDIDO` se o projeto tiver uma conta vet só); sonda 3, OK em todas (ou vazia); sonda 4, zero linhas; sonda 5, `OK`; sonda 6, informativa. **Qualquer FALHA ou SONDA INVALIDA para aqui: volta para o backend, e a correção volta para a auditoria.**
 5. Rodar a `0005` inteira **de novo**: tudo `true` de novo (prova de que ela é idempotente no Supabase de verdade).
 
 **(b) Produção:**
-1. `prevoo-0005.sql`, uma por vez, **anotando neste card** C0, C2, C3, C4 e C5 (C5 é a lista de quem vai ganhar endereço e a prévia de cada um). Se C2, C3 ou C4 vierem com linha: a `0005` aplica mesmo assim (DL-068 item 2), anote os ids.
+1. `prevoo-0005.sql`, uma por vez, **anotando neste card** C0, C2, C3, C3b, C4 e C5 (C5 é a lista de quem vai ganhar endereço e a prévia de cada um). Se C2, C3 ou C4 vierem com linha: a `0005` aplica mesmo assim (DL-068 item 2), anote os ids.
 2. `backup-antes-da-0005.sql`: query 0 anotada, queries 1 a 3 em CSV para `supabase/backups/` (fora do git), conferir que os arquivos abrem.
 3. `0005`, **inteira**. Esperado: tudo `true`. Se o pré-voo parar, nada foi aplicado: leia a mensagem, não force.
 4. Seed, **inteiro**. Esperado: 29/29 `ok`.

@@ -31,8 +31,10 @@
 --   · NÃO obriga `cidade` a estar na lista do IBGE. O texto livre continua
 --     aceito; a busca casa cidade por chave normalizada (DL-068). Obrigar hoje
 --     quebraria o formulário, que é texto livre.
---   · NÃO corrige dado de usuário, com UMA exceção deliberada: preenche o
---     `slug` (que está nulo) das contas `active`. É o que o R-065 pede.
+--   · NÃO corrige dado de usuário, com DUAS exceções deliberadas: preenche o
+--     `slug` (que está nulo) das contas `active`, que é o que o R-065 pede; e
+--     troca o serviço "Pet shop" por "Loja veterinária" onde ele estiver
+--     gravado (§3.1, DL-070 item B, nomenclatura legal).
 --   · NÃO cria view nem função de busca: é a S6. E nada daqui lê `perfil_privado`.
 --
 -- ⚠️  ANTES DE RODAR, NESTA ORDEM (o roteiro completo está no card T-028):
@@ -305,7 +307,7 @@ comment on function public.juntar_textos(text[]) is
 -- formulário grava hoje em `vet_profiles.especialidades` e
 -- `clinic_profiles.servicos` ("Clínica geral", "Banho & tosa"). A tabela
 -- adota o dado que já existe, em vez de pedir uma migração de dado: nenhuma
--- linha de perfil muda. O `slug` é para a URL da busca (`?especialidade=
+-- linha de perfil muda (exceção: o renome da §3.1). O `slug` é para a URL da busca (`?especialidade=
 -- clinica-geral`), e o `ordem` é a ordem em que a tela mostra.
 --
 -- ⚠️ O SEED É CÓPIA DE `ESPECIALIDADES` e `SERVICOS` dos `campos.ts`, na mesma
@@ -407,10 +409,31 @@ insert into public.servicos (nome, slug, ordem)
 select nome, public.slugificar(nome), ordem
 from (values
   ('Emergência 24h', 1), ('Internação', 2), ('Centro cirúrgico', 3), ('Laboratório', 4),
-  ('Diagnóstico por imagem', 5), ('Vacinação', 6), ('Banho & tosa', 7), ('Pet shop', 8),
+  ('Diagnóstico por imagem', 5), ('Vacinação', 6), ('Banho & tosa', 7), ('Loja veterinária', 8),
   ('Farmácia', 9)
 ) as s(nome, ordem)
 on conflict (nome) do nothing;
+
+-- 3.1 — DL-070 item B: "Pet shop" virou "Loja veterinária" (slug
+-- `loja-veterinaria`) pela nomenclatura legal, ANTES de a 0005 ser aplicada.
+-- O formulário gravava "Pet shop" até este commit, então pode haver linha com
+-- ele (conta de teste; o pré-voo, consulta 3b, conta quantas). Sem esta troca,
+-- a linha ficaria fora da lista e a dona ouviria 23514 no próximo salvamento
+-- dos serviços (seção 4). Por isso roda AQUI, antes do trigger existir.
+-- Idempotente: só toca linha que ainda tem "Pet shop"; rodar de novo não acha
+-- nada. Se a linha já tiver os dois (não deveria), só remove "Pet shop", para
+-- não gravar item repetido.
+-- Efeitos colaterais conhecidos: `updated_at` vira a hora da migration
+-- (trigger da 0002) e a coluna `busca` (seção 6) já nasce com o nome novo.
+-- NÃO devolve ninguém para a fila: `revalidar_ao_mudar_dado_sensivel` (versão
+-- da 0003, a vigente) não olha `servicos` em `clinic_profiles`, só
+-- nome_fantasia, endereco, cep, cidade e estado.
+update public.clinic_profiles
+set servicos = case
+      when 'Loja veterinária' = any(servicos) then array_remove(servicos, 'Pet shop')
+      else array_replace(servicos, 'Pet shop', 'Loja veterinária')
+    end
+where 'Pet shop' = any(servicos);
 
 
 -- ============================================================================
@@ -643,7 +666,8 @@ create or replace trigger trg_profiles_slug_ao_ativar
 
 -- 5.4 — ⚠️ R-065: E O QUE JÁ ESTÁ GRAVADO? As contas que já são `active` hoje
 -- ganham o slug agora, da mais antiga para a mais nova (a primeira fica com o
--- endereço sem sufixo). Único dado de usuário que esta migration escreve.
+-- endereço sem sufixo). Com o renome da §3.1, é o dado de usuário que esta
+-- migration escreve.
 -- Efeito colateral conhecido: o `updated_at` dessas linhas vira a hora da
 -- migration (trigger da 0002). Nenhuma revalidação dispara: o slug não é
 -- dado vigiado pelo `revalidar_ao_mudar_dado_sensivel`.
@@ -804,7 +828,7 @@ select * from (
   select 11, 'seed: servicos = a lista do campos.ts, na ordem',
          (select array_agg(nome order by ordem) from public.servicos)
            = array['Emergência 24h','Internação','Centro cirúrgico','Laboratório',
-                   'Diagnóstico por imagem','Vacinação','Banho & tosa','Pet shop','Farmácia'],
+                   'Diagnóstico por imagem','Vacinação','Banho & tosa','Loja veterinária','Farmácia'],
          (select count(*)::text || ' itens' from public.servicos)
 
   union all
