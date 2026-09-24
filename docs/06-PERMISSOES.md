@@ -83,6 +83,8 @@
 | Documento no Storage | **só o dono e admin/master**, por URL assinada de vida curta | o dono, e o caminho tem que começar com o próprio uuid |
 | `contatos` | o responsável que originou, o profissional que recebeu, admin, master | o servidor (nunca o cliente direto) |
 | `audit_logs` | **só master** | só o servidor |
+| `vet_profiles.slug` / `clinic_profiles.slug` (o endereço público) | como a linha do perfil | **só o servidor**, quando a conta passa a `active` (DL-067). Nunca o dono (SEC-008). Troca manual só pelo master, no SQL Editor. _Escrito na `0005`, não aplicado._ |
+| `especialidades`, `servicos`, `cidades` (listas da busca) | **todos**, logado ou não | **só migration**. Ninguém escreve pelo app, nem admin (DL-068). _Escrito na `0005`, não aplicado._ |
 
 **Regras que não se negociam:**
 

@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { destinoDoErroDoLink } from "@/lib/auth/erros";
+import { caminhoInternoSeguro } from "@/lib/auth/link-do-email";
 
+// T-036: os links de email (confirmação e recuperação) passam a ir para o
+// /auth/confirm, que verifica o `token_hash` no servidor e funciona em qualquer
+// navegador. Esta rota continua existindo por dois motivos: o Google OAuth
+// (code + PKCE, sempre no mesmo navegador) e os links antigos
+// (`{{ .ConfirmationURL }}`) que já estavam na caixa de entrada de alguém no
+// dia da troca dos templates.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -71,9 +78,12 @@ export async function GET(request: NextRequest) {
 
   // next interno (ex.: /recuperar-senha/nova) tem prioridade. Valida que é
   // caminho relativo seguro (evita open redirect).
-  if (next && next.startsWith("/") && !next.startsWith("//")) {
-    console.log("[auth/callback] success → next", { userId: user.id, next });
-    return NextResponse.redirect(`${origin}${next}`);
+  // A regra é a de `lib/auth/link-do-email.ts`, a mesma do /auth/confirm
+  // (T-036): além de `//`, recusa barra invertida e caractere de controle.
+  const nextSeguro = caminhoInternoSeguro(next);
+  if (nextSeguro) {
+    console.log("[auth/callback] success → next", { userId: user.id, next: nextSeguro });
+    return NextResponse.redirect(`${origin}${nextSeguro}`);
   }
 
   console.log("[auth/callback] success", {

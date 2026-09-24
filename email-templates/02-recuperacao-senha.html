@@ -59,13 +59,13 @@
           <tr>
             <td class="px" align="left" style="padding:12px 48px 8px 48px;">
               <!--[if mso]>
-              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ .ConfirmationURL }}" style="height:52px;v-text-anchor:middle;width:240px;" arcsize="50%" strokecolor="#1E4349" fillcolor="#1E4349">
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/recuperar-senha/nova" style="height:52px;v-text-anchor:middle;width:240px;" arcsize="50%" strokecolor="#1E4349" fillcolor="#1E4349">
                 <w:anchorlock/>
                 <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;">Criar nova senha</center>
               </v:roundrect>
               <![endif]-->
               <!--[if !mso]><!-- -->
-              <a class="btn-a" href="{{ .ConfirmationURL }}" target="_blank" style="background-color:#1E4349; border-radius:999px; color:#FFFFFF; display:inline-block; font-family:'Inter',Arial,Helvetica,sans-serif; font-size:15px; font-weight:600; line-height:52px; text-align:center; text-decoration:none; width:240px; -webkit-text-size-adjust:none;">Criar nova senha</a>
+              <a class="btn-a" href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/recuperar-senha/nova" target="_blank" style="background-color:#1E4349; border-radius:999px; color:#FFFFFF; display:inline-block; font-family:'Inter',Arial,Helvetica,sans-serif; font-size:15px; font-weight:600; line-height:52px; text-align:center; text-decoration:none; width:240px; -webkit-text-size-adjust:none;">Criar nova senha</a>
               <!--<![endif]-->
             </td>
           </tr>
@@ -76,7 +76,7 @@
                 Se o botão não funcionar, copie e cole este endereço no navegador:
               </p>
               <p style="margin:0; font-family:'Inter',Arial,Helvetica,sans-serif; font-size:14px; line-height:22px; word-break:break-all;">
-                <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#1E4349; text-decoration:underline;">{{ .ConfirmationURL }}</a>
+                <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/recuperar-senha/nova" target="_blank" style="color:#1E4349; text-decoration:underline;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/recuperar-senha/nova</a>
               </p>
             </td>
           </tr>
@@ -105,7 +105,7 @@
                   <td class="px" align="center" style="padding:32px 48px;">
                     <img src="https://vetriabrasil.com.br/vetria/logo-email.png" width="132" alt="Vetria" style="display:inline-block; border:0; outline:none; text-decoration:none; height:auto; margin:0 0 10px 0;">
                     <p style="margin:0 0 14px 0; font-family:'Inter',Arial,Helvetica,sans-serif; font-size:14px; line-height:20px; color:#4A6064;">
-                      Veterinários e clínicas de confiança.
+                      Veterinários e estabelecimentos veterinários de confiança.
                     </p>
                     <p style="margin:0 0 14px 0; font-family:'Inter',Arial,Helvetica,sans-serif; font-size:14px; line-height:20px; color:#4A6064;">
                       <a href="mailto:contato@vetriabrasil.com.br" style="color:#1E4349; text-decoration:none;">contato@vetriabrasil.com.br</a>

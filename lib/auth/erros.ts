@@ -116,37 +116,56 @@ export const AVISO_LINK_RECUPERACAO =
 
 /**
  * Quando o link do email falha na verificação (expirado, já usado, consumido
- * pela pré-visualização do email), o Supabase NÃO chega a mandar um `code`:
- * redireciona para o redirectTo (ou, se ele não estiver na lista de Redirect
- * URLs, para o Site URL, que é a home) com `?error=...&error_code=...`.
- * Esta função decide para onde levar a pessoa. `null` = não há erro do
- * Supabase na query, siga o fluxo normal.
+ * pela pré-visualização do email), a pessoa precisa cair numa tela que diga o
+ * que aconteceu e o que fazer. Esta função decide qual. `null` = não há erro
+ * na query, siga o fluxo normal.
  *
- * `emFluxoDeSenha` = sabemos que o link era de recuperação (callback com
- * next=/recuperar-senha/...). Na home não dá pra saber qual email era; mesmo
- * assim otp_expired/access_denied vão para /recuperar-senha, porque um link
- * de recuperação novo também confirma o email de quem não confirmou.
+ * Quem chama:
+ * - a home e o /auth/callback, com o `?error=...&error_code=...` que o Supabase
+ *   manda quando o link antigo (`{{ .ConfirmationURL }}`) falha;
+ * - o /auth/confirm (T-036), quando o `verifyOtp` recusa o `token_hash`.
+ *
+ * `fluxo` diz de que link se trata:
+ * - `"senha"` (ou `true`, compatível com quem já chamava assim): recuperação
+ *   de senha. Vai para /recuperar-senha, que pede outro link.
+ * - `"confirmacao"`: confirmação de cadastro. Vai para /login com mensagem
+ *   própria: se o link foi gasto por um antivírus do email, o email JÁ está
+ *   confirmado e a pessoa entra com a senha; se venceu mesmo, a mensagem diz
+ *   como receber outro.
+ * - `"outro"`: troca de email e o que mais houver. Vai para /login com o aviso
+ *   genérico de link vencido.
+ * - `"desconhecido"` (ou `false`, o padrão): não sabemos qual email era (a
+ *   home). otp_expired/access_denied vão para /recuperar-senha, porque um link
+ *   de recuperação novo também confirma o email de quem não confirmou.
  */
 export function destinoDoErroDoLink(
   params: { error?: string | null; error_code?: string | null },
-  emFluxoDeSenha = false
+  fluxo: boolean | "senha" | "confirmacao" | "outro" | "desconhecido" = "desconhecido"
 ): string | null {
   const { error, error_code } = params;
   if (!error && !error_code) return null;
+  const qual =
+    fluxo === true ? "senha" : fluxo === false ? "desconhecido" : fluxo;
+  if (qual === "senha") return "/recuperar-senha?erro=link_expirado";
+  if (qual === "confirmacao") return "/login?msg=confirmacao_expirada";
+  if (qual === "outro") return "/login?msg=auth_error";
   const linkVencido =
     error_code === "otp_expired" ||
     error_code === "flow_state_expired" ||
     error_code === "flow_state_not_found" ||
     error === "access_denied";
-  if (linkVencido || emFluxoDeSenha) {
-    return "/recuperar-senha?erro=link_expirado";
-  }
+  if (linkVencido) return "/recuperar-senha?erro=link_expirado";
   return "/login?msg=auth_error";
 }
 
-/** Códigos que o /auth/callback coloca em /login?msg=... */
+/** Link de confirmação de cadastro vencido ou já usado (T-036). */
+const CONFIRMACAO_EXPIRADA =
+  "Este link de confirmação expirou ou já foi usado. Tente entrar com seu email e senha: se o email já estiver confirmado, você entra normalmente. Se aparecer o aviso de email não confirmado, faça o cadastro de novo com o mesmo email para receber um link novo.";
+
+/** Códigos que o /auth/callback e o /auth/confirm colocam em /login?msg=... */
 export function traduzirMsgDoCallback(msg: string | null): string | null {
   if (msg === "auth_error") return LINK_EXPIRADO;
+  if (msg === "confirmacao_expirada") return CONFIRMACAO_EXPIRADA;
   if (msg === "missing_code")
     return "O link está incompleto. Abra de novo o link do email ou entre com sua senha.";
   return null;
