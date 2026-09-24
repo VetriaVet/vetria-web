@@ -78,9 +78,8 @@ export default async function PerfilDoVeterinarioPage({ params }: Props) {
       detalhes={
         <>
           {local && <Detalhe icone={<MapPin size={16} />}>{local}</Detalhe>}
-          {/* ⚠️ DECISÃO PENDENTE (Elber): mostrar o CRMV no perfil público.
-              É o registro público do conselho; aqui só UF e número, sem
-              selo de "verificado". */}
+          {/* CRMV no perfil público: decidido no DL-070. É o registro público
+              do conselho; aqui só UF e número. O selo fica na moldura. */}
           {p.crmv && (
             <Detalhe icone={<IdCard size={16} />}>
               CRMV-{p.crmv.uf} {p.crmv.numero}

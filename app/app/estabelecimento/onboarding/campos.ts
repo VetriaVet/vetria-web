@@ -54,7 +54,7 @@ export const ESTADOS: Opcao[] = UFS.map((uf) => ({ value: uf, label: uf }));
 
 export const SERVICOS = [
   "Emergência 24h", "Internação", "Centro cirúrgico", "Laboratório",
-  "Diagnóstico por imagem", "Vacinação", "Banho & tosa", "Pet shop", "Farmácia",
+  "Diagnóstico por imagem", "Vacinação", "Banho & tosa", "Loja veterinária", "Farmácia",
 ] as const;
 
 // Teto do array, aplicado ANTES de qualquer varredura (mesma correção SEC-058

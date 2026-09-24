@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, Building2, MapPin, Stethoscope } from "lucide-react";
+import { ArrowRight, BadgeCheck, Building2, MapPin, Stethoscope } from "lucide-react";
 import type { Cartao } from "@/lib/busca/tipos";
 import { ATENDIMENTO, iniciais, juntarLocal, modosLigados } from "./atendimento";
 
 // O cartão da lista de /buscar. Desenha SÓ o que `lib/busca` devolve: sem
-// foto (não existe coluna), sem nota, sem preço, sem "verificado" (é decisão
-// de produto, não de tela). Nome nulo não vira nome inventado: vira
+// foto (não existe coluna), sem nota, sem preço. O "Verificado" (DL-070) vale
+// para todo cartão: a busca só devolve conta `active`, e só é `active` quem
+// passou pela validação. A explicação completa fica no perfil. Nome nulo não vira nome inventado: vira
 // "Nome não informado", dito como tal.
 
 const MAX_ETIQUETAS = 3;
@@ -29,7 +30,14 @@ export function CartaoDeProfissional({ cartao }: { cartao: Cartao }) {
       <div className="flex items-start gap-3.5">
         <Avatar tipo={cartao.tipo} nome={cartao.nome} tamanho="md" />
         <div className="min-w-0 flex-1">
-          <p className="text-[12px] font-medium text-principal">{tipoPorExtenso}</p>
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] font-medium text-principal">
+            <span>{tipoPorExtenso}</span>
+            <span className="inline-flex items-center gap-1 text-corpo-texto">
+              <BadgeCheck size={13} className="text-principal" aria-hidden />
+              Verificado
+              <span className="sr-only"> pela Vetria</span>
+            </span>
+          </p>
           <h3
             className={`mt-0.5 break-words text-[16px] leading-snug ${
               cartao.nome ? "text-titulo" : "font-medium text-corpo-texto"

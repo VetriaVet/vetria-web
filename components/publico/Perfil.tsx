@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowLeft, CircleAlert, MessageCircle, RotateCw, SearchX } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CircleAlert, MessageCircle, RotateCw, SearchX } from "lucide-react";
 import { CONTATO_PELO_SITE_ABERTO } from "@/lib/perfil-publico/contato";
 import { Avatar } from "./CartaoDeProfissional";
 import { CascaPublica, classeDoLinkPrincipal, classeDoLinkSecundario } from "./CascaPublica";
@@ -12,6 +12,15 @@ import { CascaPublica, classeDoLinkPrincipal, classeDoLinkSecundario } from "./C
 // ⚠️ Nada de telefone nem WhatsApp em lugar nenhum daqui (DL-047). O bloco de
 // contato só conhece o texto; o número, quando existir, vem do servidor no
 // clique (S8).
+
+// Selo "Verificado pela Vetria" (DL-070). Vale para TODO perfil que aparece:
+// a RLS só devolve conta `active`, e só chega a `active` quem passou pela
+// validação (CRMV do vet; CNPJ e documento do estabelecimento). O texto diz
+// exatamente isso e nada além: não promete nada sobre o atendimento.
+const O_QUE_A_VETRIA_CONFERIU: Record<"vet" | "clinic", string> = {
+  vet: "A equipe Vetria conferiu o registro profissional (CRMV) deste veterinário antes de colocar o perfil no ar.",
+  clinic: "A equipe Vetria conferiu o CNPJ e o documento deste estabelecimento antes de colocar o perfil no ar.",
+};
 
 const linkDeVolta =
   "inline-flex items-center gap-1.5 rounded-sm text-[13px] font-medium text-corpo-texto no-underline transition hover:text-principal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-principal/40";
@@ -44,9 +53,18 @@ export function MolduraDoPerfil({
           <div className="mt-6 flex flex-col items-start gap-5 sm:flex-row sm:items-center">
             <Avatar tipo={tipo} nome={nome} tamanho="lg" />
             <div className="min-w-0">
-              <p className="inline-flex rounded-pill bg-white px-3 py-1 text-[12px] font-medium text-principal shadow-sm">
-                {tipo === "vet" ? "Veterinário" : "Estabelecimento veterinário"}
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="inline-flex rounded-pill bg-white px-3 py-1 text-[12px] font-medium text-principal shadow-sm">
+                  {tipo === "vet" ? "Veterinário" : "Estabelecimento veterinário"}
+                </p>
+                <p
+                  aria-describedby="selo-verificado-explicacao"
+                  className="inline-flex items-center gap-1.5 rounded-pill bg-principal px-3 py-1 text-[12px] font-medium text-white"
+                >
+                  <BadgeCheck size={14} aria-hidden />
+                  Verificado pela Vetria
+                </p>
+              </div>
               <h1
                 className={`mt-2.5 break-words text-[28px] leading-tight tracking-tight sm:text-[36px] ${
                   nome ? "text-titulo" : "text-corpo-texto"
@@ -58,6 +76,12 @@ export function MolduraDoPerfil({
               <div className="mt-3 flex flex-col gap-2 text-[14px] text-corpo-texto sm:flex-row sm:flex-wrap sm:gap-x-5">
                 {detalhes}
               </div>
+              <p
+                id="selo-verificado-explicacao"
+                className="mt-3 max-w-xl text-[13px] leading-relaxed text-corpo-texto"
+              >
+                {O_QUE_A_VETRIA_CONFERIU[tipo]}
+              </p>
             </div>
           </div>
         </div>

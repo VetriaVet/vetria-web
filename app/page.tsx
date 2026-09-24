@@ -534,10 +534,11 @@ function PublicFooter() {
             <input
               disabled
               type="email"
+              aria-label="Seu e-mail"
               placeholder="Digite seu e-mail"
-              className="flex-1 rounded-pill border border-white/15 bg-white/5 px-4 py-2.5 text-[14px] text-white outline-none placeholder:text-white/40 disabled:cursor-not-allowed"
+              className="min-w-0 flex-1 rounded-pill border border-white/15 bg-white/5 px-4 py-2.5 text-[14px] text-white outline-none placeholder:text-white/40 disabled:cursor-not-allowed"
             />
-            <span className="inline-flex items-center gap-2 rounded-pill bg-white/40 px-5 py-2.5 text-[13px] font-semibold text-principal">
+            <span className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-white/40 px-5 py-2.5 text-[13px] font-semibold text-principal">
               Cadastrar
             </span>
           </div>
