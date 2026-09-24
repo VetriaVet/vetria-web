@@ -71,9 +71,9 @@ const SPRINTS: Sprint[] = [
       "A Vetria deixa de ser um sistema com login e ganha a cara de um marketplace real. Todas as telas navegáveis, prontas para receber os dados.",
   },
   {
-    num: "Fase 3 · encerrada em 23 de setembro · 5 de 6 metas comprovadas",
+    num: "Fase 3 · concluída em 23 de setembro · 6 de 6 metas comprovadas",
     title: "O produto passa a guardar dados",
-    status: "doing",
+    status: "done",
     goal: "Sair da casca. Tudo o que o profissional preenche passa a ser guardado, e a equipe Vetria passa a validar de verdade quem entra na plataforma.",
     items: [
       { label: "Estrutura de dados dos perfis profissionais", status: "done" },
@@ -84,9 +84,8 @@ const SPRINTS: Sprint[] = [
       { label: "Fila de validação real no painel da equipe Vetria", status: "done" },
       { label: "Aprovação e reprovação com motivo, com aviso por email", status: "done" },
       { label: "Isolamento reforçado entre os painéis", status: "done" },
-      { label: "Testes automáticos dos fluxos críticos (dois de quatro já automatizados)", status: "doing" },
+      { label: "Testes automáticos dos fluxos críticos (cadastro, espera, aprovação e isolamento), 70 testes a cada publicação", status: "done" },
     ],
-    warn: "Falta automatizar o teste de dois fluxos: o cadastro completo e a aprovação. Os dois já foram conferidos à mão, em tela, com contas reais. Previsão: 6 de outubro.",
     result:
       "O profissional se cadastra, envia o documento, é aprovado por uma pessoa da equipe e recebe o aviso por email. A plataforma passou a ter dados reais.",
   },
@@ -97,10 +96,10 @@ const SPRINTS: Sprint[] = [
     goal: "O momento em que a Vetria começa a girar: o responsável encontra o profissional certo e fala com ele.",
     items: [
       { label: "Listas de especialidades, cidades e serviços, e um endereço próprio para cada perfil", status: "doing" },
-      { label: "Busca por cidade, especialidade e tipo de atendimento", status: "todo" },
+      { label: "Busca por cidade, especialidade e tipo de atendimento (tela pronta, liga com os dados)", status: "doing" },
       { label: "Só profissionais validados aparecem na busca (a regra já vale dentro do banco de dados; falta a tela de busca)", status: "doing" },
-      { label: "Página pública do veterinário", status: "todo" },
-      { label: "Página pública do estabelecimento", status: "todo" },
+      { label: "Página pública do veterinário (tela pronta, liga com os dados)", status: "doing" },
+      { label: "Página pública do estabelecimento (tela pronta, liga com os dados)", status: "doing" },
       { label: "Prévia do perfil público para o próprio profissional", status: "todo" },
       { label: "Páginas preparadas para o Google encontrar", status: "todo" },
       { label: "Contato direto por WhatsApp", status: "todo" },
