@@ -883,7 +883,27 @@ digitação vira cidade que não existe); Typesense/Meilisearch (fora do escopo,
 **Implicações:** acrescentar especialidade ou serviço é migration (🔴) **mais** a linha no `campos.ts`, no mesmo commit; se só o
 `campos.ts` crescer, a pessoa escolhe o item novo e o banco recusa. Os `campos.ts` continuam sendo a fonte da **tela** até a S6 ler
 as tabelas, o que só pode acontecer depois da `0005` aplicada (ler antes quebraria a tela em produção). A S6 normaliza o termo com
-`sem_acento()` antes do `plainto_tsquery('portuguese', ...)`. ⚠️ **Pendente de nomenclatura (memória de nomenclatura legal):** o
-slug do serviço "Pet shop" sai `pet-shop`, e a regra diz que "pet" não aparece em URL; "Pet shop" é exceção só como nome de serviço.
-Decidir antes de a S6 pôr esse slug numa URL (trocar é um `update` de uma linha numa migration).
+`sem_acento()` antes do `plainto_tsquery('portuguese', ...)`. **Nomenclatura (resolvida pelo DL-070 item B):** o serviço "Pet shop"
+virou "Loja veterinária" (`loja-veterinaria`) no seed da `0005`, antes de ela ser aplicada, junto dos `campos.ts`; o dado já gravado
+é renomeado pela §3.1 da `0005`, antes do trigger de pertença.
 **Status:** 🟡 escrita na `0005` · ⬜ aplicada
+
+### DL-069 — A F3 fecha em 6 de 6: o item 5 (E2E no CI) foi medido em 23/09
+**Data:** 23/09/2026 · **Fase:** F3 · **Revisa:** DL-062 (que fechou em 5 de 6 com previsão 06/10)
+**Fato medido:** com o CI no projeto de teste (DL-064, T-029) e `E2E_EXIGIR_FILA=1` (pulo vira falha), o CI #22 da
+PR #4 rodou **70 testes, 70 aprovados, 0 pulados**, incluindo os fluxos que faltavam: cadastro com conta nova e
+persistência (item 1) e aprovação/reprovação pelo admin (item 3), em `tests/e2e/fluxos-conta-nova.spec.ts`.
+**Decisão:** o item 5 do DoD da F3 está fechado por medição, e a F3 passa a "concluída, 6 de 6". O roadmap público
+muda no mesmo commit.
+
+### DL-070 — As decisões A a F da busca e do perfil público (o Elber: "de acordo com tudo")
+**Data:** 23/09/2026 · **Fase:** F4 · **Quem decidiu:** o Elber, sobre a recomendação da sessão.
+- **A** — DL-067 confirmado: slug `nome-cidade-uf`, estável (mudar o nome não muda o endereço).
+- **B** — o serviço "Pet shop" vira **"Loja veterinária"** (slug `loja-veterinaria`), pela nomenclatura legal. Entra
+  na 0005 **antes de ela ser aplicada**, junto dos `campos.ts` e do dado já gravado.
+- **C** — o CRMV (UF + número) aparece no perfil público: é registro público do conselho e passa confiança.
+- **D** — a busca ordena por nome por enquanto; relevância fica para uma função de busca (S6+).
+- **E** — fecha o R-032 para o estabelecimento: **endereço e CEP do estabelecimento são públicos por desenho**
+  (endereço comercial, necessário para o responsável chegar e para o mapa). **Do veterinário, só o bairro**, nunca o
+  endereço. Os comentários do código passam a dizer que a omissão na tela é só de apresentação (SEC-117).
+- **F** — o perfil público ganha o selo **"Verificado pela Vetria"**: todo perfil visível passou pela validação.

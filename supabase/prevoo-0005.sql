@@ -86,14 +86,31 @@ order by v.id;
 -- CONSULTA 3 — serviços gravados FORA da lista nova
 -- ############################################################
 -- Mesma leitura da consulta 2. Esperado: ZERO linhas.
+-- "Pet shop" NÃO aparece aqui de propósito: ele sai da lista (DL-070 item B),
+-- mas a própria 0005 o troca por "Loja veterinária" antes do trigger (§3.1).
+-- Quem tem "Pet shop" é contado na consulta 3b.
 select c.id, p.role, p.status, item as servico_fora_da_lista
 from public.clinic_profiles c
 join public.profiles p on p.id = c.id
 cross join lateral unnest(c.servicos) as item
 where item is null or item not in (
   'Emergência 24h', 'Internação', 'Centro cirúrgico', 'Laboratório', 'Diagnóstico por imagem',
-  'Vacinação', 'Banho & tosa', 'Pet shop', 'Farmácia')
+  'Vacinação', 'Banho & tosa', 'Loja veterinária', 'Pet shop', 'Farmácia')
 order by c.id;
+
+
+-- ############################################################
+-- CONSULTA 3b — quantas contas a §3.1 da 0005 vai renomear ("Pet shop")
+-- ############################################################
+-- DL-070 item B. Esperado: 0, ou poucas contas de teste. É quantas linhas o
+-- `update` da §3.1 toca (troca por "Loja veterinária"; `updated_at` muda,
+-- ninguém volta para a fila). Anote o número e os ids no card.
+select
+  count(*)                                                     as linhas_com_pet_shop,
+  string_agg(c.id::text || ' (' || p.status || ')', ', ')      as quais
+from public.clinic_profiles c
+join public.profiles p on p.id = c.id
+where 'Pet shop' = any(c.servicos);
 
 
 -- ############################################################

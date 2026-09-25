@@ -4,6 +4,28 @@
 > com prazo de validade. O estado completo está em [`docs/02-ESTADO.md`](docs/02-ESTADO.md), a fila em
 > [`docs/03-TAREFAS.md`](docs/03-TAREFAS.md), o protocolo em [`HANDOFF.md`](HANDOFF.md).
 
+## ▶️ AMANHÃ, 24/09/2026: comece por aqui
+
+**Em produção desde 23/09:** T-023, T-024, T-025, T-027 (migration 0004 aplicada), T-034 (senha), T-035
+(máscaras), o conserto do link de senha vencido, T-036 (rota do link por `token_hash` no ar, **templates ainda
+não trocados**) e a 0005 como arquivo (**não aplicada**). O CI roda no `vetria-e2e` (DL-064) e é obrigatório na
+`main` (ruleset): **tudo entra por PR**; `git push` direto na `main` é recusado.
+
+**Sequência (no PC, ~40 min):**
+1. **Trocar os 3 templates de email** no Supabase (`Vetria Brasil` → Authentication → Emails → Templates) com
+   `email-templates/01`, `02` e `03` (assuntos e links no `email-templates/README.md`). Testar: pedir recuperação
+   no PC, abrir no celular, Continuar, trocar a senha.
+2. **Aplicar a 0005**, primeiro no `vetria-e2e`, depois em produção, pelo roteiro do card T-028 (pré-voo, backup,
+   0005, seed de cidades, verificar uma sonda por vez).
+3. **Merge da PR `f4-busca-e-perfil-publico`** e conferir `/buscar` e um perfil aprovado.
+
+**Decisões pendentes (recomendação):** A endereço `nome-cidade-uf` estável (sim) · B "Pet shop" no endereço
+(`loja-veterinaria`) · C CRMV no perfil público (sim) · D ordem alfabética por ora (sim) · E endereço do
+estabelecimento público, do vet só bairro (sim) · F selo "Verificado pela Vetria" (sim).
+
+**A registrar em riscos:** SEC-112 a SEC-119 (relatórios de 23/09); possível bug de "pausar e voltar" do
+onboarding (QA); botão da newsletter estourando 22px em 360px (UI); projeto grátis do Supabase pausa após 7 dias.
+
 ## Onde estamos
 
 - **A F3 encerrou em 23/09 com 5 de 6, e não se chama "concluída"** (DL-062). O item 3 (admin aprova,
