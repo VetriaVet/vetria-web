@@ -71,7 +71,7 @@ order by ordem;
 
 
 -- ####### SONDA 2 — cada regra nova, com controle positivo ##################
--- Esperado: TODAS as linhas com `veredito` = OK (58 linhas).
+-- Esperado: TODAS as linhas com `veredito` = OK (59 linhas).
 -- Os limites (21 a 25) contam profissionais DISTINTOS: a sonda planta
 -- contatos antigos apontando para outras contas (4 para o limite curto, 5
 -- para a janela, 20 para o limite de 24 h). Se o banco não tiver 20 outras
@@ -96,7 +96,7 @@ order by ordem;
 --           sem_whatsapp; logado; consigo mesmo; anon_id obrigatório
 --   21-25   D3: os limites, e a janela de 10 min
 --   30-38   R-074: quem lê quais colunas de contatos
---   40-44   D10: o vínculo na criação de conta
+--   40-45   D10: o vínculo na criação de conta (a data vem de auth.users)
 --   50-55   R-076 / D11: a linha anonimizada
 --   60-68   SEC-115: o slug só muda pelo gerador e pelo master
 --   70      SEC-116: aprovação sem linha de perfil falha
@@ -251,23 +251,28 @@ declare
     -- ------------------------------------------------ D10: vínculo
     ['40', 'D10: conta de responsavel recem-criada vincula os contatos dos ultimos 30 dias',
            'service', '',
-           $c$update public.profiles set created_at = now() - interval '1 minute' where id = '%TUTOR%'; insert into public.contatos (profissional_id, anon_id, created_at) values ('%VET%', 'a0000000-0000-4000-8000-000000000040', now() - interval '3 days'), ('%CLINIC%', 'a0000000-0000-4000-8000-000000000040', now() - interval '29 days'), ('%VET%', 'a0000000-0000-4000-8000-000000000040', now() - interval '40 days')$c$,
+           $c$update auth.users set created_at = now() - interval '1 minute' where id = '%TUTOR%'; insert into public.contatos (profissional_id, anon_id, created_at) values ('%VET%', 'a0000000-0000-4000-8000-000000000040', now() - interval '3 days'), ('%CLINIC%', 'a0000000-0000-4000-8000-000000000040', now() - interval '29 days'), ('%VET%', 'a0000000-0000-4000-8000-000000000040', now() - interval '40 days')$c$,
            $c$select public.vincular_contatos_do_visitante('%TUTOR%', 'a0000000-0000-4000-8000-000000000040')::bigint$c$, 'linhas=2', '0'],
     ['41', 'D10: o de 40 dias ficou sem vinculo',
            'dono', '', '',
            $c$select count(*) from public.contatos where anon_id = 'a0000000-0000-4000-8000-000000000040' and user_id is null and created_at < now() - interval '30 days'$c$, 'linhas=1', '0'],
     ['42', 'D10: conta de responsavel ANTIGA nao vincula nada (login nao e criacao)',
            'service', '',
-           $c$update public.profiles set created_at = now() - interval '2 days' where id = '%TUTOR%'; insert into public.contatos (profissional_id, anon_id) values ('%CLINIC%', 'a0000000-0000-4000-8000-000000000042')$c$,
+           $c$update auth.users set created_at = now() - interval '2 days' where id = '%TUTOR%'; insert into public.contatos (profissional_id, anon_id) values ('%CLINIC%', 'a0000000-0000-4000-8000-000000000042')$c$,
            $c$select public.vincular_contatos_do_visitante('%TUTOR%', 'a0000000-0000-4000-8000-000000000042')::bigint$c$, 'linhas=0', '0'],
     ['43', 'D10: conta de profissional nao vincula nada',
            'service', '',
-           $c$update public.profiles set created_at = now() - interval '1 minute' where id = '%CLINIC%'$c$,
+           $c$update auth.users set created_at = now() - interval '1 minute' where id = '%CLINIC%'$c$,
            $c$select public.vincular_contatos_do_visitante('%CLINIC%', 'a0000000-0000-4000-8000-000000000042')::bigint$c$, 'linhas=0', '0'],
     ['44', 'D10: contato ja vinculado a outra conta nao muda de dono',
            'service', '',
-           $c$update public.profiles set created_at = now() - interval '1 minute' where id = '%TUTOR%'; update public.contatos set user_id = '%ADMIN%' where anon_id = 'a0000000-0000-4000-8000-000000000042'$c$,
+           $c$update auth.users set created_at = now() - interval '1 minute' where id = '%TUTOR%'; update public.contatos set user_id = '%ADMIN%' where anon_id = 'a0000000-0000-4000-8000-000000000042'$c$,
            $c$select public.vincular_contatos_do_visitante('%TUTOR%', 'a0000000-0000-4000-8000-000000000042')::bigint$c$, 'linhas=0', '0'],
+
+    ['45', 'SEC-121: reescrever profiles.created_at nao reabre a janela (vale auth.users)',
+           'service', '',
+           $c$update auth.users set created_at = now() - interval '2 days' where id = '%TUTOR%'; update public.profiles set created_at = now() where id = '%TUTOR%'; insert into public.contatos (profissional_id, anon_id) values ('%VET%', 'a0000000-0000-4000-8000-000000000045')$c$,
+           $c$select public.vincular_contatos_do_visitante('%TUTOR%', 'a0000000-0000-4000-8000-000000000045')::bigint$c$, 'linhas=0', '0'],
 
     -- ------------------------------------------------ R-076 / D11
     ['50', 'R-076: contato logado SEM anon_id; a conta sai (user_id vira nulo) e a linha fica',

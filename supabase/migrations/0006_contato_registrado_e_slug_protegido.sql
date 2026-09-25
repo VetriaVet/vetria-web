@@ -304,10 +304,11 @@ $checks$;
 -- de policy não passa pelo privilégio de coluna de quem consulta.
 --
 -- `anon` não tem policy em `contatos` e perde todo privilégio (segunda porta).
--- TRUNCATE, REFERENCES e TRIGGER saem de `authenticated` (TRUNCATE ignora a
--- RLS; o Supabase concede tudo por default privileges).
+-- `authenticated` também perde TUDO na tabela (TRUNCATE ignora a RLS; o
+-- Supabase concede tudo por default privileges; e `revoke all` cobre também o
+-- MAINTAIN do Postgres 17, SEC-122) e recebe de volta só o SELECT por coluna.
 revoke all on public.contatos from anon;
-revoke select, insert, update, delete, truncate, references, trigger on public.contatos from authenticated;
+revoke all on public.contatos from authenticated;
 grant select (id, profissional_id, canal, origem_cidade, origem_especialidade, created_at)
   on public.contatos to authenticated;
 
@@ -345,7 +346,7 @@ create index if not exists idx_contatos_user_recentes
 --
 -- Devolve jsonb no formato de `RespostaDoContato`
 -- (`lib/perfil-publico/contato.ts`):
---   {"ok": true,  "whatsapp": "62992653278"}   dígitos, DDD + número, sem 55
+--   {"ok": true,  "whatsapp": "62900000001"}   dígitos, DDD + número, sem 55
 --   {"ok": false, "motivo": "nao_encontrado"}  slug inválido, inexistente,
 --                                              role errado ou conta não active
 --   {"ok": false, "motivo": "sem_whatsapp"}    NÃO grava nada
@@ -499,7 +500,9 @@ grant  execute on function public.registrar_contato(text, text, uuid, uuid, text
 --
 -- O banco confere o que consegue conferir sozinho:
 --   · a conta é `tutor` (profissional não tem "Seus contatos");
---   · a conta foi criada nas últimas 24 horas. É a trava do "só na criação":
+--   · a conta foi criada nas últimas 24 horas, pela data de `auth.users`
+--     (que o usuário não escreve; `profiles.created_at` ele poderia reescrever
+--     pelo PATCH do próprio perfil, SEC-121). É a trava do "só na criação":
 --     se um dia a rota chamar isto num login qualquer, a conta antiga não
 --     vincula nada;
 --   · só linhas SEM `user_id` (nunca rouba contato de outra conta), dos
@@ -519,9 +522,10 @@ begin
 
   if not exists (
     select 1 from public.profiles p
+    join auth.users u on u.id = p.id
     where p.id = p_user_id
       and p.role = 'tutor'
-      and p.created_at > now() - interval '24 hours'
+      and u.created_at > now() - interval '24 hours'
   ) then
     return 0;
   end if;
@@ -560,9 +564,10 @@ grant  execute on function public.vincular_contatos_do_visitante(uuid, uuid) to 
 -- Quem PODE mudar o slug:
 --   a) o gerador (`gerar_slug_do_perfil`, §7.2), que liga a marca local
 --      `vetria.gerador_de_slug` só em volta do próprio UPDATE. A marca é
---      `set_config(..., true)`: morre no fim da função (ela tem SET
---      search_path, então o Postgres restaura a configuração na saída) e, no
---      pior caso, no fim da transação. Ninguém de fora a liga: o PostgREST não
+--      `set_config(..., true)` e é DESLIGADA pelo próprio gerador logo depois
+--      do UPDATE (o `set_config(..., '', true)` explícito da §7.2); se o UPDATE
+--      falhar, a transação inteira volta e a marca some com ela. A sonda 2,
+--      caso 68, prova que ela não sobra. Ninguém de fora a liga: o PostgREST não
 --      executa SET, e a função que a liga não tem EXECUTE para anon nem
 --      authenticated;
 --   b) o master logado (`is_master_admin()`);
