@@ -84,6 +84,11 @@ export function traduzirErroAuth(erro: ErroAuth | null | undefined): string {
   const msg = (erro.message ?? "").toLowerCase();
   const code = erro.code ?? "";
 
+  // A mesma senha vem antes de tudo: a frase do Supabase ("New password should
+  // be different from the old password") também contém "password should" e
+  // caía em senha fraca, mandando a pessoa trocar uma senha que já era forte.
+  if (code === "same_password" || msg.includes("different from the old password")) return MESMA_SENHA;
+
   // weak_password tem dois motivos: regra de caracteres ou senha vazada.
   if (code === "weak_password" || msg.includes("password should") || msg.includes("password is known")) {
     if (msg.includes("known") || msg.includes("pwned") || msg.includes("leaked")) return SENHA_VAZADA;
