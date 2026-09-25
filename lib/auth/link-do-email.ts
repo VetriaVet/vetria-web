@@ -87,6 +87,29 @@ export function fluxoDoTipo(tipo: TipoDoLink | null): FluxoDoLink {
 export const DESTINO_DA_RECUPERACAO = "/recuperar-senha/nova";
 
 /**
+ * SEC-112: a tela que mostra em qual conta a pessoa entrou depois do link.
+ * O link com `token_hash` não fica preso ao navegador que o pediu: alguém pode
+ * mandar o link da PRÓPRIA conta e a vítima entrar nela sem perceber. Por isso
+ * a confirmação de email passa por esta tela antes do destino.
+ */
+export const TELA_DA_CONTA_CONFIRMADA = "/auth/confirm/entrou";
+
+/**
+ * O email da conta, INTEIRO, para a tela "Você entrou como" (SEC-120, que
+ * corrige a recomendação da SEC-112): a máscara `a***@gmail.com` era igual para
+ * contas diferentes, e o golpe da conta injetada escolhe justamente uma conta
+ * com a mesma inicial e o mesmo provedor da vítima. Só quem já está com a
+ * sessão daquela conta vê esta tela, então mostrar o email inteiro não vaza
+ * nada para terceiros. `null` quando não há email utilizável.
+ */
+export function mascararEmail(email: unknown): string | null {
+  if (typeof email !== "string") return null;
+  const arroba = email.lastIndexOf("@");
+  if (arroba < 1 || arroba === email.length - 1) return null;
+  return email;
+}
+
+/**
  * Para onde o link leva depois de verificado.
  * - `recovery` vai SEMPRE para a tela de nova senha, qualquer que seja o
  *   `next`: o link existe para isso, e não há motivo para ele abrir outra porta.

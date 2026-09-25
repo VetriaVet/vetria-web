@@ -147,3 +147,43 @@ test.describe("marca", () => {
     expect(texto, "travessao (em dash) encontrado no texto visivel").not.toContain("\u2014");
   });
 });
+
+test.describe("cabecalhos de seguranca (T-033 / SEC-104 / SEC-112)", () => {
+  // Nenhuma p\u00e1gina abre dentro de iframe alheio (clickjacking no "Aprovar" do
+  // admin e no /auth/confirm). Somem sem ningu\u00e9m notar se o `headers()` do
+  // next.config.ts for mexido, porque nenhuma tela quebra.
+  for (const rota of ["/", "/login", "/buscar", "/auth/confirm"]) {
+    test(`${rota} manda os cabecalhos de seguranca`, async ({ request }) => {
+      const resposta = await request.get(rota, { maxRedirects: 0 });
+      const h = resposta.headers();
+      expect(h["content-security-policy"]).toContain("frame-ancestors 'none'");
+      expect(h["x-frame-options"]).toBe("DENY");
+      expect(h["x-content-type-options"]).toBe("nosniff");
+      expect(h["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+      expect(h["permissions-policy"]).toContain("camera=()");
+      expect(h["permissions-policy"]).toContain("microphone=()");
+      expect(h["permissions-policy"]).toContain("geolocation=()");
+    });
+  }
+
+  test("a entrega da fase 2 continua noindex", async ({ request }) => {
+    const resposta = await request.get("/entrega-fase-2");
+    expect(resposta.headers()["x-robots-tag"]).toContain("noindex");
+  });
+
+  test("a logo SVG continua saindo pelo next/image com a CSP sandbox", async ({
+    request,
+  }) => {
+    const resposta = await request.get(
+      "/_next/image?url=%2Fvetria%2Flogo-vetria-fundo-claro.svg&w=384&q=75"
+    );
+    expect(resposta.status()).toBe(200);
+    expect(resposta.headers()["content-type"]).toContain("image/svg+xml");
+    expect(resposta.headers()["content-security-policy"]).toContain("sandbox");
+  });
+
+  test("a tela da conta do link, sem sessao, cai no login", async ({ page }) => {
+    await page.goto("/auth/confirm/entrou?next=%2Fapp");
+    await expect(page).toHaveURL(/\/login$/);
+  });
+});
