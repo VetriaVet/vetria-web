@@ -49,6 +49,8 @@ jobs:
       E2E_CLINIC_SENHA: ${{ secrets.TESTE_CLINIC_SENHA }}
       E2E_ALVO: teste
       E2E_EXIGIR_FILA: "1"
+      # 0005 e seed de cidades aplicados no vetria-e2e em 25/09: liga o grupo B da busca
+      E2E_BUSCA_LIGADA: "1"
 
     steps:
       - uses: actions/checkout@v4
