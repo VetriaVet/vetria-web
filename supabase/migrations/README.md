@@ -21,7 +21,8 @@ o fluxo é **manual e controlado**:
 | `0002_nucleo.sql` | **26/08/2026** ✅ | núcleo de dados + RLS da matriz de permissões. Verificada por 9 sondas |
 | `0003_storage_documentos.sql` | **26/08/2026** ✅ | bucket `documentos` + SEC-020/R-018 + identidade dos bytes. Verificada por 18 sondas |
 | `0004_banco_recusa_o_que_a_action_recusa.sql` | ✅ **23/09/2026** (ensaio no `vetria-e2e` e produção). Produção: 21/22 `true` na aplicação, `vet_profiles_crmv_formato` validada depois de normalizar 5 CRMVs de conta de teste; sonda 3 com 38/38 OK nos dois projetos | T-027: CHECKs de conteúdo (T-017/R-039/R-059), `admin_definir_status` confere a origem (SEC-096/099), leitura do admin só da fila (SEC-097b/093), conclusão exige o objeto no bucket (SEC-098). Ensaio no `vetria-e2e` antes de produção (DL-064). Arquivos de apoio: `../prevoo-0004.sql`, `../backup-antes-da-0004.sql`, `../verificar-apos-0004.sql` |
-| `0005_dados_da_busca_e_slug.sql` | ⬜ **escrita em 23/09/2026, NÃO aplicada.** Ensaiada localmente (PGlite, Postgres 18) sobre 0000-0004 montados do repo: select final 36/36 `true`, idempotente, reversão da §10 executada, 6 sondas verdes | T-028: tabelas `especialidades`, `servicos`, `cidades` (leitura pública); pertença à lista por trigger (DL-062 item 5); slug gerado quando a conta vira `active` e preenchido nas que já são (DL-067, R-065); coluna `busca` e índices (DL-068). **Não reescreve função existente** (sem hash para anotar). Depois dela, rodar o seed `../seed-0005-cidades-ibge.sql` (5571 municípios do IBGE, gerado por `../gerar-seed-cidades.mjs`). Apoio: `../prevoo-0005.sql`, `../backup-antes-da-0005.sql`, `../verificar-apos-0005.sql` |
+| `0005_dados_da_busca_e_slug.sql` | ✅ **24-25/09/2026** (`vetria-e2e` e produção; ver o card T-028). _(registro de 23/09:)_ Ensaiada localmente (PGlite, Postgres 18) sobre 0000-0004 montados do repo: select final 36/36 `true`, idempotente, reversão da §10 executada, 6 sondas verdes | T-028: tabelas `especialidades`, `servicos`, `cidades` (leitura pública); pertença à lista por trigger (DL-062 item 5); slug gerado quando a conta vira `active` e preenchido nas que já são (DL-067, R-065); coluna `busca` e índices (DL-068). **Não reescreve função existente** (sem hash para anotar). Depois dela, rodar o seed `../seed-0005-cidades-ibge.sql` (5571 municípios do IBGE, gerado por `../gerar-seed-cidades.mjs`). Apoio: `../prevoo-0005.sql`, `../backup-antes-da-0005.sql`, `../verificar-apos-0005.sql` |
+| `0006_contato_registrado_e_slug_protegido.sql` | ⬜ **escrita em 25/09/2026, NÃO aplicada.** Ensaiada localmente (PGlite, Postgres 18) sobre `montar-vetria-e2e` + 0004 + 0005 + seed: select final 26/26 `true`, idempotente, reversão da §10 executada e reaplicada, sonda 2 com 59/59 OK (com 5 contas e com 27 contas no banco; nada sobra depois; correções da auditoria SEC-121/122/125/126 incluídas) (e FALHA em todos os casos certos num banco sabotado), a sonda 2 da 0005 continua 100% OK depois dela | T-039: `registrar_contato` e `vincular_contatos_do_visitante` (EXECUTE só `service_role`, D1/D3/D5/D10); `contatos` com privilégio por coluna (R-074), `anonimizado_em` e o CHECK trocado para aceitar linha anonimizada (R-076, D11: a única troca de constraint, pedida pelo card); trigger `proteger_slug` (SEC-115); `slug_ao_ativar` falha sem linha de perfil (SEC-116). **Reescreve** `gerar_slug_do_perfil` e `slug_ao_ativar` (hashes abaixo). Apoio: `../prevoo-0006.sql`, `../backup-antes-da-0006.sql`, `../verificar-apos-0006.sql` |
 
 ---
 
@@ -68,6 +69,15 @@ mudança de conteúdo. Valores calculados sobre o corpo entre `$$` e `$$`:
 
 Depois de aplicar a `0004`, o select final dela imprime o hash sem espaços medido no banco: tem que bater com a coluna
 da direita.
+
+A `0006` reescreve duas funções da `0005` (medido no ensaio, PGlite, 25/09/2026):
+
+| Função | corpo da `0005` | corpo da `0006` |
+|---|---|---|
+| `gerar_slug_do_perfil` | `8aca1eb4e4a72bd79ffc175938df18e8` | `8cdba6b87eded20e7e9c3ab16bb09a7f` |
+| `slug_ao_ativar` | `0b6c06345e6bd0ce493b0cecc8a52b5c` | `6e2da6385b4ddca66cd51863b207e8ce` |
+
+⚠️ **A `0005` NÃO roda de novo depois da `0006`** (SEC-125): ela recria `gerar_slug_do_perfil` e `slug_ao_ativar` na versão dela e desfaz a SEC-115 (a marca do gerador some, e o trigger `proteger_slug` passa a barrar a própria aprovação) e a SEC-116. Se precisar reaplicar algo da `0005`, rode só o trecho, nunca o arquivo inteiro.
 
 Valores **anteriores** à `0003`, só para referência histórica (não use em pré-voo):
 `035f8c64c139f2b6e1865341b4995fb7` e `ec641daea0efa102859b787d364a98ad`.
