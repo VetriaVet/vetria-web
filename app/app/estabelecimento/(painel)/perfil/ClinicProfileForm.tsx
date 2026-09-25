@@ -19,7 +19,7 @@ const SERVICOS = [
   "Diagnóstico por imagem",
   "Vacinação",
   "Banho & tosa",
-  "Pet shop",
+  "Loja veterinária",
   "Farmácia",
 ];
 

@@ -883,9 +883,9 @@ digitação vira cidade que não existe); Typesense/Meilisearch (fora do escopo,
 **Implicações:** acrescentar especialidade ou serviço é migration (🔴) **mais** a linha no `campos.ts`, no mesmo commit; se só o
 `campos.ts` crescer, a pessoa escolhe o item novo e o banco recusa. Os `campos.ts` continuam sendo a fonte da **tela** até a S6 ler
 as tabelas, o que só pode acontecer depois da `0005` aplicada (ler antes quebraria a tela em produção). A S6 normaliza o termo com
-`sem_acento()` antes do `plainto_tsquery('portuguese', ...)`. ⚠️ **Pendente de nomenclatura (memória de nomenclatura legal):** o
-slug do serviço "Pet shop" sai `pet-shop`, e a regra diz que "pet" não aparece em URL; "Pet shop" é exceção só como nome de serviço.
-Decidir antes de a S6 pôr esse slug numa URL (trocar é um `update` de uma linha numa migration).
+`sem_acento()` antes do `plainto_tsquery('portuguese', ...)`. **Nomenclatura (resolvida pelo DL-070 item B):** o serviço "Pet shop"
+virou "Loja veterinária" (`loja-veterinaria`) no seed da `0005`, antes de ela ser aplicada, junto dos `campos.ts`; o dado já gravado
+é renomeado pela §3.1 da `0005`, antes do trigger de pertença.
 **Status:** 🟡 escrita na `0005` · ⬜ aplicada
 
 ### DL-069 — A F3 fecha em 6 de 6: o item 5 (E2E no CI) foi medido em 23/09
