@@ -418,7 +418,7 @@ _(vazio)_
   - [ ] HSTS medido no domínio de produção (`curl -I https://vetriabrasil.com.br`), com a saída escrita aqui
   - [ ] Teste em `publico.spec.ts` conferindo os cabeçalhos
 - **Não fazer:** CSP completa com nonce (F6).
-- **Resultado:** _(a preencher)_
+- **Resultado:** 🔍 **em revisão (branch `t-033-cabecalhos`, 25/09).** Os 4 itens feitos: `next.config.ts` manda em **todas** as rotas `Content-Security-Policy: frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff`, `strict-origin-when-cross-origin` e `Permissions-Policy: camera=(), microphone=(), geolocation=()` (o app não usa nenhum dos três), e deixou de mandar `X-Powered-By`. A CSP é só `frame-ancestors`: Supabase, Analytics, Google e fontes não são tocados. `/entrega-fase-2` segue com `X-Robots-Tag: noindex, nofollow`; a logo pelo `/_next/image` segue 200 `image/svg+xml` com a CSP sandbox do DL-040 (nessa rota a CSP do Next substitui a nossa, e o XFO DENY continua). **HSTS medido** em `https://vetriabrasil.com.br`: `Strict-Transport-Security: max-age=63072000` (Vercel), por isso **não** foi duplicado no config. 7 testes novos em `publico.spec.ts`, verdes contra `next start`. **SEC-112 (tela):** a confirmação de email (`signup`/`email`/`email_change`) passa por `/auth/confirm/entrou`, que mostra *"Você entrou como a\*\*\*@dominio.com"* com **Continuar** e *"Não é a sua conta? Sair"*; a recuperação vai direto para a nova senha, que agora mostra *"Escolha uma senha nova para a conta a\*\*\*@dominio.com. Não é a sua conta? Sair"*. Falta: auditoria do `vetria-seguranca` e conferir os cabeçalhos no preview da Vercel.
 
 ---
 

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/browser";
 import { CampoSenha } from "@/components/ui/CampoSenha";
 import { validarSenha, SENHA_AJUDA, SENHA_PLACEHOLDER } from "@/lib/auth/senha";
 import { traduzirErroAuth } from "@/lib/auth/erros";
+import { mascararEmail } from "@/lib/auth/link-do-email";
 import { Label } from "@/components/ui/Label";
 import { Button } from "@/components/ui/Button";
 import { Check } from "lucide-react";
@@ -27,12 +28,23 @@ export default function NovaSenhaPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
+  // SEC-112: a conta em que o link abriu, mascarada. O link de recuperação
+  // não fica preso ao navegador que o pediu; se alguém mandar o link da
+  // própria conta, a pessoa vê aqui que não é a dela e sai.
+  const [conta, setConta] = useState<string | null>(null);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setValid(!!data.user);
+      setConta(mascararEmail(data.user?.email));
       setChecking(false);
     });
   }, [supabase]);
+
+  async function sair() {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -110,7 +122,27 @@ export default function NovaSenhaPage() {
                 Criar nova senha
               </h1>
               <p className="text-[15px] text-corpo-texto leading-relaxed mb-8">
-                Escolha uma senha nova para acessar a Vetria.
+                {conta ? (
+                  <>
+                    Escolha uma senha nova para a conta{" "}
+                    <strong
+                      className="font-semibold text-titulo"
+                      data-testid="conta-do-link"
+                    >
+                      {conta}
+                    </strong>
+                    .{" "}
+                    <button
+                      type="button"
+                      onClick={sair}
+                      className="font-semibold text-principal hover:underline cursor-pointer"
+                    >
+                      Não é a sua conta? Sair
+                    </button>
+                  </>
+                ) : (
+                  "Escolha uma senha nova para acessar a Vetria."
+                )}
               </p>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">

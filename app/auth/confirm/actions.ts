@@ -8,6 +8,7 @@ import {
   fluxoDoTipo,
   lerTipoDoLink,
   lerTokenHash,
+  TELA_DA_CONTA_CONFIRMADA,
 } from "@/lib/auth/link-do-email";
 
 // T-036 — o clique em "Continuar" da página /auth/confirm.
@@ -57,5 +58,12 @@ export async function confirmarLinkDoEmail(formData: FormData) {
 
   const destino = destinoDoLink(tipo, formData.get("next"));
   console.log("[auth/confirm] link verificado", { tipo, destino });
-  redirect(destino);
+
+  // SEC-112: a recuperação de senha já para numa tela (a de nova senha), que
+  // mostra a conta. Os demais passam pela tela "Você entrou como a***@..."
+  // antes do destino, para a pessoa perceber se o link era de outra conta.
+  if (tipo === "recovery") redirect(destino);
+  redirect(
+    `${TELA_DA_CONTA_CONFIRMADA}?next=${encodeURIComponent(destino)}`
+  );
 }
