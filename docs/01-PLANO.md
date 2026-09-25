@@ -29,19 +29,48 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 > **A S13 é buffer de verdade.** Não planeje nada nela. Ela existe porque
 > todo projeto atrasa, e o que separa entrega de desastre é ter previsto o atraso.
 
-### Onde estamos em 23/09/2026 (início da S5)
+### Onde estamos em 25/09/2026 (meio da S5)
 
 | Fase | Estado | DoD |
 |---|---|---|
-| **F3** | ⛔ **ENCERRADA, não concluída** (DL-062) | **5 de 6** provados · item 5 parcial → T-029, data 06/10 |
-| **F4** | 🔵 **começa hoje** | 0 de 6 · base já existe no banco (ver §F4 "já adiantado") |
+| **F3** | ✅ **CONCLUÍDA** (DL-069, que revisa o DL-062) | **6 de 6** · item 5 medido no CI do `vetria-e2e` em 23/09 (70/70) |
+| **F4** | 🔵 **em andamento, ~1,5 semana adiantada** | **2 de 6 provados**, 2 parciais, 2 abertos (tabela em §F4) |
 | **F5** | ⬜ | 0 de 3 · os textos das 6 páginas já estão escritos |
 | **F6** | ⬜ | 0 de 4 · parte da auditoria já foi feita ao longo da F3 |
 | **F7** | ⬜ | buffer intacto |
 
 ---
 
-## ATRASO E RECUPERAÇÃO (escrito em 23/09/2026, pelo `vetria-maestro`)
+## REAVALIAÇÃO DE 25/09/2026 (`vetria-maestro`): o atraso foi recuperado, e a F4 está adiantada
+
+**O número honesto hoje: ~1,5 semana ADIANTADOS na F4, buffer da S13 intacto.**
+
+- Em 23/09 declaramos ~1 semana de atraso em trabalho. Em 3 dias, a sessão presencial de 23/09 aplicou a
+  `0004`, e a de 24-25/09 aplicou a `0005` e pôs no ar `/buscar` e as duas páginas públicas. **O plano punha a
+  busca na S6 (até 06/10) e o perfil na S7 (até 13/10).** A F3 fechou 6 de 6 (DL-069), 13 dias antes da data
+  dura da T-029.
+- **O que fez a diferença**, e é o que tem que continuar: sessão presencial acontecendo (a 🔴 deixou de
+  esperar agenda), migration ensaiada no `vetria-e2e` antes de produção (DL-064), e tudo entrando por PR com
+  CI obrigatório.
+- **Por que "1,5" e não "2 semanas":** o adiantamento é na capacidade, não no DoD. O que falta da F4 é
+  exatamente o que tem 🔴 e decisão do Elber: o **contato** (S8 inteira, zero linhas, uma migration nova) e
+  o **portão** (1 de 6; captcha e 2FA dependem de ordem "código → deploy → painel"). E houve trabalho sem card
+  (T-034 a T-037 foram escritos depois), o que esconde custo.
+
+**O calendário novo da F4, sem mexer em datas de fase:**
+
+| Semana | O quê |
+|---|---|
+| **S5, até 29/09** | T-038 prévia do perfil · T-033 cabeçalhos · T-020 teto do bucket + firewall · T-031 código · T-039 `0006` escrita e auditada |
+| **S6, 30/09 a 06/10** | 🔴 sessão 30/09: decisões D1 a D12, Turnstile ligado, firewall, `0006` no `vetria-e2e` · T-040 rota `/api/contato` · T-041 botão · T-044 CI agendado |
+| **S7, 07/10 a 13/10** | 🔴 sessão 07/10: `0006` em produção, T-032 2FA · T-042 painéis de contatos e histórico · T-043 E2E do contato |
+| **S8, 14/10 a 20/10** | Portão 6 de 6 → T-045 indexação e `sitemap` → **fechar o DoD da F4**. O que sobrar: construir as LPs da F5 **sem publicar** |
+
+**Gatilho escrito:** se a sessão de 30/09 não acontecer, a S8 do contato começa sem as decisões e a `0006` é
+escrita com as recomendações; **se a de 07/10 também não acontecer, a folga acaba ali**, e isso será dito em
+07/10, não em 20/10.
+
+## ATRASO E RECUPERAÇÃO (escrito em 23/09/2026, pelo `vetria-maestro`) — histórico, superado pela reavaliação acima
 
 **Estamos atrasados, e o número honesto é: cerca de uma semana de trabalho, não de calendário.**
 
@@ -79,6 +108,9 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 
 **Objetivo:** matar a casca. Tudo que a tela mostra passa a vir do banco.
 
+> ✅ **Estado em 25/09/2026: CONCLUÍDA, 6 DE 6** (**DL-069**): o item 5 foi medido no CI do `vetria-e2e` em
+> 23/09 (70 de 70, 0 pulados, com cadastro novo e aprovação). O texto abaixo é o registro do fechamento anterior.
+>
 > ⛔ **Estado em 23/09/2026: ENCERRADA COM 5 DE 6. NÃO É UMA FASE CONCLUÍDA** (**DL-062**). O item
 > 3 fechou em 23/09 com a T-024 em produção (`6a8d86a`), o item 4 fechou ao pé da letra com conta
 > `tutor`. **O item 5 ficou parcial** (os itens 1 e 3 sem E2E, R-033) e virou a **T-029**, data dura
@@ -164,8 +196,8 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
    *Prova: Elber em 23/09, conta nova ponta a ponta, email recebido, `audit_logs`; em produção em `6a8d86a`.*
 4. ✅ Um responsável logado que digite `/app/veterinario` é redirecionado.
    *Prova: Elber em 23/09, conta `tutor`, devolvida para o painel dela.*
-5. 🟡 **Teste E2E cobrindo 1–4 passando em CI. PARCIAL:** cobre 2 e 4. **1 e 3 sem E2E (R-033).**
-   → **T-029**, data dura 06/10.
+5. ✅ **Teste E2E cobrindo 1–4 passando em CI.** *Prova: CI #22 da PR #4, 70/70, 0 pulados, no `vetria-e2e`
+   (`fluxos-conta-nova.spec.ts` cobre 1 e 3), DL-069. Em 23/09 estava parcial (R-033, T-029).*
 6. ✅ Relatório de segurança da fase sem achado 🔴 aberto.
    *Prova: 11 relatórios de segurança em `docs/relatorios/` desde 26/08, nenhum 🔴 aberto. Há 🟠
    abertos com trava escrita (DL-062, DL-063).*
@@ -200,14 +232,14 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
   DoD da F3 (**T-029**). ⬇️ **Recebido da auditoria:** T-020 (teto do bucket), T-030 (atrito do
   onboarding). 🔴 **Sessão presencial até 29/09.**
 
-### S6 — `/buscar` (30/09 → 06/10)
+### S6 — `/buscar` (30/09 → 06/10) ✅ **entregue adiantado, em 25/09 (T-037)**. A semana passa a ser do contato (§Reavaliação)
 - Filtros: cidade + especialidade + tipo de atendimento. Ordenação definida.
 - **Filtro de visibilidade no backend**, nunca no front: `role IN (vet, clinic) AND status = active`.
 - Cards de resultado, paginação, estado vazio honesto, responsivo.
 - Busca da Home passa a levar pra `/buscar` de verdade.
 - ⬇️ **Portão de abertura:** **T-031** (captcha) e **T-033** (cabeçalhos). **06/10: data dura da T-029.**
 
-### S7 — Perfil público (07/10 → 13/10)
+### S7 — Perfil público (07/10 → 13/10) ✅ **entregue adiantado, em 25/09 (T-037)**, exceto a indexação (T-045) e a prévia (T-038, em execução)
 - `/veterinario/[slug]` e `/estabelecimento/[slug]` com dados reais.
 - SSR + metadata dinâmica (OG tags, title, description) para SEO.
 - `noindex` automático em quem não está `active`.
@@ -217,7 +249,7 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
   componente**, lendo a linha do próprio dono, só leitura. Não é o editor (T-019, F6).
 - ⬇️ **Portão de abertura:** **T-032** (2FA do admin). **R-032** (endereço público) decidido antes.
 
-### S8 — Contato (14/10 → 20/10)
+### S8 — Contato (14/10 → 20/10) · **planejada em 25/09 em 7 cards (T-039 a T-045) e puxada para S6-S7**; decisões D1 a D12 em `03-TAREFAS.md`
 - CTA WhatsApp com mensagem pré-preenchida.
 - Cada clique registra em `contatos` (quem, pra quem, quando).
 - `/app/responsavel/historico` passa a listar contatos reais. **Atenção:** hoje essa tela promete "Seus agendamentos" e desenha cards de consulta. Agendamento está fora dos 3 meses, então ela precisa virar "Seus contatos" (DL-047).
@@ -231,6 +263,17 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 4. Clicar em WhatsApp abre a conversa **e** o contato aparece no histórico do responsável.
 5. E2E do fluxo busca → perfil → contato passando em CI.
 6. **Portão de abertura fechado** (DL-063, acrescentado em 23/09): os seis itens provados, não escritos.
+
+> **Conferido item por item em 25/09/2026 (`vetria-maestro`). Não é fechamento; é onde cada um está.**
+>
+> | # | Estado | A prova, ou o que falta |
+> |:-:|:-:|---|
+> | 1 | ✅ | A visibilidade é só a RLS `perfil_esta_ativo` (sem filtro na aplicação, auditoria de 23/09); `busca-com-dados.spec.ts` verde no CI do `vetria-e2e`. ⚠️ Na hora do fechamento, refazer **a frase literal** ("São Paulo + Clínica geral") em produção ou no teste |
+> | 2 | ✅ | 404 igual para inexistente e não ativo, pela RLS; grupo A de `busca-publica.spec.ts` verde. Conta `pending_validation` não aparece em `/buscar` (teste com dados) |
+> | 3 | 🟡 | **Dado real: sim** (`larissa-lima-goiania-go` em produção). **Indexável: não, de propósito** (`PAGINAS_PUBLICAS_INDEXAVEIS = false` até o portão). Fecha com a **T-045** |
+> | 4 | ⬜ | Nada escrito. S8: T-039 a T-042 |
+> | 5 | 🟡 | busca → perfil verde no CI; **→ contato** não existe. T-043 |
+> | 6 | 🟡 | **1 de 6** (T-027). Senha 8 configurada, sem prova. T-020, T-031, T-032, T-033 abertos |
 
 ---
 

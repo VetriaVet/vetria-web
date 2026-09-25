@@ -3,54 +3,40 @@
 > Fila viva. **Uma task em execução por vez** no que escreve código.
 > Atualizado por quem executa, no início e no fim de cada task.
 >
-> **Semana atual:** **S5 (5 de 13), aberta em 23/09/2026** · **Fase:** **F4, Motor B2C** (começa
-> hoje) · **Anterior:** a **S4, FECHADA em 23/09**, e com ela a **F3 ENCERRADA COM 5 DE 6, sem se
-> declarar concluída** (**DL-062**) · **Entrega:** 25/11/2026
+> **Semana atual:** **S5 (5 de 13), 23/09 a 29/09** · **Fase:** **F4, Motor B2C** · **F3: CONCLUÍDA, 6 de 6**
+> (**DL-069**, que revisa o DL-062) · **Entrega:** 25/11/2026 · **Atualizado:** 25/09/2026, `vetria-maestro`
 >
-> ### 23/09/2026 — a F3 encerra. Não "conclui".
+> ### 25/09/2026 — a S5 entregou três semanas de plano em três dias
 >
-> A **T-024** entrou na `main` (`22fbefd..6a8d86a`) depois de provada em tela pelo Elber, e o **item
-> 3 do DoD fechou**: admin aprova, a conta entra no painel, o email chega, a trilha fica em
-> `audit_logs`. O item 4 fechou ao pé da letra com conta `tutor`. **Sobrou o item 5 parcial**: o CI
-> cobre os itens 2 e 4, e **os itens 1 e 3 não têm E2E** porque o **R-033** está sem resposta desde
-> 28/08. Isso é **5 de 6**, e este quadro não escreve "6 de 6 com ressalva". O item 5 virou a
-> **T-029**, com dono e **data dura, 06/10**. A F4 começa hoje porque o que falta é rede de teste,
-> não capacidade (DL-062).
+> **Em produção, com a prova de cada um** (cards abaixo): **T-027** (`0004`), **T-028** (`0005`: sonda 2
+> 33/33 OK, 5571 cidades, "Loja veterinária", slug `larissa-lima-goiania-go` nascido na aprovação),
+> **T-029** (CI no `vetria-e2e`, obrigatório na `main`), **T-034** (senha), **T-035** (máscaras, limite de
+> especialidades, botão de arquivo: **absorveu a T-030**), **T-036** (link de email por `token_hash`,
+> testado pelo Elber em outro navegador) e **T-037** (`/buscar` e os perfis públicos com selo "Verificado
+> pela Vetria", PR #7). CI com **88 + 10 testes**.
 >
-> ⚠️ **O atraso, dito em número:** a S3 fechou 5 dias depois do calendário e a S4 abriu em 21/09 em
-> vez de 16/09. A fronteira F3/F4 chegou com **1 dia** de diferença, mas carregando dívida: a T-017
-> (quatro semanas sem data), o R-033 (quase um mês sem decisão) e ~3 dias de endurecimento que o
-> plano não tinha (portão de abertura, **DL-063**). **Em trabalho, estamos cerca de uma semana
-> atrás.** O plano de recuperação está no `01-PLANO.md` §Atraso. **O buffer da S13 ainda não foi
-> tocado.** Se a sessão presencial não acontecer até 29/09, ele começa a ser comido na S6, e isso
-> vai ser dito na S6.
+> **O que isso significa em calendário:** o `01-PLANO.md` punha `/buscar` na S6 (até 06/10) e o perfil
+> público na S7 (até 13/10). Os dois estão no ar em 25/09. **Estamos ~1,5 semana adiantados na F4**, e o
+> atraso de ~1 semana declarado em 23/09 **foi recuperado**. Não é folga para gastar: o que resta da F4 é o
+> **contato (S8, zero linhas)** e o **portão de abertura (1 de 6 provados)**, e os dois são 🔴 em parte.
+> A folga vai para eles, e o que sobrar, para começar a F5 (construir as LPs, **sem publicar**).
 >
-> ### 🔴 Precisa de sessão presencial com o Elber — AGENDE, até 29/09
+> ### 🔴 Precisa de sessão presencial com o Elber — AGENDE: terça 30/09 à noite (sugestão)
 >
-> 1. **T-027**, a migration `0004` de endurecimento. **Absorveu a T-017**, que estava sem data havia
->    quatro semanas. O furo foi **medido em 23/09** (`estado='ZZ'` aceito pelo banco). Prazo duro:
->    antes da F4/S7 (07/10) e antes do primeiro admin comum ou profissional de fora.
-> 2. **T-028**, a migration `0005` dos dados de busca e do `slug`. **Sem ela a S6 (`/buscar`) não tem
->    o que ler.** Idealmente na mesma sessão, **depois** da `0004`, com auditoria separada.
-> 3. **A decisão do R-033** (onde criar conta de teste nova a cada rodada). Recomendação do
->    `vetria-qa` e do `vetria-maestro`: **projeto Supabase só de teste** (`vetria-e2e`), o CI inteiro
->    apontando para ele, e a `service_role` **do projeto de teste** como secret do CI. Pede um **DL**
->    trocando a regra do `ci.yml` de "nunca `service_role`" para "nunca a de produção". É essa decisão
->    que fecha o item 5 da F3 e o item 5 da F4 (card **T-029**).
->
-> **Sugestão do `vetria-maestro`: um horário fixo por semana para 🔴.** A T-017 não escorregou por
-> ser difícil, escorregou por falta de agenda. Um horário fixo (ex.: toda terça à noite) tira a
-> pergunta "quando?" da fila.
+> 1. **As decisões D1 a D12 da S8** (seção "PLANEJADA — S8", abaixo). Sem elas a `0006` (T-039) não é
+>    escrita na forma final.
+> 2. **Ligar o Turnstile no painel do Supabase**, só **depois** do deploy da T-031 e da conferência de que o
+>    token está indo (DL-063 item 3). E subir o limite em Auth → Rate Limits (SEC-114).
+> 3. **Regras do firewall da Vercel** (T-020): `/api/documentos/*`, `/buscar`, `/api/cidades` e, quando
+>    existir, `/api/contato`.
+> 4. **Aplicar a `0006` no `vetria-e2e`**, se a auditoria já tiver aprovado. Produção só depois do CI verde.
 >
 > ### Gestos do Elber, de 1 minuto cada, sem card
 >
-> - **SEC-105 / R-064:** senha mínima 8 no painel do Supabase (Auth → Providers → Email), e conferir
->   tentando cadastrar com 7 caracteres
-> - **Conferir o CI de `6a8d86a`** na aba Actions do GitHub (o push da T-024 foi feito, o verde não foi
->   visto por ninguém ainda)
-> - **Conferir a `RESEND_API_KEY` nas variáveis da Vercel (Production).** A prova do email foi em
->   `localhost`, com a chave do `.env.local`. **Sem a chave na Vercel, em produção a decisão funciona e
->   o email sai como "desligado"**, e a tela avisa o admin
+> - **R-064:** a senha mínima foi configurada junto da T-034; **falta a prova**: cadastrar com 7 caracteres e
+>   ver recusar, e escrever aqui. Sem isso o item 6 do portão não fecha
+> - **Conferir a `RESEND_API_KEY` na Vercel (Production)**: a prova do email foi em `localhost`
+> - **Dizer em que plano está o Supabase de produção** (R-073: projeto grátis pausa após 7 dias sem uso)
 
 ---
 
@@ -88,62 +74,82 @@
 
 # 🔵 EM EXECUÇÃO
 
-_(vazio)_
+### T-038 — A prévia do perfil público para o próprio profissional, em `/app/*/perfil`
+- **Estado:** 🔵 **em execução desde 25/09/2026** (`vetria-ui`)
+- **Fase / Semana:** F4 / S5 (o plano punha na S7; adiantada porque a T-037 entregou o componente)
+- **Capacidade:** **E5** — *"`/veterinario/[slug]` e `/estabelecimento/[slug]` renderizam dados reais"*: o dono vê o que o público vai ver. E alimenta **E2** (*"o que digita persiste e reaparece"*)
+- **Nível:** 🟡 — `components/` e páginas de painel
+- **Agente dono:** vetria-ui · **conferência:** vetria-qa
+- **Depende de:** **T-037 ✅** (o componente `components/publico/Perfil.tsx` existe)
+- **Por quê:** pedido do Elber em 23/09. Hoje `/app/*/perfil` diz *"Ainda em construção"*; o profissional não tem como ver o próprio perfil antes de estar `active`, e depois de `active` só pelo endereço público
+- **Feito quando:**
+  - [ ] `/app/veterinario/perfil` e `/app/estabelecimento/perfil` renderizam **o mesmo componente** da página pública (não uma cópia: R-017), lendo a linha do dono **com a sessão do dono** (policy `*_own`), nunca com `service_role`
+  - [ ] Em `pending_validation`: faixa honesta *"É assim que seu perfil vai aparecer depois de aprovado"*. Em `active`: link para o endereço público (`/veterinario/<slug>`). O `slug` é só lido, nunca escrito (SEC-008)
+  - [ ] O bloco de contato **não mostra o número do próprio dono** nem nenhum dado de `perfil_privado`: a prévia é a vitrine, e a vitrine não tem número (DL-047)
+  - [ ] Campo vazio vira estado vazio honesto, nunca exemplo inventado. Sem travessão (DL-038). 360 px sem rolagem lateral
+  - [ ] Um teste no `vetria-e2e`: o dono vê a própria prévia; outra conta, digitando a rota, cai no painel dela (portão e prefixo, matriz §2)
+- **Não fazer:** editar (T-019, F6). Um segundo componente "de prévia". Botão de WhatsApp na prévia.
+- **Resultado:** _(a preencher)_
 
 ---
 
-# ⬜ FILA — F4 / S5 (aberta 23/09/2026) · a primeira semana do motor B2C
+# ⬜ FILA — os próximos 5 dias (26/09 a 30/09), montada em 25/09/2026
 
-> **Semana aberta pelo `vetria-maestro` em 23/09.** **5 cards**, em ordem de dependência real. O
-> `01-PLANO.md` §S5 pede *"dados de busca"* (tabelas de apoio, `slug`, índices) e isso é **migration**:
-> a S5 inteira depende de uma sessão presencial, e é por isso que ela vem com duas `0004`/`0005` no
-> topo e o resto do trabalho em volta delas.
+> **Ordem por dependência real.** Os escritores andam um de cada vez (a `vetria-ui` está na T-038; o
+> `vetria-backend` pega a T-033 quando ela abrir espaço). Os auditores rodam em paralelo com tudo.
 >
-> | # | Card | O que destrava | Cap. | Nível |
-> |---|---|---|:---:|:---:|
-> | 1 | **T-027** a `0004`: o banco passa a recusar o que a Action recusa | fecha **R-039** (medido), **SEC-096/097b/098/093**, **R-059**. É item 1 do portão de abertura e tem prazo duro na S7. **Reescreve `admin_definir_status`, que a T-028 também toca: por isso vem antes** | E1, E3 | 🔴 |
-> | 2 | **T-028** a `0005`: tabelas de apoio, regra do `slug`, índices da busca | **sem ela a S6 (`/buscar`) não tem o que ler** e as contas já aprovadas não têm endereço público (**R-065**) | E4 | 🔴 |
-> | 3 | **T-029** a infraestrutura de E2E e o item 5 da F3, com o `vetria-qa` | a F3 passar a "concluída" e o E2E da F4 existir. Roda **em paralelo** com tudo. ⚠️ **Travada na decisão 🔴 do Elber sobre o projeto de teste** | E2, E3 | 🟡/🔴 |
-> | 4 | **T-030** o onboarding para de brigar com quem preenche | **R-060** (limite de especialidades só no passo 4) e o botão de arquivo em inglês. Atrito no funil que alimenta a busca | E2 | 🟡 |
-> | 5 | **T-020** teto do bucket e rate limit em `/api/documentos/*` | item 2 do portão de abertura. **Se não couber na S5, abre a S6**, e isso não é escorregão: o portão vence em 20/10 | E1 | 🟡 |
+> | # | Card | O que destrava | Cap. | Nível | Quem |
+> |:-:|---|---|:---:|:---:|---|
+> | 1 | **T-038** prévia do perfil (em execução) | fecha o pedido do Elber de 23/09 | E5 | 🟡 | ui |
+> | 2 | **T-033** cabeçalhos + a parte de tela da **SEC-112** | item 5 do portão; ~meio dia; **o `frame-ancestors` protege o botão Aprovar e o `/auth/confirm` ao mesmo tempo** | E3 | 🟡 | backend |
+> | 3 | **T-020** teto do bucket + **as regras do firewall** (documentos, `/buscar`, `/api/cidades`) + **R-057** | item 2 do portão; a regra de firewall é gesto do Elber, guiado pelo card | E1, E4 | 🟡 | backend |
+> | 4 | **T-031** captcha, **o código** | item 3 do portão; o código precisa estar em produção **antes** da sessão de terça, que liga o painel | E2 | 🟡 código / 🔴 painel | ui + backend |
+> | 5 | **T-039** a `0006` do contato, **escrita e auditada, não aplicada** | a S8 inteira. **Só começa depois das decisões D1 a D12**; se a sessão de terça não acontecer, ela é escrita com as recomendações e as decisões viram "confirmar antes de aplicar" | E5 | 🔴 | backend + seguranca |
 >
-> **Por que T-027 antes de T-028, e não o contrário:** a T-028 gera o `slug` na aprovação, e a
-> aprovação passa por `admin_definir_status`, que a T-027 reescreve (SEC-096). Duas migrations
-> reescrevendo a mesma função na mesma semana, em ordem trocada, é a segunda desfazendo a primeira em
-> silêncio. A **escrita** das duas pode andar junto; a **aplicação** é nesta ordem.
+> **Por que T-033 e T-020 antes da S8, e não depois:** são pequenos, não dependem de decisão nenhuma e
+> fecham 2 dos 5 itens abertos do portão. A S8 depende de decisão do Elber; enquanto ela não vem, o
+> backend fecha portão. **Por que a T-032 (2FA) não está aqui:** é 🔴 com migration em `is_admin()`, tem
+> ordem própria (tela, o Elber cadastra o TOTP, só então a migration), e a trava dela é "antes do segundo
+> admin", que não está marcado. Vai para a semana de 07/10, junto com a aplicação da `0006` em produção.
+
+---
+
+# ✅ S5 — O QUE A SEMANA ENTREGOU (aberta 23/09; o fechamento formal é 29/09)
+
+> **Semana aberta pelo `vetria-maestro` em 23/09 com 5 cards. Em 25/09, 4 deles fecharam e a semana
+> puxou para si o que o plano punha em S6 e S7.**
 >
-> ### Decisões tomadas na abertura, e onde foi parar cada pedido
+> | # | Card | Estado em 25/09 | A prova |
+> |---|---|:---:|---|
+> | 1 | **T-027** a `0004` | ✅ | 22/22 `true` em produção, sonda 3 38/38 OK, `estado='ZZ'` recusado; código na `main` (`87eee1a`) |
+> | 2 | **T-028** a `0005` | ✅ | `vetria-e2e` e produção; sonda 2 33/33 OK; 5571 cidades; slug `larissa-lima-goiania-go` nascido na aprovação |
+> | 3 | **T-029** E2E no projeto de teste | ✅ | DL-064 + DL-069; 70/70 em 23/09, hoje 88 + 10, obrigatório na `main` |
+> | 4 | **T-030** onboarding sem atrito | ✅ **pela T-035** | limite no passo 1 e botão "Escolher arquivo" próprio (`b6e8452`) |
+> | 5 | **T-020** teto do bucket | ⬜ | não começou; está na fila dos próximos 5 dias |
+> | + | **T-034**, **T-035**, **T-036** | ✅ | cards abaixo |
+> | + | **T-037** `/buscar` e perfis públicos (S6 e S7 do plano) | ✅ | PR #7; cards e prova abaixo |
 >
-> - **A prévia real do perfil público** (pedido do Elber em 23/09: ler o banco, só leitura). **Não é
->   card da S5 e não vai com a T-019.** Vai para a **F4/S7, dentro do card do perfil público (E5)**:
->   a prévia é **o mesmo componente** da página pública, lendo a linha do próprio dono e mostrado em
->   `/app/*/perfil`. Construí-la agora seria desenhar o perfil público duas vezes, e clone herda defeito
->   (R-017). Esperar a T-019 (F6/S11) seria esperar sete semanas por uma leitura. Enquanto isso, a copy
->   de `/perfil` já diz a verdade desde a T-025 (*"Ainda em construção"*). Capacidade: **E5**.
-> - **O botão de arquivo sempre em português:** entra na **T-030**. É o `<input type="file">` nativo
->   de `components/app/EnvioDeDocumento.tsx:234`, que segue o idioma do navegador. **E2.**
-> - **SEC-091 (trilha de leitura do dossiê):** **F6/S11**, decisão aceita pelo Elber (**DL-062** item 4).
-> - **Captcha, 2FA do admin e cabeçalhos** (avaliação de 23/09): viram **T-031, T-032 e T-033**, já
->   escritos abaixo, **para a S6 e a S7**. Com os 5 da S5 e o gesto da senha, são o **portão de
->   abertura** (**DL-063**): nenhum profissional de fora antes de os seis estarem provados. Prazo 20/10.
-> - **Cloudflare: não** (DL-063). Registrado em §Ideias para a pergunta não voltar sem o DL.
-> - **Onboarding do responsável** (coleta cidade e animal e descarta): continua sem card. Não tem item
->   de DoD em nenhuma fase e a busca da F4 não depende dele (o responsável busca sem conta).
->
-> ### O portão de abertura (DL-063), como lista de checagem
+> ### O portão de abertura (DL-063), como lista de checagem — **1 de 6 provados** em 25/09
 >
 > | # | Item | Card | Estado |
 > |:-:|---|---|:-:|
-> | 1 | `0004` aplicada e provada | T-027 | ⬜ |
+> | 1 | `0004` aplicada e provada | T-027 | ✅ 23/09 |
 > | 2 | Teto do bucket + rate limit da Vercel em `/api/documentos/*` | T-020 | ⬜ |
 > | 3 | Captcha Turnstile nas 6 telas de auth | T-031 | ⬜ |
 > | 4 | 2FA TOTP de admin e master, na tela e no `is_admin()` | T-032 | ⬜ |
 > | 5 | Cabeçalhos de segurança | T-033 | ⬜ |
-> | 6 | Senha mínima 8 no Supabase | gesto do Elber (R-064) | ⬜ |
+> | 6 | Senha mínima 8 no Supabase | gesto do Elber (R-064) | 🟡 configurada com a T-034, **falta a prova** (7 caracteres recusados) |
+>
+> ### Decisões tomadas na abertura de 23/09 (registro)
+>
+> - **A prévia do perfil público** ia para a S7 dentro do card do perfil público. **Virou a T-038**, em
+>   execução, porque o componente já existe.
+> - **SEC-091 (trilha de leitura do dossiê):** **F6/S11** (**DL-062** item 4).
+> - **Cloudflare: não** (DL-063). **Onboarding do responsável:** continua sem card.
 
 ### T-027 — A `0004`: o banco passa a recusar o que a Action recusa
 - ✅ **APLICADA EM PRODUÇÃO em 23/09/2026, sessão presencial com o Elber.** Ensaio completo no `vetria-e2e` (montagem 34/34, 0004 22/22 `true`, sondas 1-5 OK, sonda 3 38/38 OK). Produção: pré-voo C1 `bate_com_0002 = true` nas duas funções; C4 listou só 5 CRMVs de conta de teste (confirmado por email); backup das policies em `supabase/backups/` (fora do git); `rolbypassrls = true` (SEC-106); 0004 aplicada com 21/22 `true` e só `vet_profiles_crmv_formato` NOT VALID, como previsto; sonda 3 38/38 OK (a sonda 2 não achou alvo limpo e o caso 1 da sonda 3 fez a mesma prova). Os 5 CRMVs foram normalizados para só dígitos pelo SQL Editor (as 3 contas `active` voltaram para a fila pelo trigger de revalidação, com `actor_id` nulo em `audit_logs`: **esperado, não é incidente**, SEC-111) e a constraint foi validada: **22/22**. Formato do CRMV conferido com número real (`05107`), SEC-110. **Falta:** a prova em tela de uma conclusão com documento (SEC-106) e o push do código.
-- **Estado:** 🔵 **SQL ESCRITO em 23/09/2026, na sessão presencial, NÃO APLICADO em lugar nenhum.** `npm run build` e `npm run lint` verdes (`EXIT=0`). Nada commitado. Falta, nesta ordem: auditoria do `vetria-seguranca` → confirmação do DL-066 pelo Elber → o roteiro de aplicação do Resultado, começando pelo projeto de teste `vetria-e2e`. _(anterior:)_ ⬜ fila, S5, item 1. 🔴 Sessão presencial com o Elber: AGENDE, até 29/09
+- **Estado:** ✅ **CONCLUÍDA em 23/09/2026, código na `main` em `87eee1a`** (conferido pelo `vetria-maestro` em 25/09 no `git log`). Os dois "Falta" da linha acima fecharam: o push foi feito, e a conclusão com documento contra a `0004` passou a ser exercitada a cada rodada do CI pelo `fluxos-conta-nova.spec.ts` no `vetria-e2e` (cadastro → onboarding → documento → concluir → fila). **Fecha o R-039** e o item 1 do portão de abertura. _(histórico: 🔵 SQL escrito em 23/09 → aplicado no mesmo dia, na sessão presencial.)_
 - **Fase / Semana:** F4 / S5
 - **Capacidade:** **E1** (*"`vet_profiles` e `clinic_profiles` existem com RLS"*) e **E3** (*"aprovar muda o status pra `active`"*, e só quem está na fila), mais a transversal **Segurança**
 - **Nível:** 🔴 — migration, RLS, função usada em policy
@@ -166,7 +172,7 @@ _(vazio)_
   - [ ] **A prova de depois, a mesma de antes:** o `PATCH estado='ZZ'` é **recusado**; `rpc/admin_definir_status` numa conta `incomplete` para `active` é **recusado**; reprova sem motivo é **recusada**; `GET /rest/v1/perfil_privado?id=eq.<conta active>` com token de admin comum devolve **zero linha**. E a fila do admin **continua cheia** (é a prova de que as policies de leitura não caíram)
   - [ ] Os 41 testes continuam verdes no CI
 - **Não fazer:** não mexer em `is_admin()` aqui (é a T-032, e tem ordem própria). Não criar as tabelas de apoio nem o `slug` (T-028). Não encostar no CHECK all-or-nothing de `perfil_privado.documento_*`. Não renomear coluna nem enum (DL-043). Não resolver o R-040 de carona sem DL.
-- **Resultado:** 🔵 escrito, não aplicado. Handoff e roteiro abaixo.
+- **Resultado:** ✅ **aplicada em produção em 23/09 (22/22 `true`, sonda 3 38/38 OK), código em `87eee1a`.** Fecha R-039, SEC-093, SEC-096, SEC-097(b), SEC-098 e a parte do CRMV do R-059. Handoff e roteiro abaixo, mantidos como registro.
 
 ## HANDOFF — vetria-backend — T-027 — 23/09/2026
 
@@ -236,7 +242,7 @@ _(vazio)_
 **(g) Push do código**, depois de (f) e **só depois de corrigir os CRMVs de teste** (Descobri 4). No mesmo commit, trocar os dois comentários "SEC-098: a regra ainda NÃO vive no banco" dos formulários. `npm run build` e `npm run lint` verdes. Na tela, em produção: digitar "GO-0155" no CRMV do onboarding → a frase do passo 1 aparece e nada é gravado; concluir o onboarding de uma conta de teste nova com documento → ela vai para a fila.
 
 ### T-028 — A `0005`: tabelas de apoio da busca, a regra do `slug` e os índices
-- **Estado:** 🔵 **SQL escrito e ensaiado localmente em 23/09/2026, NÃO aplicado.** Falta auditoria do `vetria-seguranca`, o DL-067 confirmado pelo Elber e o roteiro do Resultado. _(anterior:)_ ⬜ fila, S5, item 2. 🔴 Sessão presencial, depois da T-027
+- **Estado:** ✅ **CONCLUÍDA em 24-25/09/2026: aplicada no `vetria-e2e` e em produção.** Auditoria APROVADA (`SEC-2026-09-23-T036-0005.md`, 🔴 0 · 🟠 0 · 🟡 2), DL-067 confirmado pelo Elber (DL-070 A), "Loja veterinária" (DL-070 B). _(histórico: 🔵 escrito e ensaiado em 23/09.)_
 - **Fase / Semana:** F4 / S5 (`01-PLANO.md` §S5)
 - **Capacidade:** **E4** — *"`/buscar` filtra por cidade + especialidade + tipo de atendimento"*
 - **Nível:** 🔴 — migration
@@ -252,7 +258,7 @@ _(vazio)_
   - [ ] Pré-voo com as linhas de hoje que não batem com as listas novas (dado de teste de 31/08 e 20/09), e o que se faz com elas decidido antes de aplicar
   - [ ] Auditoria **APROVADA**, backup, aplicação com o Elber, e um `select` por tabela provando o seed
 - **Não fazer:** não construir `/buscar` (S6). Não fazer mapa nem raio (V2). Não trocar Postgres por Typesense/Meilisearch (fora do escopo). Não expor `perfil_privado` em nenhuma view de busca.
-- **Resultado:** 🔵 **SQL ESCRITO e ENSAIADO LOCALMENTE em 23/09/2026, NÃO APLICADO em banco nenhum.** Nada commitado. Falta, nesta ordem: auditoria do `vetria-seguranca` → confirmação do DL-067 (slug) pelo Elber → o roteiro abaixo, começando pelo `vetria-e2e`. Checklist: DL do slug ✅ escrito (DL-067, proposta) · tabelas + seed ✅ escritos (cidades: 5571 do IBGE, seed gerado) · pertença ✅ (trigger contra a tabela) · slug na aprovação + preenchimento ✅ · índices + full-text ✅ · pré-voo ✅ escrito · auditoria, backup e aplicação ⬜. `campos.ts` **continua sendo a fonte da tela** (não "leitura" ainda): a tela só pode ler as tabelas depois da `0005` aplicada, e isso é da S6 (DL-068). **Adendo 23/09 (DL-070 item B), ainda NÃO aplicado:** o serviço "Pet shop" virou **"Loja veterinária"** (slug `loja-veterinaria`) no seed da `0005`, nos dois `campos.ts`/`ClinicProfileForm.tsx`, no pré-voo e na sonda 1; a `0005` ganhou a §3.1, um `update` idempotente que troca "Pet shop" por "Loja veterinária" nas linhas gravadas **antes** de o trigger de pertença existir (sem ele, essas contas ouviriam 23514 no próximo salvamento). Não devolve ninguém para a fila: `revalidar_ao_mudar_dado_sensivel` (versão da `0003`) não olha `servicos`. O select final continua com 36 linhas. Novo no pré-voo: **C3b** conta as linhas com "Pet shop" (esperado 0 ou contas de teste; anotar aqui). ⚠️ Esta mudança da `0005` também precisa passar pela auditoria.
+- **Resultado:** ✅ **APLICADA em 24-25/09/2026, primeiro no `vetria-e2e` e depois em produção, pelo roteiro abaixo.** Prova: **sonda 2, 33/33 OK**; seed **5571 de 5571** cidades; o serviço "Pet shop" gravado virou **"Loja veterinária"** pela §3.1 (DL-070 B); **prova em tela do item (b6):** uma conta aprovada em `/admin/validacoes` ganhou o endereço **`larissa-lima-goiania-go`**, no formato do DL-067, gerado pelo trigger na aprovação. Os testes da busca com dados foram ligados no CI (`71fd770`). **Fecha o R-065** e a parte de cidade × lista do R-059 (a busca casa por chave; a tela com lista de cidades por UF segue sem card). Ficam abertas **SEC-115** (admin comum reescreve slug pela API) e **SEC-116** (aprovação sem linha de perfil passa sem slug), as duas para a `0006` (T-039). _(texto de 23/09, mantido como registro:)_ 🔵 **SQL ESCRITO e ENSAIADO LOCALMENTE em 23/09/2026, NÃO APLICADO em banco nenhum.** Nada commitado. Falta, nesta ordem: auditoria do `vetria-seguranca` → confirmação do DL-067 (slug) pelo Elber → o roteiro abaixo, começando pelo `vetria-e2e`. Checklist: DL do slug ✅ escrito (DL-067, proposta) · tabelas + seed ✅ escritos (cidades: 5571 do IBGE, seed gerado) · pertença ✅ (trigger contra a tabela) · slug na aprovação + preenchimento ✅ · índices + full-text ✅ · pré-voo ✅ escrito · auditoria, backup e aplicação ⬜. `campos.ts` **continua sendo a fonte da tela** (não "leitura" ainda): a tela só pode ler as tabelas depois da `0005` aplicada, e isso é da S6 (DL-068). **Adendo 23/09 (DL-070 item B), ainda NÃO aplicado:** o serviço "Pet shop" virou **"Loja veterinária"** (slug `loja-veterinaria`) no seed da `0005`, nos dois `campos.ts`/`ClinicProfileForm.tsx`, no pré-voo e na sonda 1; a `0005` ganhou a §3.1, um `update` idempotente que troca "Pet shop" por "Loja veterinária" nas linhas gravadas **antes** de o trigger de pertença existir (sem ele, essas contas ouviriam 23514 no próximo salvamento). Não devolve ninguém para a fila: `revalidar_ao_mudar_dado_sensivel` (versão da `0003`) não olha `servicos`. O select final continua com 36 linhas. Novo no pré-voo: **C3b** conta as linhas com "Pet shop" (esperado 0 ou contas de teste; anotar aqui). ⚠️ Esta mudança da `0005` também precisa passar pela auditoria.
 
 ## HANDOFF — vetria-backend — T-028 — 23/09/2026
 
@@ -309,7 +315,7 @@ _(vazio)_
 **Reverter, se precisar:** a §10 da `0005` (ensaiada: remove tudo o que ela criou, e ela volta a entrar limpa). O slug preenchido fica, e é inofensivo; zerar está explicado na §10. **Código:** nada depende da `0005` para subir; os comentários dos `campos.ts` e os docs podem ir no mesmo commit do SQL.
 
 ### T-029 — A infraestrutura de E2E e o item 5 do DoD da F3: os itens 1 e 3 ganham teste
-- **Estado:** ⬜ **fila, S5, item 3, em paralelo com tudo.** **Data dura: 06/10** (DL-062). A F3 só vira "concluída" quando isto estiver verde no CI. ⚠️ **Travada numa decisão 🔴 do Elber** (abaixo). Já existe trabalho na árvore: o `vetria-qa` escreveu em 23/09 `tests/e2e/admin-validacoes.spec.ts` (**19 testes, segundo ele, nenhum escreve no banco**) e mexeu em `tests/apoio/credenciais.ts` e `tests/apoio/sessao.ts`. A suíte foi de **41 para 60 escritos, sem rodar e sem commit**
+- **Estado:** ✅ **CONCLUÍDA em 23/09/2026** (DL-064 + DL-069), 13 dias antes da data dura. _(texto de abertura, mantido como registro:)_ ⬜ fila, S5, item 3. **Data dura: 06/10** (DL-062). A F3 só vira "concluída" quando isto estiver verde no CI. ⚠️ **Travada numa decisão 🔴 do Elber** (abaixo). Já existe trabalho na árvore: o `vetria-qa` escreveu em 23/09 `tests/e2e/admin-validacoes.spec.ts` (**19 testes, segundo ele, nenhum escreve no banco**) e mexeu em `tests/apoio/credenciais.ts` e `tests/apoio/sessao.ts`. A suíte foi de **41 para 60 escritos, sem rodar e sem commit**
 - **Fase / Semana:** F4 / S5 e S6 (é dívida da F3, com prazo)
 - **Capacidade:** **E2** (item 1: o que se digita persiste e reaparece) e **E3** (item 3: aprovar muda o status e dispara email), mais a transversal **Testes**
 - **Nível:** 🟡 para os testes e o `ci.yml` · 🔴 para a **decisão** e para criar o projeto e os secrets (Elber)
@@ -326,10 +332,10 @@ _(vazio)_
   - [ ] Enquanto a decisão não existir, a parte B fica **escrita e pulando com o motivo escrito**, nunca verde à toa
 - **Descobertas do `vetria-qa` em 23/09, e para onde foram:** (1) o skip calado: parte A deste card. (2) **conta vet aprovada não tem caminho pela interface de volta à fila**: hoje isso só atrapalha o teste (conta de teste aprovada é conta perdida), e o projeto de teste resolve o lado do teste; o lado do produto é o **R-066**, que encosta na T-019. (3) **a Action de concluir sem documento grava os dados antes de recusar**: é o comportamento desenhado na T-024 (a mensagem diz *"Seus dados foram salvos, mas..."*); registrado aqui, sem card
 - **Não fazer:** não pôr a `service_role` **de produção** em lugar nenhum do CI. Não criar conta em produção sem combinar como ela é limpa. Não aprovar nem reprovar a conta `E2E_VET_EMAIL` enquanto o CI apontar para produção.
-- **Resultado:** _(a preencher)_
+- **Resultado:** ✅ **Decisão do R-033 = DL-064** (projeto `vetria-e2e`, a `service_role` **do teste** só no passo E2E, o pré-voo recusa URL de produção). `7426951` pôs o CI no projeto de teste com `E2E_ALVO=teste` e `E2E_EXIGIR_FILA=1`. **Parte C medida:** CI #22 da PR #4, **70 testes, 70 aprovados, 0 pulados**, incluindo `fluxos-conta-nova.spec.ts` (item 1 inteiro e item 3). Em 25/09 o CI roda **88 + 10** (os 10 são a busca com dados, ligada em `71fd770` depois da `0005` no `vetria-e2e`) e é **obrigatório na `main`** (ruleset: tudo entra por PR). **Fecha o R-033 e o item 5 do DoD da F3** (DL-069). ⚠️ Herdou um risco novo: o `vetria-e2e` é plano grátis e **pausa após 7 dias sem uso** (R-073, card T-044).
 
 ### T-030 — O onboarding para de brigar com quem preenche: limite de especialidades e botão de arquivo em português
-- **Estado:** ⬜ **fila, S5, item 4**
+- **Estado:** ✅ **CONCLUÍDA pela T-035 em 23/09/2026** (`b6e8452`, `dd21dce`). _(abertura: ⬜ fila, S5, item 4)_
 - **Fase / Semana:** F4 / S5
 - **Capacidade:** **E2** — *"o que o vet/estabelecimento digita no onboarding persiste"*. Hoje ele digita, avança três passos e é mandado de volta ao primeiro
 - **Nível:** 🟡 — `components/` e dois formulários
@@ -343,10 +349,10 @@ _(vazio)_
   - [ ] De carona, nos mesmos dois formulários: `cursor-pointer` nos 9 `<button>` que não têm (DL-040, achado 9 da T-025)
   - [ ] Sem travessão (DL-038). Responsivo em 360 px. Os testes de `onboarding-vet.spec.ts` continuam verdes
 - **Não fazer:** não mexer na Server Action nem no limite. Não mexer em `/api/documentos/upload`. Não construir o editor de perfil (T-019).
-- **Resultado:** _(a preencher)_
+- **Resultado:** ✅ **absorvida pela T-035.** A quinta especialidade não entra, com aviso, no próprio passo 1 (teste em `onboarding-vet.spec.ts` clica nela mesmo com `aria-disabled`, `dd21dce`); `EnvioDeDocumento` ganhou o "Escolher arquivo" próprio, em português em qualquer navegador. **Fecha o R-060.** ⚠️ Não conferido por este quadro: o clone do limite de serviços no `ClinicOnboardingForm` e o `cursor-pointer` de carona; se o `vetria-qa` achar falta, vira achado na próxima varredura.
 
 ### T-020 — Teto de volume, cota e limpeza do bucket `documentos` (SEC-081) 🟠
-- **Estado:** ⬜ **fila, S5, item 5. Se não couber, abre a S6.** ⛔ **É o item 2 do portão de abertura (DL-063), prazo 20/10.** Enquanto só houver conta de teste, não bloqueia nada
+- **Estado:** ⬜ **fila dos próximos 5 dias, item 3** (25/09). Não começou na S5. ⛔ **É o item 2 do portão de abertura (DL-063), prazo 20/10.** Enquanto só houver conta de teste, não bloqueia nada
 - **Fase / Semana:** F4 / S5 (se não couber, S6). ~~F6/S11~~: saiu de lá em 23/09, porque o portão de abertura vence antes
 - **Capacidade:** **E1** mais a transversal obrigatória **LGPD** (`00-ESCOPO.md` §2)
 - **Nível:** 🟡 — é a rota, e é `/api/*`. ⚠️ **Vira 🔴 se a saída escolhida for apagar objeto**
@@ -359,20 +365,56 @@ _(vazio)_
   - [ ] Conferir se o plano do Supabase oferece cota de bucket, antes de escrever código que a emule
   - [ ] **Rate limit no firewall da Vercel** para `/api/documentos/*`, ~20 pedidos/min por IP (painel, sem código, gesto do Elber guiado pelo card; `SEC-2026-09-23-rate-limit-captcha-2fa.md` §1). Conferir no painel e escrever aqui a regra aplicada
   - [ ] De carona, o **R-056** (o corpo do pedido é materializado inteiro antes do teto), que é conserto natural desta mesma rota
+  - [ ] **Acrescentado em 25/09:** de carona, o **R-057** (três linhas: recusar quando `Sec-Fetch-Site` não for `same-origin`, nas duas rotas de documento)
+  - [ ] **Acrescentado em 25/09 (SEC-119):** a mesma sessão de firewall cria a regra de `/buscar` e `/api/cidades` (sugestão: ~60 pedidos/min por IP; cada GET de `/buscar` faz 7 a 9 consultas). Quando a T-040 existir, `/api/contato` entra com regra própria, mais dura. Escrever aqui as regras aplicadas
 - **Não fazer:** não escrever cron. Não antecipar a rotina de exclusão da T-018. Não baixar o teto de 10 MiB sem falar com o produto: documento de identidade fotografado por celular passa de 4 MB com facilidade.
 - **Resultado:** _(a preencher)_
+
+
+> **Cards T-034 a T-037: nasceram durante a S5 sem card escrito antes** (as sessões de 23 e 24/09 foram
+> direto ao código). Estão escritos agora, pelo `vetria-maestro`, com a capacidade e a prova, porque
+> trabalho sem card é trabalho que a fila não enxerga. **Regra que volta a valer:** card antes do código.
+
+### T-034 — Senha com regra única, erros de login em português e o botão de mostrar senha
+- **Estado:** ✅ **CONCLUÍDA em 23/09/2026, em produção** (`19a2917`)
+- **Fase / Semana:** F4 / S5 · **Capacidade:** **E2** (*"um profissional consegue se cadastrar"*) e a transversal **Segurança** · **Nível:** 🟡 · **Dono:** vetria-ui
+- **Por quê:** a regra de senha só existia na tela e divergia entre telas (R-064); os erros do Supabase Auth chegavam em inglês ou sumiam; `/recuperar-senha` dizia "email enviado" quando o envio falhava
+- **Resultado:** ✅ `lib/auth/senha.ts` (8 caracteres, maiúscula, minúscula e número; a mesma regra do painel do Supabase, conferida antes de chamar o servidor), `lib/auth/erros.ts` (todo erro do Auth traduzido, nenhum some), `components/ui/CampoSenha.tsx` (mostrar e ocultar) nas 6 telas. De carona, `9b25fba`: link de senha vencido leva a `/recuperar-senha` com aviso, não à home muda. ⚠️ **O R-064 não fecha só com isto:** falta a prova do lado do servidor (cadastrar com 7 caracteres direto e ver o Supabase recusar), gesto do Elber.
+
+### T-035 — Máscaras nos campos, o limite de especialidades no passo certo e o botão de arquivo em português
+- **Estado:** ✅ **CONCLUÍDA em 23/09/2026, em produção** (`b6e8452`, `dd21dce`) · **absorveu a T-030**
+- **Fase / Semana:** F4 / S5 · **Capacidade:** **E2** · **Nível:** 🟡 · **Dono:** vetria-ui + vetria-qa (testes)
+- **Por quê:** R-060 (a quinta especialidade só era recusada no passo 4) e atrito de digitação no funil que alimenta a busca
+- **Resultado:** ✅ `lib/campos/mascaras.ts` + `CampoMascarado`: CRMV só dígitos, CNPJ e CPF com dígito verificador (CNPJ alfanumérico incluso), telefone e WhatsApp com DDD válido, CEP. **A máscara é só visual: o servidor recebe o formato de sempre, e a `0004` continua sendo a regra.** A quinta especialidade não entra, com aviso, no passo 1. `EnvioDeDocumento` com "Escolher arquivo" próprio. Os testes que escrevem (`fluxos-conta-nova`, `admin-validacoes`, `tests/apoio/alvo.ts`) **só escrevem com `E2E_ALVO=teste` e recusam produção**. **Fecha o R-060.**
+
+### T-036 — O link do email funciona em qualquer navegador (`token_hash` + `verifyOtp`)
+- **Estado:** ✅ **CONCLUÍDA em 24/09/2026: rota em produção (`d5f64a4`), os 3 templates trocados no painel do Supabase e testado pelo Elber abrindo o link em outro navegador**
+- **Fase / Semana:** F4 / S5 · **Capacidade:** **E2** (o profissional confirma o cadastro e recupera a senha) · **Nível:** 🟡 código / 🔴 templates no painel (Elber) · **Dono:** vetria-backend · **Auditoria:** `SEC-2026-09-23-T036-0005.md`, APROVADO, 🔴 0 · 🟠 0 · 🟡 3
+- **Por quê:** o fluxo PKCE amarrava o link ao navegador que pediu; quem pedia no computador e abria no celular caía num erro
+- **Resultado:** ✅ `/auth/confirm` com botão "Continuar" (POST; o GET não gasta o token, contra antivírus de email que abre links), lista fechada de `type` sem `invite`/`magiclink` (**SEC-113, corrigido na hora**), `recovery` sempre para `/recuperar-senha/nova`, regra anti open redirect reforçada. `/auth/callback` continua para o Google e links antigos. **Ordem seguida:** deploy da rota, depois troca dos templates. **Ficam abertos:** **SEC-112** (injeção de conta: mostrar `Você entrou como a***@dominio` e `frame-ancestors`, vai com a **T-033**) e **SEC-114** (limite de verificação do Supabase, vai com a **T-031**). Riscos R-067 e R-068.
+
+### T-037 — `/buscar` e as páginas públicas `/veterinario/[slug]` e `/estabelecimento/[slug]`
+- **Estado:** ✅ **CONCLUÍDA em 25/09/2026, em produção** (PR #7: `0ff5af6`, `07f41d3`, `d4fa47c`, `71fd770`; roadmap na PR #8)
+- **Fase / Semana:** F4 / S5 (o plano punha a busca na **S6** e o perfil na **S7**) · **Capacidade:** **E4** (*"`/buscar` filtra por cidade + especialidade + tipo de atendimento... filtro no backend"*) e **E5** (*"renderizam dados reais"*) · **Nível:** 🟡 · **Dono:** vetria-backend + vetria-ui · **Auditoria:** `SEC-2026-09-23-F4-busca-e-perfil-publico.md`, APROVADO, 🔴 0 · 🟠 0 · 🟡 3
+- **Depende de:** T-028 ✅ (a página degradava para "a busca abre em breve" até a `0005` entrar)
+- **Resultado:** ✅
+  - `/buscar` com texto, cidade + UF com sugestões (`/api/cidades`), especialidade, serviço, tipo de atendimento e tipo de conta; ordem alfabética (DL-070 D); paginação com teto de 25 páginas; todos os estados honestos. A busca da Home leva a `/buscar`.
+  - **Visibilidade:** o cliente é o **anônimo** (`lib/supabase/publico.ts`, chave anon, sem cookie, sem `service_role`); quem aparece é decidido **só** pela RLS `perfil_esta_ativo`, sem filtro de status na aplicação (matriz §3 regra 2, conferido pela auditoria).
+  - Perfis com **404 igual** para inexistente e não ativo; selo **"Verificado pela Vetria"** (DL-070 F); CRMV visível (DL-070 C); do vet só o bairro, do estabelecimento endereço e CEP (DL-070 E); `site` só `http(s)` com `rel="nofollow noopener noreferrer ugc"`; `force-dynamic` nas 3 páginas (**SEC-118 corrigido**).
+  - **Telefone e WhatsApp fora do HTML**, conferido por teste (`busca-publica.spec.ts`: "nada de contato no HTML"). O bloco de contato diz "abre em breve" (`CONTATO_PELO_SITE_ABERTO = false`), sem botão falso.
+  - **Prova em produção:** o perfil `larissa-lima-goiania-go` abre com dado real. **CI:** grupo A sempre, grupo B (10 testes com dados) ligado no `vetria-e2e` em `71fd770`.
+  - ⚠️ **`noindex, nofollow` de propósito** (`lib/publico/indexacao.ts`, `PAGINAS_PUBLICAS_INDEXAVEIS = false`) até o portão de abertura. **O item 3 do DoD da F4 ("indexável pelo Google") só fecha com a T-045.** Aberto: **SEC-119** (consultas por GET sem limite, vai com a T-020).
 
 ---
 
 # 🚪 PRÓXIMAS — o portão de abertura (DL-063): cards escritos, fila da S6 e da S7
 
-> **Não estão na fila da S5 e não disputam com ela.** Estão escritos agora porque nasceram hoje
-> (avaliação `SEC-2026-09-23-rate-limit-captcha-2fa.md`) e porque **trava sem card é trava que
-> ninguém confere no dia**. Com a T-027, a T-020 e o gesto da senha (R-064), fecham o portão. **Prazo
-> do portão: 20/10.** Sugestão de encaixe: **T-033 e T-031 na S6**, **T-032 na S7**.
+> **Atualizado em 25/09:** a T-027 fechou o item 1. **T-033 e T-031 (código) sobem para os próximos 5
+> dias**, porque a S5 terminou o que tinha antes do previsto. **A T-032 fica na semana de 07/10**, na
+> sessão presencial que também aplica a `0006` em produção. **Prazo do portão: 20/10**, sem mudança.
 
 ### T-031 — Captcha Turnstile nas 6 telas de autenticação (SEC-102)
-- **Estado:** ⬜ **próxima, S6.** 🔴 **auth: sessão presencial para ligar no painel**
+- **Estado:** ⬜ **fila dos próximos 5 dias, item 4 (o código).** Ligar no painel: sessão presencial de 30/09, **só depois do deploy**. 🔴 **auth**
 - **Fase / Semana:** F4 / S6
 - **Capacidade:** **E2** — *"um profissional consegue se cadastrar"*: sem captcha, um script esgota o teto de email do projeto e o cadastro de verdade não recebe a confirmação. Mais a transversal **Segurança**
 - **Nível:** 🔴 — auth. O código é 🟡; **ligar no painel do Supabase é 🔴 e é o Elber**
@@ -384,11 +426,13 @@ _(vazio)_
   - [ ] ⚠️ **A ordem, sem exceção:** código → deploy → conferir em produção que o token está indo → **só então** o Elber liga o captcha no painel. Na ordem inversa, ninguém entra, nem o Elber
   - [ ] Prova em tela depois de ligado: cadastrar, entrar, recuperar senha, com conta de teste. E uma chamada sem token **recusada**
   - [ ] Os testes de login do CI continuam passando (a chave de teste do Turnstile existe para isso)
+  - [ ] **Acrescentado em 25/09 (SEC-114, R-068):** na mesma sessão, o Elber confere e sobe o limite de verificação de OTP em Auth → Rate Limits, e escreve aqui o valor. O `verifyOtp` da T-036 sai da Vercel, então um script pode esgotar a cota de todos
+  - [ ] **Acrescentado em 25/09:** a chave e o widget ficam reutilizáveis, porque a S8 pode pedir o Turnstile invisível no clique do WhatsApp (decisão **D4**). Não ligar lá nesta task
 - **Não fazer:** não pôr Cloudflare na frente da Vercel. Não construir limite próprio de tentativas.
 - **Resultado:** _(a preencher)_
 
 ### T-032 — 2FA obrigatório para admin e master, na tela e no banco (SEC-103)
-- **Estado:** ⬜ **próxima, S7.** 🔴 **auth + migration: sessão presencial.** ⛔ **Trava própria, mais cedo que o portão: antes do segundo admin** (R-014), mesmo que a abertura atrase
+- **Estado:** ⬜ **semana de 07/10** (reencaixada em 25/09). 🔴 **auth + migration: sessão presencial.** ⛔ **Trava própria, mais cedo que o portão: antes do segundo admin** (R-014), mesmo que a abertura atrase
 - **Fase / Semana:** F4 / S7
 - **Capacidade:** **E3** — *"`/admin/validacoes` ... aprova ou reprova"*: quem aprova precisa ser quem diz que é. Mais a transversal **Segurança**
 - **Nível:** 🔴 — auth, e `is_admin()` é função de policy
@@ -405,8 +449,8 @@ _(vazio)_
 - **Resultado:** _(a preencher)_
 
 ### T-033 — Cabeçalhos de segurança no `next.config.ts` (SEC-104)
-- **Estado:** ⬜ **próxima, S6**
-- **Fase / Semana:** F4 / S6
+- **Estado:** ⬜ **fila dos próximos 5 dias, item 2** (primeiro do backend, 25/09)
+- **Fase / Semana:** F4 / S5-S6
 - **Capacidade:** **E3** — o botão *Aprovar* não pode ser clicado dentro de um iframe alheio (clickjacking). Mais a transversal **Segurança**
 - **Nível:** 🟡 — config
 - **Agente dono:** vetria-backend · **auditoria:** vetria-seguranca
@@ -417,7 +461,229 @@ _(vazio)_
   - [ ] Conferido que o `/entrega-fase-2` e o logo SVG (DL-040, `dangerouslyAllowSVG` com CSP sandbox) continuam funcionando
   - [ ] HSTS medido no domínio de produção (`curl -I https://vetriabrasil.com.br`), com a saída escrita aqui
   - [ ] Teste em `publico.spec.ts` conferindo os cabeçalhos
+  - [ ] **Acrescentado em 25/09 (SEC-112, R-067):** o `frame-ancestors 'none'` cobre também `/auth/confirm`; e a tela depois do `verifyOtp` mostra *"Você entrou como a\*\*\*@dominio"* com o caminho de sair, para a vítima de um link de conta alheia perceber em que conta está (é tela: `vetria-ui`, na mesma PR ou logo depois)
 - **Não fazer:** CSP completa com nonce (F6).
+- **Resultado:** _(a preencher)_
+
+
+---
+
+# 📋 PLANEJADA — F4 / S8: o contato por WhatsApp e o registro de contatos (escrita em 25/09/2026)
+
+> **Capacidade E5:** *"CTA de WhatsApp funciona e o contato fica registrado."* **DoD da F4, itens 4 e 5:**
+> *"Clicar em WhatsApp abre a conversa **e** o contato aparece no histórico do responsável"* e *"E2E do
+> fluxo busca → perfil → contato passando em CI"*. É **a última capacidade da F4 que tem zero linhas**.
+>
+> **O que já está decidido e amarra tudo abaixo** (não se rediscute): DL-047 (o clique é POST no servidor,
+> o servidor grava e **só então** devolve o número, sem conta, sem pedir nada antes), DL-049 (o número
+> mora em `perfil_privado`, que ninguém de fora lê), matriz §3 regra 3 e §6, e os tipos já prontos em
+> `lib/perfil-publico/contato.ts` (`PedidoDeContato`, `RespostaDoContato`, `CONTATO_PELO_SITE_ABERTO`).
+> A tabela `contatos` existe desde a `0002` (vazia, sem policy de INSERT, `revoke insert/update/delete`
+> para `anon` e `authenticated`).
+>
+> **Calendário proposto, com a folga que a S5 abriu:** `0006` escrita e auditada até 30/09 → aplicada no
+> `vetria-e2e` em 30/09 → rota e botão (T-040, T-041) na semana de 30/09 → `0006` em produção e painéis
+> (T-042) na semana de 07/10 → E2E (T-043) até 13/10. **A S8 do plano (14 a 20/10) fica para fechar o
+> DoD da F4, o portão e a indexação (T-045)**, e o que sobrar começa a F5 sem publicar nada.
+
+## O desenho recomendado
+
+**1. O que o responsável vê e clica** (no perfil público; D8)
+1. Bloco "Contato" com o botão **"Chamar no WhatsApp"**. O HTML não tem número, nem `wa.me`, nem dígito
+   do telefone (já é teste hoje).
+2. O toque faz `POST /api/contato` com `{ alvo: { tipo, slug }, origem: { cidade, especialidade }, canal }`
+   (a origem vem da busca que levou ao perfil, pela URL).
+3. O servidor responde `{ ok: true, whatsapp }`. O bloco passa a mostrar o **número formatado**, um botão
+   **"Abrir no WhatsApp"** (link `https://wa.me/55<número>?text=<mensagem, D7>`) e **"Copiar número"**.
+   **Por que dois toques e não abrir sozinho:** abrir janela depois de um `await` é bloqueado pelo Safari do
+   iPhone, e quem está no computador sem WhatsApp precisa do número à vista. É o padrão dos classificados
+   e diretórios ("ver telefone").
+4. Logo abaixo, o convite: *"Quer acompanhar seus contatos? Crie sua conta."* com **"Agora não"** visível.
+   Convite, nunca portão (matriz §6.3).
+5. Estados honestos: `sem_whatsapp` (o botão nem aparece; texto *"Este profissional ainda não informou
+   WhatsApp"*, ver D9), `muitas_tentativas`, `nao_encontrado` (o perfil saiu do ar), `indisponivel`.
+
+**2. Como o servidor entrega o número sem ele ir no HTML** (D1). **Recomendação: rota nossa + função do
+banco que só o servidor pode chamar.** É o padrão de mercado ("click to reveal" registrado no servidor, com
+limite) e o menos privilegiado dos dois caminhos.
+- **`app/api/contato/route.ts`** (só POST, `Cache-Control: no-store`): confere `Sec-Fetch-Site: same-origin`
+  (a lição do R-057), valida o corpo contra listas fechadas (tipo `vet`/`clinic`, slug `^[a-z0-9-]{1,120}$`),
+  lê ou cria o cookie do visitante (D2), lê o usuário logado se houver, confere o Turnstile se D4 = sim, e
+  chama **uma** função. **Nunca** escreve o número em log.
+- **`registrar_contato(...)`**, na `0006`: `SECURITY DEFINER` + `SET search_path = public`, **`EXECUTE`
+  revogado de `public`, `anon` e `authenticated` e concedido só a `service_role`**. Numa transação:
+  resolve `slug → id` exigindo role certo **e** `active`; aplica o limite por visitante (D3) e a
+  deduplicação (D5); lê `perfil_privado.whatsapp` (nulo → `sem_whatsapp`, sem gravar); grava a linha em
+  `contatos` (com `anon_id` **sempre**, e `user_id` quando logado); **só então** devolve o número. A origem
+  é conferida contra `cidades.slug` / `especialidades.slug` / `servicos.slug` (fora da lista vira nulo: lixo
+  não entra na métrica que se vende). Contato de alguém consigo mesmo não é gravado.
+- **Por que não a função chamável pelo `anon`:** a chave anon está no bundle. Qualquer um chamaria
+  `/rest/v1/rpc/registrar_contato` direto no Supabase, com um `anon_id` novo a cada pedido, **por fora do
+  firewall da Vercel e do nosso limite**: é a raspagem que o DL-047 existe para impedir.
+- **Por que não a rota com `service_role` lendo `perfil_privado` e inserindo em `contatos`:** duas
+  operações sem transação (a lição do R-042) e um cliente com a base inteira na mão numa rota pública. Com
+  a função, o `service_role` na rota só alcança **uma** operação estreita.
+
+**3. Anti-abuso, em camadas** (nenhuma sozinha basta)
+- **Borda:** regra do firewall da Vercel em `/api/contato` (sugestão: 10 pedidos/min por IP). O IP **não é
+  gravado por nós** (DL-047 alternativa c).
+- **Banco:** limite por visitante (`anon_id` ou `user_id`) dentro da função (D3), com índice
+  `(anon_id, created_at)` e `(user_id, created_at)`.
+- **Robô que apaga o cookie a cada pedido:** só a borda e o Turnstile o seguram (D4).
+- **CSRF:** `Sec-Fetch-Site` + `SameSite=Lax`.
+- **Limite honesto:** um raspador paciente, com muitos IPs, ainda tira números devagar. Aceito: o
+  profissional publica o WhatsApp para ser chamado; o que se impede é a base inteira de uma vez.
+
+**4. Cookie `anon_id` e LGPD** (D2, D10, D11)
+- Cookie primário `vetria_visitante`, UUID aleatório, `httpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, 180 dias.
+- **Recomendação: nasce no primeiro clique de contato, não na primeira visita** (a matriz §6.1 diz "primeira
+  visita"). Minimização: quem só olha não ganha identificador. **Muda a matriz: exige DL.**
+- É identificador on-line, logo **dado pessoal pseudônimo**. Base legal: **legítimo interesse** (art. 7º,
+  IX: segurança contra abuso e o próprio serviço ao visitante), com transparência: uma linha sob o botão
+  (*"Registramos este contato para o profissional saber quantas pessoas o procuraram e para evitar
+  abuso."*) e o trecho na Política de Privacidade (F6).
+- **O `anon_id` é segredo de quem o carrega:** quem o conhece pode, criando conta com ele no cookie, puxar
+  o histórico daquele navegador. Por isso **ninguém além do servidor lê essa coluna** (R-074).
+
+**5. O que o profissional vê em "Contatos recebidos"** (D6), `/app/veterinario/contatos` e
+`/app/estabelecimento/contatos` (já `SO_ATIVO`, matriz §4)
+- **O número grande:** *"12 contatos nos últimos 30 dias"* e o do mês corrente; o mesmo número num cartão do
+  painel inicial (plano §S8).
+- **A lista:** data e hora, canal (WhatsApp) e a origem (*"veio de uma busca por Clínica geral em
+  Goiânia"* ou *"acesso direto ao seu perfil"*). **Sem identidade de quem clicou** na V1.
+- Estado vazio honesto: *"Nenhum contato ainda. Quando alguém tocar em Chamar no WhatsApp no seu perfil, ele
+  aparece aqui."*
+- **Lê pela sessão do dono** (`contatos_select_profissional`), com `anon_id` e `user_id` fora do alcance
+  (R-074, `0006`).
+
+**6. O que o responsável vê em `/app/responsavel/historico`**: a tela deixa de prometer *"Seus
+agendamentos"* e vira **"Seus contatos"** (DL-047): nome do profissional com link para o perfil (se ainda
+`active`; senão *"Este perfil não está mais disponível"*), data, e **"Chamar de novo"** pelo mesmo POST.
+
+## O que é 🔴 e precisa do Elber
+
+- **A `0006`** (T-039): função nova, grants, mudança de privilégio de coluna em `contatos`, trigger do slug
+  (SEC-115), mudança do CHECK `contatos_tem_origem` (R-076). **Sessão presencial**, `vetria-e2e` primeiro.
+- **A emenda da matriz §6** (cookie no clique, se D2 = sim) e **a §3** (quem lê quais colunas de
+  `contatos`), por DL **antes** do SQL.
+- **As regras do firewall da Vercel** e, se D4 = sim, o Turnstile no clique (mesma chave da T-031).
+- **Ligar `CONTATO_PELO_SITE_ABERTO = true`** é 🟡, mas só depois da `0006` **em produção** (T-041).
+
+## ⚖️ Decisões que o Elber precisa tomar (cada uma com a recomendação do `vetria-maestro`)
+
+| # | Decisão | Recomendação, em uma linha |
+|:-:|---|---|
+| **D1** | Como o servidor entrega o número | Rota `/api/contato` + função `registrar_contato` com `EXECUTE` **só para `service_role`**: grava e devolve na mesma transação, e o `anon` não a alcança. |
+| **D2** | Quando nasce o cookie `anon_id` e por quanto tempo | No **primeiro clique de contato** (não na primeira visita), 180 dias, `httpOnly`/`Secure`/`Lax`, legítimo interesse com aviso de uma linha; emenda a matriz §6.1 por DL. |
+| **D3** | Limites | Por visitante no banco: **5 profissionais distintos em 10 min e 20 em 24 h**; por IP na borda da Vercel: **10/min** em `/api/contato`; IP nunca gravado. |
+| **D4** | Turnstile invisível no clique | **Sim**, com a chave da T-031; se a T-031 atrasar, a S8 sai sem ele e ele entra **antes da abertura** (vira item do portão). |
+| **D5** | Deduplicação | Mesmo visitante + mesmo profissional em **24 h conta 1** (o número volta, a linha não se repete): a métrica que se vende tem que ser honesta. |
+| **D6** | O que o profissional vê | **Contagem + data + origem da busca**, sem identidade de quem clicou na V1; `anon_id` e `user_id` ilegíveis para ele. |
+| **D7** | Mensagem pré-preenchida | *"Olá! Encontrei seu perfil na Vetria e gostaria de mais informações."*: curta, e diz ao profissional de onde veio o cliente. |
+| **D8** | Onde fica o botão | **Só no perfil público** na V1, não no cartão da busca: um lugar só para medir, proteger e testar. |
+| **D9** | WhatsApp é obrigatório? | **Sim, para concluir o onboarding a partir de agora** (Action, 🟡); quem já está `active` sem WhatsApp vê aviso no painel. Perfil sem contato é vitrine que não gera lead (R-036, aberto desde 31/08). |
+| **D10** | Vincular contatos anônimos à conta | **Só na criação de conta de responsável**, contatos dos últimos 30 dias daquele navegador; não em todo login (computador compartilhado). |
+| **D11** | Retenção | Contato anônimo não vinculado **perde o `anon_id` em 12 meses** (a contagem do profissional fica); excluir conta anonimiza a linha em vez de apagar. A rotina é da F6; **a regra (e o CHECK) é da `0006`**. |
+| **D12** | Indexação no Google (DoD F4 item 3) | Ligar `PAGINAS_PUBLICAS_INDEXAVEIS` **e** publicar `sitemap` **no dia em que o portão fechar**, com DL (T-045). Antes disso, não. |
+
+**Fora da tabela, mas precisa de resposta:** o projeto Supabase de **produção** está no plano grátis? (R-073.
+Se sim, recomendação: **Pro antes da abertura**; site que pausa sozinho não é entrega.) E a **SEC-115**: o
+padrão da `0006` é **trigger** recusando mudança de `slug` fora do gerador e do master (em vez de afrouxar a
+matriz); se o Elber preferir o DL, é uma linha a menos.
+
+## Os cards da S8
+
+### T-039 — A `0006`: a função que registra o contato e devolve o número, e a leitura de `contatos` sem o `anon_id`
+- **Estado:** ⬜ **fila dos próximos 5 dias, item 5: escrever e auditar. NÃO aplicar sem o Elber.**
+- **Fase / Semana:** F4 / S6-S7 (é o trabalho da S8, adiantado)
+- **Capacidade:** **E5** — *"CTA de WhatsApp funciona e o contato fica registrado"*
+- **Nível:** 🔴 — migration, função `SECURITY DEFINER`, grants, RLS
+- **Agente dono:** vetria-backend, **com o Elber na aplicação** · **auditoria obrigatória:** vetria-seguranca (correção volta para ela, DL-050)
+- **Depende de:** **as decisões D1, D2, D3, D5, D6, D10, D11** (sem elas, escreve com as recomendações e marca "confirmar antes de aplicar"); DL novo emendando a matriz §3 e §6 **antes** do SQL
+- **Por quê:** sem ela o número não tem como sair do banco para quem não é o dono, e o clique não tem onde ser gravado. É a peça 🔴 da S8
+- **Feito quando:**
+  - [ ] **DL** com D1 a D11 como decididos, e a matriz §3 (linha `contatos`: quem lê **quais colunas**) e §6 (quando nasce o cookie) atualizadas **antes** do SQL
+  - [ ] `registrar_contato(tipo, slug, user_id, anon_id, origem_cidade, origem_especialidade)` como no desenho §2: `SECURITY DEFINER` + `SET search_path = public` (DL-014/015), `EXECUTE` só `service_role`, uma transação, número só depois da linha gravada, limites (D3), deduplicação (D5), origem conferida contra as listas
+  - [ ] **R-074:** `anon_id` e `user_id` de `contatos` fora do alcance do profissional pelo PostgREST (privilégio por coluna: `revoke select` na tabela e `grant select` só nas colunas que as telas usam), com a sonda provando o `42501`
+  - [ ] **R-076:** o CHECK `contatos_tem_origem` deixa de impedir a anonimização (excluir a conta de um responsável hoje **falharia**: `user_id` vira nulo pelo `on delete set null` e a linha sem `anon_id` viola o CHECK)
+  - [ ] `vincular_contatos_do_visitante(user_id, anon_id)`, também só `service_role`, só para conta `tutor`, só linhas sem `user_id` e dos últimos 30 dias (D10)
+  - [ ] **SEC-115:** trigger recusando mudança de `slug` fora do gerador e do master. **SEC-116:** `raise` quando a aprovação não achar a linha de perfil para gerar o slug
+  - [ ] Índices para os limites. Pré-voo, backup, verificar e reversão no padrão da `0004`/`0005`
+  - [ ] **Sondas:** `anon` e `authenticated` chamando `rpc/registrar_contato` recebem recusa; conta `pending_validation` devolve `nao_encontrado`; perfil sem WhatsApp devolve `sem_whatsapp` **e não grava**; 2º clique em 24 h não duplica; o 6º profissional em 10 min devolve `muitas_tentativas`; o profissional lendo `anon_id` recebe `42501`
+  - [ ] Auditoria APROVADA → `vetria-e2e` (CI verde) → produção, com o Elber
+- **Não fazer:** agendamento, avaliação ou qualquer `canal` além de `whatsapp`. Gravar IP. Tabela nova de "leads" (a `contatos` é a tabela).
+- **Resultado:** _(a preencher)_
+
+### T-040 — A rota `POST /api/contato` e o cookie do visitante
+- **Estado:** ⬜ **semana de 30/09**, depois da T-039 no `vetria-e2e`
+- **Fase / Semana:** F4 / S6-S7 · **Capacidade:** **E5** · **Nível:** 🟡 — `/api/*` e `lib/` · **Dono:** vetria-backend · **Auditoria:** vetria-seguranca
+- **Depende de:** **T-039** aplicada no `vetria-e2e`; **T-031** se D4 = sim
+- **Por quê:** é a única porta pela qual o número sai. Tem que estar certa antes de o botão existir
+- **Feito quando:**
+  - [ ] Só POST; `Sec-Fetch-Site` diferente de `same-origin` é recusado; corpo validado contra listas fechadas; resposta no formato `RespostaDoContato`; `Cache-Control: no-store`
+  - [ ] Cookie `vetria_visitante` criado no primeiro clique (D2), com os atributos do desenho §4
+  - [ ] Chama `registrar_contato` pelo `lib/supabase/admin.ts` (`server-only`) e nada mais com esse cliente
+  - [ ] Número e `anon_id` **nunca** em log (só o `code` do erro, como no resto do projeto)
+  - [ ] Turnstile conferido no servidor, se D4 = sim
+  - [ ] **Gesto do Elber, guiado por este card:** regra do firewall da Vercel em `/api/contato` (D3), escrita aqui
+  - [ ] Teste de API no CI: sem `Sec-Fetch-Site` recusa; slug inválido recusa; o número só vem no corpo da resposta do POST
+- **Não fazer:** o botão (T-041). Server Action no lugar da rota (a regra de firewall precisa de caminho fixo).
+- **Resultado:** _(a preencher)_
+
+### T-041 — O botão "Chamar no WhatsApp", a revelação do número e o convite, no perfil público
+- **Estado:** ⬜ **semana de 30/09** (pode ser construída contra o `vetria-e2e`; **liga em produção só depois da T-039 em produção**)
+- **Fase / Semana:** F4 / S7 · **Capacidade:** **E5** · **Nível:** 🟡 — `components/` · **Dono:** vetria-ui
+- **Depende de:** **T-040**
+- **Por quê:** é o que o responsável toca. DoD da F4 item 4, primeira metade
+- **Feito quando:**
+  - [ ] `BlocoDeContato` (`components/publico/Perfil.tsx`) com o fluxo do desenho §1: botão → POST → número formatado + "Abrir no WhatsApp" (`wa.me/55…?text=` com D7) + "Copiar número" → convite com "Agora não"
+  - [ ] Os quatro estados de erro com texto honesto; `sem_whatsapp` não desenha botão (D9)
+  - [ ] A linha de transparência sob o botão (D2)
+  - [ ] `CONTATO_PELO_SITE_ABERTO = true` **no mesmo commit que liga a rota em produção, e só então**
+  - [ ] O HTML inicial continua **sem** número (o teste de hoje continua verde). Toque com teclado e leitor de tela; 360 px; sem travessão
+- **Não fazer:** botão no cartão da busca (D8). Abrir o WhatsApp sozinho depois do `await`. Pedir nome ou conta antes do número.
+- **Resultado:** _(a preencher)_
+
+### T-042 — "Contatos recebidos" do profissional, "Seus contatos" do responsável e o vínculo na criação de conta
+- **Estado:** ⬜ **semana de 07/10**
+- **Fase / Semana:** F4 / S7-S8 · **Capacidade:** **E5** (*"o contato fica registrado"*) e o DoD F4 item 4, segunda metade · **Nível:** 🟡 · **Dono:** vetria-ui (telas) + vetria-backend (vínculo)
+- **Depende de:** **T-039** em produção, **T-041**
+- **Por quê:** o número de contatos é o que o plano pago vende (matriz §6); o histórico é o que faz o responsável criar conta
+- **Feito quando:**
+  - [ ] `/app/veterinario/contatos` e `/app/estabelecimento/contatos` deixam de ser casca: contagem de 30 dias e do mês, lista com data, canal e origem, estado vazio honesto (desenho §5). Cartão com a contagem no painel inicial
+  - [ ] `/app/responsavel/historico` vira **"Seus contatos"** (desenho §6), sem nenhuma menção a agendamento
+  - [ ] Vínculo: ao **criar** conta de responsável, o servidor chama `vincular_contatos_do_visitante` (D10) e o histórico aparece
+  - [ ] Leitura sempre pela sessão do dono (policies da `0002`); nenhuma tela lê `anon_id`
+  - [ ] Isolamento: o profissional A não vê contato do B; o responsável não vê contato de outro (teste)
+- **Não fazer:** gráfico, exportação, filtro por período além dos dois números, identidade de quem clicou (D6).
+- **Resultado:** _(a preencher)_
+
+### T-043 — E2E do fluxo busca → perfil → contato no CI (DoD F4 item 5)
+- **Estado:** ⬜ **semana de 07/10**, escrito em paralelo desde a T-040
+- **Fase / Semana:** F4 / S7-S8 · **Capacidade:** **E5**, transversal **Testes** · **Nível:** 🟡 · **Dono:** vetria-qa
+- **Depende de:** T-040, T-041 (T-042 para a parte do histórico)
+- **Feito quando:**
+  - [ ] Busca → cartão → perfil → **o HTML não contém o número** → toque → número aparece → a linha existe em `contatos` (conferida pelo cliente de serviço do **teste**)
+  - [ ] 2º toque em 24 h não duplica; o limite devolve `muitas_tentativas`; conta `pending_validation` não tem botão nem perfil
+  - [ ] `rpc/registrar_contato` com a chave anon é recusado; o profissional pedindo `anon_id` pelo PostgREST recebe `42501`
+  - [ ] O profissional vê a contagem 1; o responsável logado vê o contato em "Seus contatos"; o anônimo que cria conta vê o contato vinculado
+  - [ ] Verde no CI, com o número de testes executados (não pulados) escrito aqui
+- **Resultado:** _(a preencher)_
+
+### T-044 — O `vetria-e2e` não pode dormir: CI agendado a cada 3 dias
+- **Estado:** ⬜ **semana de 30/09**, em paralelo (é do `vetria-qa`, 30 minutos)
+- **Fase / Semana:** F4 / S6 · **Capacidade:** **E5**, transversal **Testes** (o DoD da F4 item 5 é "passando em CI", e o CI mora nesse projeto) · **Nível:** 🟡 — `ci.yml` · **Dono:** vetria-qa
+- **Por quê:** **R-073.** Projeto grátis do Supabase pausa após 7 dias sem uso; o CI quebraria na primeira semana sem PR (feriado, doença, semana de decisão), e voltaria a ser o CI que ninguém confere
+- **Feito quando:** [ ] `schedule` no `ci.yml` (ex.: a cada 3 dias) rodando a suíte ou um pedido leve ao `vetria-e2e` · [ ] uma execução agendada verde, com o link escrito aqui
+- **Não fazer:** mexer no projeto de produção (a pergunta do plano de produção é do Elber, R-073).
+- **Resultado:** _(a preencher)_
+
+### T-045 — Fechar a F4: indexação no Google e `sitemap`, depois do portão
+- **Estado:** ⬜ **S8 (14 a 20/10)**, **só com o portão fechado** e o DL da D12
+- **Fase / Semana:** F4 / S8 · **Capacidade:** **E5** — o DoD F4 item 3 diz *"indexável pelo Google"* · **Nível:** 🟡 (uma constante + `app/sitemap.ts`) · **Dono:** vetria-backend
+- **Depende de:** portão de abertura 6 de 6 (DL-063) e DL da D12
+- **Feito quando:** [ ] `PAGINAS_PUBLICAS_INDEXAVEIS = true` num commit que cite o DL · [ ] `app/sitemap.ts` com os perfis `active` (lidos como anônimo) e `robots.ts` apontando para ele · [ ] `/buscar` continua `noindex` (`robotsDaBusca`) · [ ] conferido em produção (`curl` do HTML e do `sitemap.xml`), saída escrita aqui
+- **Não fazer:** blog, SEO de conteúdo (fora do escopo).
 - **Resultado:** _(a preencher)_
 
 ---
