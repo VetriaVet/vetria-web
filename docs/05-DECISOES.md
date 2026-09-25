@@ -810,6 +810,7 @@ duas contas de teste); a migration normalizar o CRMV sozinha (revalidação em m
 **Consequência:** `docs/06-PERMISSOES.md` §5 ganhou a subseção de 23/09 (T-027). A moderação de conta `incomplete` ou
 `suspended` pelo admin comum deixa de ser alcançável pelo PostgREST; não há tela que a use.
 **Status:** 🟡 proposta, escrita na `0004` · ⬜ confirmar com o Elber · ⬜ aplicada
+**Atualizado em 25/09/2026:** ✅ **aplicada em produção em 23/09** (T-027, sessão presencial com o Elber, que conduziu a aplicação).
 
 ---
 
@@ -843,6 +844,7 @@ cada correção de cadastro); o dono escolher o próprio endereço (squatting de
 **Implicações:** a S7 lê `slug` e devolve 404 para o que não existe ou não é `active` (a policy pública já esconde). A prévia do
 perfil (S7) pode mostrar o endereço, mas só o servidor o grava.
 **Status:** 🟡 proposta, escrita na `0005` · ⬜ confirmar com o Elber · ⬜ aplicada
+**Atualizado em 25/09/2026:** ✅ confirmada pelo Elber (DL-070 A) e ✅ **aplicada** no `vetria-e2e` e em produção; provada com `larissa-lima-goiania-go`.
 
 ### DL-068 — Os dados da busca: listas em tabela, pertença por trigger, cidade por chave normalizada, full-text em português
 **Data:** 23/09/2026 · **Fase/Task:** F4/S5 · T-028 · DL-062 item 5, R-059
@@ -887,6 +889,7 @@ as tabelas, o que só pode acontecer depois da `0005` aplicada (ler antes quebra
 virou "Loja veterinária" (`loja-veterinaria`) no seed da `0005`, antes de ela ser aplicada, junto dos `campos.ts`; o dado já gravado
 é renomeado pela §3.1 da `0005`, antes do trigger de pertença.
 **Status:** 🟡 escrita na `0005` · ⬜ aplicada
+**Atualizado em 25/09/2026:** ✅ **aplicada** (sonda 2 33/33 OK, 5571 cidades).
 
 ### DL-069 — A F3 fecha em 6 de 6: o item 5 (E2E no CI) foi medido em 23/09
 **Data:** 23/09/2026 · **Fase:** F3 · **Revisa:** DL-062 (que fechou em 5 de 6 com previsão 06/10)
