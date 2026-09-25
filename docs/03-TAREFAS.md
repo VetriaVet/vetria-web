@@ -594,7 +594,7 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
 ## Os cards da S8
 
 ### T-039 — A `0006`: a função que registra o contato e devolve o número, e a leitura de `contatos` sem o `anon_id`
-- **Estado:** ⬜ **fila dos próximos 5 dias, item 5: escrever e auditar. NÃO aplicar sem o Elber.**
+- **Estado:** 🔵 **SQL ESCRITO e ENSAIADO LOCALMENTE em 25/09/2026, NÃO APLICADO em banco nenhum** (branch `t-039-migration-0006`). Falta: auditoria do `vetria-seguranca` → o roteiro do Resultado, `vetria-e2e` primeiro. Decisões D1 a D12 aprovadas pelo Elber em 25/09 como recomendadas
 - **Fase / Semana:** F4 / S6-S7 (é o trabalho da S8, adiantado)
 - **Capacidade:** **E5** — *"CTA de WhatsApp funciona e o contato fica registrado"*
 - **Nível:** 🔴 — migration, função `SECURITY DEFINER`, grants, RLS
@@ -603,16 +603,43 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
 - **Por quê:** sem ela o número não tem como sair do banco para quem não é o dono, e o clique não tem onde ser gravado. É a peça 🔴 da S8
 - **Feito quando:**
   - [ ] **DL** com D1 a D11 como decididos, e a matriz §3 (linha `contatos`: quem lê **quais colunas**) e §6 (quando nasce o cookie) atualizadas **antes** do SQL
-  - [ ] `registrar_contato(tipo, slug, user_id, anon_id, origem_cidade, origem_especialidade)` como no desenho §2: `SECURITY DEFINER` + `SET search_path = public` (DL-014/015), `EXECUTE` só `service_role`, uma transação, número só depois da linha gravada, limites (D3), deduplicação (D5), origem conferida contra as listas
-  - [ ] **R-074:** `anon_id` e `user_id` de `contatos` fora do alcance do profissional pelo PostgREST (privilégio por coluna: `revoke select` na tabela e `grant select` só nas colunas que as telas usam), com a sonda provando o `42501`
-  - [ ] **R-076:** o CHECK `contatos_tem_origem` deixa de impedir a anonimização (excluir a conta de um responsável hoje **falharia**: `user_id` vira nulo pelo `on delete set null` e a linha sem `anon_id` viola o CHECK)
-  - [ ] `vincular_contatos_do_visitante(user_id, anon_id)`, também só `service_role`, só para conta `tutor`, só linhas sem `user_id` e dos últimos 30 dias (D10)
-  - [ ] **SEC-115:** trigger recusando mudança de `slug` fora do gerador e do master. **SEC-116:** `raise` quando a aprovação não achar a linha de perfil para gerar o slug
-  - [ ] Índices para os limites. Pré-voo, backup, verificar e reversão no padrão da `0004`/`0005`
-  - [ ] **Sondas:** `anon` e `authenticated` chamando `rpc/registrar_contato` recebem recusa; conta `pending_validation` devolve `nao_encontrado`; perfil sem WhatsApp devolve `sem_whatsapp` **e não grava**; 2º clique em 24 h não duplica; o 6º profissional em 10 min devolve `muitas_tentativas`; o profissional lendo `anon_id` recebe `42501`
+  - [x] `registrar_contato(tipo, slug, user_id, anon_id, origem_cidade, origem_especialidade)` como no desenho §2: `SECURITY DEFINER` + `SET search_path = public` (DL-014/015), `EXECUTE` só `service_role`, uma transação, número só depois da linha gravada, limites (D3), deduplicação (D5), origem conferida contra as listas _(escrito e ensaiado, não aplicado)_
+  - [x] **R-074:** `anon_id` e `user_id` de `contatos` fora do alcance do profissional pelo PostgREST (privilégio por coluna: `revoke select` na tabela e `grant select` só nas colunas que as telas usam), com a sonda provando o `42501` _(ensaiado)_
+  - [x] **R-076:** o CHECK `contatos_tem_origem` deixa de impedir a anonimização (excluir a conta de um responsável hoje **falharia**: `user_id` vira nulo pelo `on delete set null` e a linha sem `anon_id` viola o CHECK) _(ensaiado com exclusão real da conta)_
+  - [x] `vincular_contatos_do_visitante(user_id, anon_id)`, também só `service_role`, só para conta `tutor`, só linhas sem `user_id` e dos últimos 30 dias (D10) _(ensaiado)_
+  - [x] **SEC-115:** trigger recusando mudança de `slug` fora do gerador e do master. **SEC-116:** `raise` quando a aprovação não achar a linha de perfil para gerar o slug _(ensaiado)_
+  - [x] Índices para os limites. Pré-voo, backup, verificar e reversão no padrão da `0004`/`0005`
+  - [x] **Sondas:** `anon` e `authenticated` chamando `rpc/registrar_contato` recebem recusa; conta `pending_validation` devolve `nao_encontrado`; perfil sem WhatsApp devolve `sem_whatsapp` **e não grava**; 2º clique em 24 h não duplica; o 6º profissional em 10 min devolve `muitas_tentativas`; o profissional lendo `anon_id` recebe `42501` _(sonda 2 do verificar, 58 casos; verde no ensaio, falta rodar no `vetria-e2e` e em produção)_
   - [ ] Auditoria APROVADA → `vetria-e2e` (CI verde) → produção, com o Elber
 - **Não fazer:** agendamento, avaliação ou qualquer `canal` além de `whatsapp`. Gravar IP. Tabela nova de "leads" (a `contatos` é a tabela).
-- **Resultado:** _(a preencher)_
+- **Resultado:** 🔵 **ESCRITA e ENSAIADA em 25/09/2026, NÃO APLICADA.** Arquivos: `supabase/migrations/0006_contato_registrado_e_slug_protegido.sql`, `supabase/prevoo-0006.sql`, `supabase/backup-antes-da-0006.sql`, `supabase/verificar-apos-0006.sql`.
+
+  **Ensaio (DL-050: revisão não substitui execução).** PGlite (Postgres 18.3) sobre um esboço do Supabase (`auth.uid()`, `auth.role()`, `anon`/`authenticated`/`service_role`, `storage.*`) + `montar-vetria-e2e.sql` + `0004` + `0005` + seed de cidades: select final **26/26 `true`**; rodada de novo, **26/26** (idempotente); **sonda 2: 58/58 OK** num banco com 5 contas e num com 27, e **nada sobra** depois (contas, contatos, slugs e status iguais); a sonda 2 da `0005` continua **100% OK** depois da `0006`; **controle negativo:** num banco sabotado (grant de SELECT de volta, EXECUTE para anon, trigger do slug removido, CHECK antigo) a sonda deu FALHA exatamente nos casos certos; o pré-voo **parou sem mudar nada** com `slug_ao_ativar` editada, com uma policy de INSERT em `contatos` e sem a `0005`; a reversão da §10 voltou as duas funções aos hashes da `0005` e a `0006` entrou limpa de novo; a exclusão **real** da conta de um responsável (R-076) anonimizou as linhas em vez de falhar. ⚠️ PGlite não é o Supabase: grants por default privileges, o `service_role` do SQL Editor e a concorrência (a trava por visitante) só se provam no `vetria-e2e`.
+
+  **Uma exceção à regra "aditiva", pedida pelo card (R-076, D11):** o CHECK `contatos_tem_origem` é trocado por `contatos_tem_origem_ou_anonimizado` (`drop constraint` + `add constraint` na mesma transação; Postgres não altera expressão de CHECK). A regra nova só afrouxa para linha **anonimizada** (carimbada por trigger em `anonimizado_em`); linha nova sem origem continua recusada (sonda 2, casos 54 e 55).
+
+  **Roteiro de aplicação (sessão presencial com o Elber, `vetria-e2e` primeiro, depois produção, nesta ordem):**
+  1. **Auditoria APROVADA** do `vetria-seguranca` sobre os 4 arquivos. Sem ela, não roda.
+  2. **`vetria-e2e`**, confira o nome do projeto no topo do SQL Editor:
+     1. `prevoo-0006.sql`, **uma consulta por vez**. Esperado: consulta 0 `contatos_linhas = 0` e `active_sem_perfil = 0`; consulta 1 tudo `true`/3; consulta 2 igual ao comentário dela; consulta 3 **zero linhas**; consulta 4 `active_sem_slug = 0`, `slug_fora_do_formato = 0`; consulta 5 `posso_assumir_service_role = true`. Anote aqui.
+     2. `backup-antes-da-0006.sql`: query 0 anotada, queries 1 a 4 em CSV em `supabase/backups/`.
+     3. Leia a §10 (reversão) da migration.
+     4. Cole a `0006` **inteira** e rode. Esperado: o select final com **26 linhas, todas `true`**. Se o pré-voo parar, a mensagem diz o quê, e nada entrou.
+     5. `verificar-apos-0006.sql`, **uma sonda por vez**: sonda 1 (6 `true`), sonda 2 (**58 OK**; ela precisa de uma conta vet, uma clinic, uma tutor e uma admin), sonda 3 (`linhas = 0`, `sem_origem_TEM_QUE_SER_0 = 0`), sonda 4 (2 OK).
+     6. Abra um PR qualquer (ou rode o CI) e confira o **CI verde** contra o `vetria-e2e`: nenhuma tela lê `contatos` hoje, e a aprovação em `/admin/validacoes` continua gerando slug.
+  3. **Produção**: os mesmos passos 2.1 a 2.5. Depois, **prova em tela**: aprove uma conta na fila em `/admin/validacoes` e confira que ela ganhou o endereço (o gerador passou pelo trigger novo). Anote a data na tabela do `supabase/migrations/README.md`.
+  4. Só então a T-040 liga a rota contra o `vetria-e2e`.
+
+  **HANDOFF — vetria-backend — T-039 — 25/09/2026**
+
+  **Fiz:** `0006_contato_registrado_e_slug_protegido.sql` (917 linhas): pré-voo §1 (0005 aplicada e as duas funções com o hash sem espaço da 0005, `contatos` como a 0002 a deixou e sem policy de escrita, nomes livres); §2 `contatos.anonimizado_em` + trigger `anonimizar_contato` (tira o `anon_id` quando a conta sai, carimba a data) + CHECK trocado (R-076, D11); §3 `revoke` de SELECT/escrita/TRUNCATE na tabela e `grant select` só em `id, profissional_id, canal, origem_cidade, origem_especialidade, created_at` para `authenticated`, `anon` sem nada (R-074, D6); §4 índices `(anon_id, created_at)` e `(user_id, created_at)`; §5 `registrar_contato` (:372, devolve jsonb no formato `RespostaDoContato`, EXECUTE só `service_role` :488-489); §6 `vincular_contatos_do_visitante` (:509, só `tutor` criada há menos de 24 h, só linha sem dono e dos últimos 30 dias); §7 `proteger_slug` (:580) + triggers, `gerar_slug_do_perfil` com a marca `vetria.gerador_de_slug` (:626), `slug_ao_ativar` com `raise` 55000 (:715); §9 select final; §10 reversão. Mais pré-voo, backup, verificar (4 sondas) e o README das migrations (linha da 0006, hashes, e a 0005 marcada como aplicada).
+  **Não fiz:** a rota `/api/contato` e o botão (T-040, T-041); o DL com D1 a D12 e a emenda da matriz §3/§6 (é do `vetria-escriba`; o card pede **antes** do SQL ir para produção); a auditoria (não é minha).
+  **Estado agora:** nada mudou em banco nenhum. Com a 0006 aplicada, o comportamento novo é: o servidor tem uma porta para registrar o clique e receber o número; um profissional logado que pedir `anon_id` ou `user_id` de `contatos` recebe 42501; um admin comum que tentar trocar o endereço público de alguém recebe 42501; aprovar uma conta sem linha de perfil falha em vez de publicar sem endereço.
+  **Descobri:** (1) `select=*` em `contatos` passa a dar 42501 para quem está logado: a T-042 **tem** que pedir as colunas pelo nome, inclusive nas contagens (`.select('id', { count: 'exact', head: true })`). (2) O `anon` tinha TRUNCATE em `contatos` por default privileges (TRUNCATE ignora RLS); a 0006 revoga. (3) A marca do gerador não precisa de limpeza manual: função com `SET search_path` restaura as configurações na saída (sonda 2, caso 68). (4) A checagem "quem está mexendo no slug" usa `current_setting('role')` e não `current_user`, porque dentro de `SECURITY DEFINER` o `current_user` vira o dono; o SQL Editor (papel `postgres`) continua podendo trocar slug, que é o gesto manual do master do DL-067. (5) O `service_role` também fica proibido de trocar slug: nenhuma rota escreve slug hoje; se um dia precisar, é decisão registrada. (6) `vincular_contatos_do_visitante` recusa conta criada há mais de 24 h: a T-042 tem que chamá-la no cadastro (ou na primeira entrada logo depois da confirmação do e-mail), não em login qualquer.
+  **Bloqueios:** auditoria do `vetria-seguranca`; o DL das decisões (escriba).
+  **Próximo passo óbvio:** `vetria-seguranca` audita os 4 arquivos; aprovada, o Elber aplica no `vetria-e2e` pelo roteiro acima.
+  **Docs que atualizei:** este card; `supabase/migrations/README.md`.
+  **Commits:** branch `t-039-migration-0006` (hash na resposta ao maestro).
 
 ### T-040 — A rota `POST /api/contato` e o cookie do visitante
 - **Estado:** ⬜ **semana de 30/09**, depois da T-039 no `vetria-e2e`
