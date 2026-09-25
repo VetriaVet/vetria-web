@@ -17,7 +17,7 @@ import {
   // T-025 — o link de volta ao cadastro e o aviso que vem com ele.
   FilePen,
   TriangleAlert,
-  Image as ImageIcon,
+  Eye,
   type LucideIcon,
 } from "lucide-react";
 
@@ -392,7 +392,7 @@ export function AguardandoCasca({
             )}
             <AcaoDeEspera
               href={perfil.href}
-              icon={ImageIcon}
+              icon={Eye}
               title={perfil.title}
               desc={perfil.desc}
             />

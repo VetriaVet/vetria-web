@@ -64,8 +64,8 @@ export default async function ClinicAguardandoPage() {
       }
       perfil={{
         href: "/app/estabelecimento/perfil",
-        title: "Ver a tela do perfil público",
-        desc: "Ainda em construção: por enquanto ela não mostra o que o estabelecimento mandou no cadastro, e salvar não funciona. O que a equipe confere é o cadastro.",
+        title: "Ver a prévia do perfil público",
+        desc: "Mostra o perfil do estabelecimento do jeito que os responsáveis vão ver depois da validação, com os dados do cadastro. Por enquanto ele ainda não está visível para eles.",
       }}
     />
   );

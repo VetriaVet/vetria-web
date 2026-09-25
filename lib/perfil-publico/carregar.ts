@@ -20,6 +20,8 @@ import { createPublicClient } from "@/lib/supabase/publico";
 import { classificarErro, registrarFalha } from "@/lib/publico/disponibilidade";
 import { rotuloDaExperiencia, rotuloDoTitulo } from "@/lib/publico/rotulos";
 import type {
+  ConteudoDoEstabelecimento,
+  ConteudoDoVeterinario,
   PerfilCarregado,
   PerfilDeEstabelecimento,
   PerfilDeVeterinario,
@@ -31,12 +33,15 @@ function slugValido(slug: string): boolean {
 }
 
 // SÓ estas colunas. Coluna nova aqui é decisão de exposição (matriz §3).
-const COLUNAS_VET =
+// Exportadas para a prévia do dono (`previa.ts`): a prévia lê exatamente as
+// mesmas colunas, para não mostrar ao dono algo que o responsável não vê.
+export const COLUNAS_VET =
   "slug, nome_exibicao, titulo, crmv, crmv_uf, experiencia, bio, especialidades, cidade, estado, bairro, atende_presencial, atende_domiciliar, atende_teleorientacao";
-const COLUNAS_ESTAB = "slug, nome_fantasia, sobre, servicos, cidade, estado, site";
+export const COLUNAS_ESTAB = "slug, nome_fantasia, sobre, servicos, cidade, estado, site";
 
-type LinhaVet = {
-  slug: string;
+export type LinhaVet = {
+  /** Nulo na linha do dono até a aprovação; na leitura anônima, sempre preenchido. */
+  slug: string | null;
   nome_exibicao: string | null;
   titulo: string | null;
   crmv: string | null;
@@ -52,8 +57,8 @@ type LinhaVet = {
   atende_teleorientacao: boolean;
 };
 
-type LinhaEstab = {
-  slug: string;
+export type LinhaEstab = {
+  slug: string | null;
   nome_fantasia: string | null;
   sobre: string | null;
   servicos: string[] | null;
@@ -75,27 +80,16 @@ export const carregarPerfilDeVeterinario = cache(
       if (error) throw error;
       if (!data) return { estado: "nao_encontrado" };
 
+      // A RLS anônima só devolve conta `active`, e toda conta `active` tem
+      // slug desde a 0005; a busca foi feita PELO slug, então ele existe.
+      const endereco = data.slug ?? slug;
       return {
         estado: "ok",
         perfil: {
-          tipo: "vet",
-          slug: data.slug,
-          href: `/veterinario/${data.slug}`,
-          nome: data.nome_exibicao,
-          titulo: rotuloDoTitulo(data.titulo),
-          crmv: data.crmv && data.crmv_uf ? { numero: data.crmv, uf: data.crmv_uf } : null,
-          experiencia: rotuloDaExperiencia(data.experiencia),
-          bio: data.bio,
-          especialidades: data.especialidades ?? [],
-          cidade: data.cidade,
-          uf: data.estado,
-          bairro: data.bairro,
-          atendimento: {
-            presencial: data.atende_presencial,
-            domiciliar: data.atende_domiciliar,
-            teleorientacao: data.atende_teleorientacao,
-          },
-          contato: { tipo: "vet", slug: data.slug },
+          ...conteudoDoVeterinario(data),
+          slug: endereco,
+          href: `/veterinario/${endereco}`,
+          contato: { tipo: "vet", slug: endereco },
         },
       };
     } catch (erro) {
@@ -119,19 +113,14 @@ export const carregarPerfilDeEstabelecimento = cache(
       if (error) throw error;
       if (!data) return { estado: "nao_encontrado" };
 
+      const endereco = data.slug ?? slug;
       return {
         estado: "ok",
         perfil: {
-          tipo: "clinic",
-          slug: data.slug,
-          href: `/estabelecimento/${data.slug}`,
-          nome: data.nome_fantasia,
-          sobre: data.sobre,
-          servicos: data.servicos ?? [],
-          cidade: data.cidade,
-          uf: data.estado,
-          site: siteSeguro(data.site),
-          contato: { tipo: "clinic", slug: data.slug },
+          ...conteudoDoEstabelecimento(data),
+          slug: endereco,
+          href: `/estabelecimento/${endereco}`,
+          contato: { tipo: "clinic", slug: endereco },
         },
       };
     } catch (erro) {
@@ -141,6 +130,44 @@ export const carregarPerfilDeEstabelecimento = cache(
     }
   }
 );
+
+/**
+ * A linha do banco vira o que a tela desenha. UMA transformação, usada pela
+ * página pública e pela prévia do dono: rótulo traduzido, CRMV só inteiro,
+ * site só se for http/https. Se a prévia tivesse a sua própria, o dono veria
+ * uma coisa e o responsável outra.
+ */
+export function conteudoDoVeterinario(data: LinhaVet): ConteudoDoVeterinario {
+  return {
+    tipo: "vet",
+    nome: data.nome_exibicao,
+    titulo: rotuloDoTitulo(data.titulo),
+    crmv: data.crmv && data.crmv_uf ? { numero: data.crmv, uf: data.crmv_uf } : null,
+    experiencia: rotuloDaExperiencia(data.experiencia),
+    bio: data.bio,
+    especialidades: data.especialidades ?? [],
+    cidade: data.cidade,
+    uf: data.estado,
+    bairro: data.bairro,
+    atendimento: {
+      presencial: data.atende_presencial,
+      domiciliar: data.atende_domiciliar,
+      teleorientacao: data.atende_teleorientacao,
+    },
+  };
+}
+
+export function conteudoDoEstabelecimento(data: LinhaEstab): ConteudoDoEstabelecimento {
+  return {
+    tipo: "clinic",
+    nome: data.nome_fantasia,
+    sobre: data.sobre,
+    servicos: data.servicos ?? [],
+    cidade: data.cidade,
+    uf: data.estado,
+    site: siteSeguro(data.site),
+  };
+}
 
 /**
  * O plano (S7) só deixa `site` virar link depois da T-027 (CHECK de esquema

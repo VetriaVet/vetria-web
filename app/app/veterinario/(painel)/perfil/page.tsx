@@ -1,35 +1,41 @@
 import { requirePainel } from "@/lib/auth/painel";
-import { ESPERANDO_OU_ATIVO } from "@/lib/auth/status";
-import VetProfileForm from "./VetProfileForm";
+import { ESPERANDO_OU_ATIVO, ONBOARDING } from "@/lib/auth/status";
+import { carregarPreviaDoVeterinario } from "@/lib/perfil-publico/previa";
+import { PerfilDoVeterinario } from "@/components/publico/Perfil";
+import { PreviaDoPerfil } from "@/components/app/PreviaDoPerfil";
 
 export const metadata = {
-  title: "Meu perfil",
+  title: "Meu perfil público",
 };
 
-// O guard inline que checava só `role` virou `requirePainel` com lista de
-// permitidos. `pending_validation` entra de propósito: é a promessa do DL-046
-// (*"enquanto espera, ele edita o perfil"*) e é uma das três rotas que a
-// matriz §4 dá a quem está na fila. `incomplete` não entra: a tela dele é o
-// onboarding, e é para lá que ele é devolvido.
+// A PRÉVIA do perfil público (F4/S7, E5), só leitura. Pedido do Elber: a
+// prévia mostra exatamente os dados escolhidos, com o MESMO componente da
+// página /veterinario/[slug].
 //
-// Nome real (user_metadata) pra pré-preencher o "nome de exibição" (DL-019).
+// `pending_validation` entra (DL-046, matriz §4); `incomplete` volta para o
+// onboarding; `suspended` vai para a tela de bloqueio.
+//
+// A leitura é com a SESSÃO do dono (policy `vet_profiles_select_own`), nunca
+// `service_role`, e só com as colunas da página pública
+// (`lib/perfil-publico/previa.ts`).
+//
+// O formulário `VetProfileForm` saiu desta tela: não lia o banco nem salvava.
+// O editor é a T-019 (F6/S11).
 
 export default async function VetPerfilPage() {
-  const { name: displayName } = await requirePainel("vet", ESPERANDO_OU_ATIVO);
+  const { user, status } = await requirePainel("vet", ESPERANDO_OU_ATIVO);
+  const r = await carregarPreviaDoVeterinario(user.id);
+  // A mesma lista que o middleware aplica em /onboarding (ver aguardando/page.tsx).
+  const podeRever = (ONBOARDING as readonly string[]).includes(status);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-bold text-2xl text-titulo">
-          Meu perfil profissional
-        </h1>
-        <p className="text-[14px] text-corpo-texto mt-1 max-w-2xl">
-          Tudo que aparece no seu perfil público pra responsáveis. Mantenha
-          atualizado pra receber mais contatos.
-        </p>
-      </div>
-
-      <VetProfileForm initialName={displayName} />
-    </div>
+    <PreviaDoPerfil tipo="vet" status={status} podeRever={podeRever} carregada={r}>
+      {r.estado === "ok" && (
+        <PerfilDoVeterinario
+          perfil={r.conteudo}
+          modo={{ tipo: "previa", verificado: status === "active" }}
+        />
+      )}
+    </PreviaDoPerfil>
   );
 }

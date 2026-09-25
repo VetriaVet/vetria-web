@@ -1,7 +1,22 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowLeft, BadgeCheck, CircleAlert, MessageCircle, RotateCw, SearchX } from "lucide-react";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  CircleAlert,
+  Clock,
+  ExternalLink,
+  Globe,
+  IdCard,
+  MapPin,
+  MessageCircle,
+  RotateCw,
+  SearchX,
+} from "lucide-react";
 import { CONTATO_PELO_SITE_ABERTO } from "@/lib/perfil-publico/contato";
+import type { ConteudoDoEstabelecimento, ConteudoDoVeterinario } from "@/lib/perfil-publico/tipos";
+import type { ModoDeAtendimento } from "@/lib/busca/tipos";
+import { ATENDIMENTO, juntarLocal, modosLigados } from "./atendimento";
 import { Avatar } from "./CartaoDeProfissional";
 import { CascaPublica, classeDoLinkPrincipal, classeDoLinkSecundario } from "./CascaPublica";
 
@@ -22,6 +37,23 @@ const O_QUE_A_VETRIA_CONFERIU: Record<"vet" | "clinic", string> = {
   clinic: "A equipe Vetria conferiu o CNPJ e o documento deste estabelecimento antes de colocar o perfil no ar.",
 };
 
+// Na prévia de quem ainda espera a validação, o selo NÃO aparece: mostrar
+// "Verificado" antes de a equipe conferir seria o selo mentindo (DL-070).
+const ANTES_DA_VALIDACAO: Record<"vet" | "clinic", string> = {
+  vet: "O selo Verificado pela Vetria aparece aqui depois que a equipe Vetria conferir o seu registro profissional (CRMV).",
+  clinic: "O selo Verificado pela Vetria aparece aqui depois que a equipe Vetria conferir o CNPJ e o documento do estabelecimento.",
+};
+
+/**
+ * Como a moldura está sendo mostrada.
+ *   · `publico`: a página /veterinario/[slug] ou /estabelecimento/[slug], com
+ *     cabeçalho e rodapé do site. Só conta `active` chega aqui (RLS).
+ *   · `previa`: dentro do painel do próprio profissional. Sem a casca do site,
+ *     sem o link para a busca, e o nome vira `h2` (o `h1` é o da página do
+ *     painel). O selo só aparece se `verificado`.
+ */
+export type ModoDaMoldura = { tipo: "publico" } | { tipo: "previa"; verificado: boolean };
+
 const linkDeVolta =
   "inline-flex items-center gap-1.5 rounded-sm text-[13px] font-medium text-corpo-texto no-underline transition hover:text-principal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-principal/40";
 
@@ -32,6 +64,7 @@ export function MolduraDoPerfil({
   detalhes,
   principal,
   lateral,
+  modo = { tipo: "publico" },
 }: {
   tipo: "vet" | "clinic";
   nome: string | null;
@@ -40,38 +73,57 @@ export function MolduraDoPerfil({
   detalhes: ReactNode;
   principal: ReactNode;
   lateral: ReactNode;
+  modo?: ModoDaMoldura;
 }) {
-  return (
-    <CascaPublica>
-      <section className="border-b border-neutro-border bg-fundo-claro">
-        <div className="mx-auto max-w-5xl px-5 pb-8 pt-5 sm:pb-10">
-          <Link href="/buscar" className={linkDeVolta}>
-            <ArrowLeft size={15} aria-hidden />
-            Buscar outros profissionais
-          </Link>
+  const ehPrevia = modo.tipo === "previa";
+  const verificado = modo.tipo === "publico" || modo.verificado;
+  const Titulo = ehPrevia ? "h2" : "h1";
 
-          <div className="mt-6 flex flex-col items-start gap-5 sm:flex-row sm:items-center">
+  const conteudo = (
+    <>
+      <section className="border-b border-neutro-border bg-fundo-claro">
+        <div className={`mx-auto max-w-5xl px-5 pb-8 sm:pb-10 ${ehPrevia ? "pt-6" : "pt-5"}`}>
+          {!ehPrevia && (
+            <Link href="/buscar" className={linkDeVolta}>
+              <ArrowLeft size={15} aria-hidden />
+              Buscar outros profissionais
+            </Link>
+          )}
+
+          <div
+            className={`flex flex-col items-start gap-5 sm:flex-row sm:items-center ${ehPrevia ? "" : "mt-6"}`}
+          >
             <Avatar tipo={tipo} nome={nome} tamanho="lg" />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="inline-flex rounded-pill bg-white px-3 py-1 text-[12px] font-medium text-principal shadow-sm">
                   {tipo === "vet" ? "Veterinário" : "Estabelecimento veterinário"}
                 </p>
-                <p
-                  aria-describedby="selo-verificado-explicacao"
-                  className="inline-flex items-center gap-1.5 rounded-pill bg-principal px-3 py-1 text-[12px] font-medium text-white"
-                >
-                  <BadgeCheck size={14} aria-hidden />
-                  Verificado pela Vetria
-                </p>
+                {verificado ? (
+                  <p
+                    aria-describedby="selo-verificado-explicacao"
+                    className="inline-flex items-center gap-1.5 rounded-pill bg-principal px-3 py-1 text-[12px] font-medium text-white"
+                  >
+                    <BadgeCheck size={14} aria-hidden />
+                    Verificado pela Vetria
+                  </p>
+                ) : (
+                  <p
+                    aria-describedby="selo-verificado-explicacao"
+                    className="inline-flex items-center gap-1.5 rounded-pill border border-dashed border-principal/50 bg-white px-3 py-1 text-[12px] font-medium text-corpo-texto"
+                  >
+                    <Clock size={14} aria-hidden className="text-principal" />
+                    Selo aparece após a validação
+                  </p>
+                )}
               </div>
-              <h1
+              <Titulo
                 className={`mt-2.5 break-words text-[28px] leading-tight tracking-tight sm:text-[36px] ${
                   nome ? "text-titulo" : "text-corpo-texto"
                 }`}
               >
                 {nome ?? "Nome não informado"}
-              </h1>
+              </Titulo>
               {subtitulo && <p className="mt-1 text-[15px] text-corpo-texto">{subtitulo}</p>}
               <div className="mt-3 flex flex-col gap-2 text-[14px] text-corpo-texto sm:flex-row sm:flex-wrap sm:gap-x-5">
                 {detalhes}
@@ -80,7 +132,7 @@ export function MolduraDoPerfil({
                 id="selo-verificado-explicacao"
                 className="mt-3 max-w-xl text-[13px] leading-relaxed text-corpo-texto"
               >
-                {O_QUE_A_VETRIA_CONFERIU[tipo]}
+                {verificado ? O_QUE_A_VETRIA_CONFERIU[tipo] : ANTES_DA_VALIDACAO[tipo]}
               </p>
             </div>
           </div>
@@ -89,10 +141,13 @@ export function MolduraDoPerfil({
 
       <div className="mx-auto grid max-w-5xl gap-5 px-5 py-8 sm:py-10 lg:grid-cols-[1fr_20rem] lg:items-start">
         <div className="flex min-w-0 flex-col gap-5">{principal}</div>
-        <aside className="lg:sticky lg:top-20">{lateral}</aside>
+        <aside className={ehPrevia ? "" : "lg:sticky lg:top-20"}>{lateral}</aside>
       </div>
-    </CascaPublica>
+    </>
   );
+
+  if (ehPrevia) return <div className="bg-fundo-claro-soft">{conteudo}</div>;
+  return <CascaPublica>{conteudo}</CascaPublica>;
 }
 
 /** Uma linha de detalhe com ícone, embaixo do nome. */
@@ -236,5 +291,161 @@ export function PerfilNaoEncontrado() {
         </div>
       </div>
     </CascaPublica>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// O PERFIL INTEIRO, um por tipo. A página pública e a prévia do dono no painel
+// desenham ESTE componente, com o MESMO conteúdo saído de
+// `lib/perfil-publico/carregar.ts`. Assim a prévia é o que o responsável vai
+// ver, e não um desenho parecido que diverge na próxima mudança (R-017).
+// ---------------------------------------------------------------------------
+
+const O_QUE_E: Record<ModoDeAtendimento, string> = {
+  presencial: "Atende no consultório ou no estabelecimento.",
+  domiciliar: "Vai até a casa do responsável.",
+  teleorientacao: "Orienta a distância, sem consulta presencial.",
+};
+
+export function PerfilDoVeterinario({
+  perfil: p,
+  modo,
+}: {
+  perfil: ConteudoDoVeterinario;
+  modo?: ModoDaMoldura;
+}) {
+  const local = juntarLocal(p.bairro, p.cidade, p.uf);
+  const modos = modosLigados(p.atendimento);
+
+  return (
+    <MolduraDoPerfil
+      tipo="vet"
+      nome={p.nome}
+      subtitulo={p.titulo}
+      modo={modo}
+      detalhes={
+        <>
+          {local && <Detalhe icone={<MapPin size={16} />}>{local}</Detalhe>}
+          {/* CRMV no perfil público: decidido no DL-070. É o registro público
+              do conselho; aqui só UF e número. O selo fica na moldura. */}
+          {p.crmv && (
+            <Detalhe icone={<IdCard size={16} />}>
+              CRMV-{p.crmv.uf} {p.crmv.numero}
+            </Detalhe>
+          )}
+          {p.experiencia && (
+            <Detalhe icone={<Clock size={16} />}>{p.experiencia} de experiência</Detalhe>
+          )}
+        </>
+      }
+      principal={
+        <>
+          <Secao titulo="Sobre">
+            {p.bio ? (
+              <TextoLivre texto={p.bio} />
+            ) : (
+              <p className="text-[14px] text-corpo-texto">
+                Este veterinário ainda não escreveu uma apresentação.
+              </p>
+            )}
+          </Secao>
+
+          {p.especialidades.length > 0 && (
+            <Secao titulo="Especialidades">
+              <Etiquetas itens={p.especialidades} rotulo="Especialidades" />
+            </Secao>
+          )}
+
+          {modos.length > 0 && (
+            <Secao titulo="Formas de atendimento">
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {modos.map((m) => {
+                  const { rotulo, icone: Icone } = ATENDIMENTO[m];
+                  return (
+                    <li key={m} className="flex items-start gap-3 rounded-xl bg-neutro-bg-alt p-3.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-fundo-destaque text-principal">
+                        <Icone size={18} aria-hidden />
+                      </span>
+                      <div>
+                        <p className="text-[14px] font-semibold text-titulo">{rotulo}</p>
+                        <p className="text-[13px] leading-relaxed text-corpo-texto">{O_QUE_E[m]}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Secao>
+          )}
+        </>
+      }
+      lateral={<BlocoDeContato tipo="vet" />}
+    />
+  );
+}
+
+/** "www.clinica.com.br/unidade" sem esquema e sem barra final, para ler. */
+function siteParaLer(site: string): string {
+  const url = new URL(site);
+  const caminho = url.pathname === "/" ? "" : url.pathname.replace(/\/$/, "");
+  return `${url.hostname}${caminho}`;
+}
+
+// ⚠️ Sem endereço e sem CEP (R-032 sem decisão) e sem telefone/WhatsApp
+// (DL-047). O `site` chega conferido (só http/https) de lib/perfil-publico e
+// sai com rel="nofollow noopener noreferrer ugc": é URL escrita pelo dono.
+export function PerfilDoEstabelecimento({
+  perfil: p,
+  modo,
+}: {
+  perfil: ConteudoDoEstabelecimento;
+  modo?: ModoDaMoldura;
+}) {
+  const local = juntarLocal(p.cidade, p.uf);
+
+  return (
+    <MolduraDoPerfil
+      tipo="clinic"
+      nome={p.nome}
+      modo={modo}
+      detalhes={
+        <>
+          {local && <Detalhe icone={<MapPin size={16} />}>{local}</Detalhe>}
+          {p.site && (
+            <Detalhe icone={<Globe size={16} />}>
+              <a
+                href={p.site}
+                target="_blank"
+                rel="nofollow noopener noreferrer ugc"
+                className="inline-flex items-center gap-1 rounded-sm font-medium text-principal underline underline-offset-4 hover:text-principal-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-principal/40"
+              >
+                <span className="break-all">{siteParaLer(p.site)}</span>
+                <ExternalLink size={13} aria-hidden className="shrink-0" />
+                <span className="sr-only">(abre em outra aba)</span>
+              </a>
+            </Detalhe>
+          )}
+        </>
+      }
+      principal={
+        <>
+          <Secao titulo="Sobre">
+            {p.sobre ? (
+              <TextoLivre texto={p.sobre} />
+            ) : (
+              <p className="text-[14px] text-corpo-texto">
+                Este estabelecimento ainda não escreveu uma apresentação.
+              </p>
+            )}
+          </Secao>
+
+          {p.servicos.length > 0 && (
+            <Secao titulo="Serviços">
+              <Etiquetas itens={p.servicos} rotulo="Serviços" />
+            </Secao>
+          )}
+        </>
+      }
+      lateral={<BlocoDeContato tipo="clinic" />}
+    />
   );
 }

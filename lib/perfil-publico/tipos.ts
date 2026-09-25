@@ -54,6 +54,18 @@ export type PerfilDeEstabelecimento = {
 
 export type PerfilPublico = PerfilDeVeterinario | PerfilDeEstabelecimento;
 
+/**
+ * O que a tela DESENHA, sem o endereço: nome, textos, rótulos, local. A página
+ * pública e a prévia do dono (a tela `/perfil` do painel) usam exatamente estes campos,
+ * saídos da mesma transformação (`carregar.ts`), para que a prévia mostre o
+ * que o responsável vai ver e nada diferente.
+ */
+export type ConteudoDoVeterinario = Omit<PerfilDeVeterinario, "slug" | "href" | "contato">;
+export type ConteudoDoEstabelecimento = Omit<
+  PerfilDeEstabelecimento,
+  "slug" | "href" | "contato"
+>;
+
 export type PerfilCarregado<P extends PerfilPublico> =
   | { estado: "ok"; perfil: P }
   /** Slug inválido, inexistente, ou conta que não está `active` (a RLS esconde). */

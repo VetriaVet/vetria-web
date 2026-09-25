@@ -71,8 +71,8 @@ export default async function VetAguardandoPage() {
       }
       perfil={{
         href: "/app/veterinario/perfil",
-        title: "Ver a tela do perfil público",
-        desc: "Ainda em construção: por enquanto ela não mostra o que você mandou no cadastro, e salvar não funciona. O que a equipe confere é o cadastro.",
+        title: "Ver a prévia do seu perfil público",
+        desc: "Mostra o seu perfil do jeito que os responsáveis vão ver depois da validação, com os dados do seu cadastro. Por enquanto ele ainda não está visível para eles.",
       }}
     />
   );
