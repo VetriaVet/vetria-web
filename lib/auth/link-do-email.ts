@@ -95,17 +95,18 @@ export const DESTINO_DA_RECUPERACAO = "/recuperar-senha/nova";
 export const TELA_DA_CONTA_CONFIRMADA = "/auth/confirm/entrou";
 
 /**
- * Email mascarado para mostrar na tela: primeira letra, `***` e o domínio
- * inteiro (`ana@gmail.com` vira `a***@gmail.com`). Dá para a pessoa reconhecer
- * a própria conta sem expor o endereço a quem olha a tela por cima do ombro.
- * `null` quando não há email utilizável.
+ * O email da conta, INTEIRO, para a tela "Você entrou como" (SEC-120, que
+ * corrige a recomendação da SEC-112): a máscara `a***@gmail.com` era igual para
+ * contas diferentes, e o golpe da conta injetada escolhe justamente uma conta
+ * com a mesma inicial e o mesmo provedor da vítima. Só quem já está com a
+ * sessão daquela conta vê esta tela, então mostrar o email inteiro não vaza
+ * nada para terceiros. `null` quando não há email utilizável.
  */
 export function mascararEmail(email: unknown): string | null {
   if (typeof email !== "string") return null;
   const arroba = email.lastIndexOf("@");
   if (arroba < 1 || arroba === email.length - 1) return null;
-  const primeira = Array.from(email.slice(0, arroba))[0];
-  return `${primeira}***${email.slice(arroba)}`;
+  return email;
 }
 
 /**

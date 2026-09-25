@@ -9,8 +9,10 @@ import type { NextConfig } from "next";
 // - A CSP daqui é SÓ `frame-ancestors`: não restringe script, estilo, fonte,
 //   imagem nem conexão, então Supabase, Vercel Analytics, Google OAuth e
 //   next/font seguem como estão. A CSP completa com nonce é da F6.
-//   No /_next/image a CSP sandbox da SVG (DL-040, abaixo) sai junto; duas CSPs
-//   valem somadas, e as duas só restringem, sem conflito.
+//   No /_next/image o otimizador do Next SUBSTITUI esta CSP pela sandbox da SVG
+//   (DL-040, abaixo): lá sai só a sandbox, e o X-Frame-Options continua. Na
+//   Vercel isso precisa ser medido no preview (SEC-121): curl -I no /_next/image
+//   da logo SVG tem que mostrar `sandbox`.
 // - Permissions-Policy: o app não usa câmera, microfone nem localização
 //   (conferido em 25/09: nenhum getUserMedia, mediaDevices nem geolocation no
 //   código). Se um dia usar, liberar aqui com `(self)`.

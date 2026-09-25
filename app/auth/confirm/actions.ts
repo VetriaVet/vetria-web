@@ -60,7 +60,7 @@ export async function confirmarLinkDoEmail(formData: FormData) {
   console.log("[auth/confirm] link verificado", { tipo, destino });
 
   // SEC-112: a recuperação de senha já para numa tela (a de nova senha), que
-  // mostra a conta. Os demais passam pela tela "Você entrou como a***@..."
+  // mostra a conta. Os demais passam pela tela "Você entrou como <email da conta>"
   // antes do destino, para a pessoa perceber se o link era de outra conta.
   if (tipo === "recovery") redirect(destino);
   redirect(

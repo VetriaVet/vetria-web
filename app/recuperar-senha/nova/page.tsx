@@ -28,7 +28,7 @@ export default function NovaSenhaPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
-  // SEC-112: a conta em que o link abriu, mascarada. O link de recuperação
+  // SEC-112 e SEC-120: a conta em que o link abriu, com o email inteiro. O link de recuperação
   // não fica preso ao navegador que o pediu; se alguém mandar o link da
   // própria conta, a pessoa vê aqui que não é a dela e sai.
   const [conta, setConta] = useState<string | null>(null);
