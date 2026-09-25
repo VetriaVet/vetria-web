@@ -50,7 +50,8 @@ export default async function ClinicPage() {
   // O CTA parou de mentir: quem chega aqui está validado, e a única ação
   // honesta é editar o perfil. Ver a gêmea do veterinário.
   const ctaHref = "/app/estabelecimento/perfil";
-  const ctaLabel = "Editar perfil";
+  // Sem editor ainda (T-019): o botão leva à prévia, e diz isso.
+  const ctaLabel = "Ver meu perfil público";
 
   return (
     <div className="flex flex-col gap-6">

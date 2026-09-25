@@ -1,16 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ExternalLink, Globe, MapPin } from "lucide-react";
 import { juntarLocal } from "@/components/publico/atendimento";
-import {
-  BlocoDeContato,
-  Detalhe,
-  Etiquetas,
-  MolduraDoPerfil,
-  PerfilComErro,
-  Secao,
-  TextoLivre,
-} from "@/components/publico/Perfil";
+import { PerfilComErro, PerfilDoEstabelecimento } from "@/components/publico/Perfil";
 import { carregarPerfilDeEstabelecimento } from "@/lib/perfil-publico/carregar";
 import { robotsDaPaginaPublica } from "@/lib/publico/indexacao";
 
@@ -52,13 +43,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** "www.clinica.com.br/unidade" sem esquema e sem barra final, para ler. */
-function siteParaLer(site: string): string {
-  const url = new URL(site);
-  const caminho = url.pathname === "/" ? "" : url.pathname.replace(/\/$/, "");
-  return `${url.hostname}${caminho}`;
-}
-
 export default async function PerfilDoEstabelecimentoPage({ params }: Props) {
   const { slug } = await params;
   const r = await carregarPerfilDeEstabelecimento(slug);
@@ -67,52 +51,6 @@ export default async function PerfilDoEstabelecimentoPage({ params }: Props) {
   if (r.estado === "nao_encontrado") notFound();
   if (r.estado !== "ok") return <PerfilComErro tentarDeNovo={`/estabelecimento/${slug}`} />;
 
-  const p = r.perfil;
-  const local = juntarLocal(p.cidade, p.uf);
-
-  return (
-    <MolduraDoPerfil
-      tipo="clinic"
-      nome={p.nome}
-      detalhes={
-        <>
-          {local && <Detalhe icone={<MapPin size={16} />}>{local}</Detalhe>}
-          {p.site && (
-            <Detalhe icone={<Globe size={16} />}>
-              <a
-                href={p.site}
-                target="_blank"
-                rel="nofollow noopener noreferrer ugc"
-                className="inline-flex items-center gap-1 rounded-sm font-medium text-principal underline underline-offset-4 hover:text-principal-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-principal/40"
-              >
-                <span className="break-all">{siteParaLer(p.site)}</span>
-                <ExternalLink size={13} aria-hidden className="shrink-0" />
-                <span className="sr-only">(abre em outra aba)</span>
-              </a>
-            </Detalhe>
-          )}
-        </>
-      }
-      principal={
-        <>
-          <Secao titulo="Sobre">
-            {p.sobre ? (
-              <TextoLivre texto={p.sobre} />
-            ) : (
-              <p className="text-[14px] text-corpo-texto">
-                Este estabelecimento ainda não escreveu uma apresentação.
-              </p>
-            )}
-          </Secao>
-
-          {p.servicos.length > 0 && (
-            <Secao titulo="Serviços">
-              <Etiquetas itens={p.servicos} rotulo="Serviços" />
-            </Secao>
-          )}
-        </>
-      }
-      lateral={<BlocoDeContato tipo="clinic" />}
-    />
-  );
+  // O mesmo componente da prévia do dono no painel (`/app/estabelecimento/perfil`).
+  return <PerfilDoEstabelecimento perfil={r.perfil} />;
 }

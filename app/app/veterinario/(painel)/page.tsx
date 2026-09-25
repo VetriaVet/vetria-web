@@ -58,7 +58,8 @@ export default async function VetPage() {
   // quem já estava na fila. Quem chega nesta página está `active`: o cadastro
   // está completo E validado, e a única ação honesta é editar o perfil.
   const ctaHref = "/app/veterinario/perfil";
-  const ctaLabel = "Editar perfil";
+  // Sem editor ainda (T-019): o botão leva à prévia, e diz isso.
+  const ctaLabel = "Ver meu perfil público";
 
   return (
     <div className="flex flex-col gap-6">
