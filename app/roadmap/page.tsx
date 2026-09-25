@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const ATUALIZADO = "23 de setembro de 2026";
+const ATUALIZADO = "25 de setembro de 2026";
 const ENTREGA = "25 de novembro de 2026";
 
 type Status = "done" | "doing" | "todo" | "later";
@@ -267,8 +267,8 @@ export default function RoadmapPage() {
             </h2>
             <span className="text-[13px] text-corpo-texto">
               <b className="text-[15px] text-principal">{concluidas}</b> de{" "}
-              {ENTREGAVEIS.length} etapas concluídas · dados reais no ar,
-              agora construindo a busca
+              {ENTREGAVEIS.length} etapas concluídas · busca no ar,
+              agora construindo o contato pelo WhatsApp
             </span>
           </div>
           <div className="flex gap-[3px] overflow-hidden rounded-pill">
