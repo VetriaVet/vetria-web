@@ -62,7 +62,7 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 | Semana | O quê |
 |---|---|
 | **S5, até 29/09** | T-038 prévia do perfil · T-033 cabeçalhos · T-020 teto do bucket + firewall · T-031 código · T-039 `0006` escrita e auditada |
-| **S6, 30/09 a 06/10** | 🔴 sessão 30/09: decisões D1 a D12, Turnstile ligado, firewall, `0006` no `vetria-e2e` · T-040 rota `/api/contato` · T-041 botão · T-044 CI agendado |
+| **S6, 30/09 a 06/10** | ~~decisões D1 a D12~~ **decididas em 25/09 (DL-071)** · 🔴 sessão 30/09: Turnstile ligado, firewall, `0006` no `vetria-e2e`, decisão do R-077 · T-040 rota `/api/contato` · T-041 botão · T-044 CI agendado (+ produção, DL-072) · T-046 WhatsApp obrigatório |
 | **S7, 07/10 a 13/10** | 🔴 sessão 07/10: `0006` em produção, T-032 2FA · T-042 painéis de contatos e histórico · T-043 E2E do contato |
 | **S8, 14/10 a 20/10** | Portão 6 de 6 → T-045 indexação e `sitemap` → **fechar o DoD da F4**. O que sobrar: construir as LPs da F5 **sem publicar** |
 
@@ -249,7 +249,7 @@ escrita com as recomendações; **se a de 07/10 também não acontecer, a folga 
   componente**, lendo a linha do próprio dono, só leitura. Não é o editor (T-019, F6).
 - ⬇️ **Portão de abertura:** **T-032** (2FA do admin). **R-032** (endereço público) decidido antes.
 
-### S8 — Contato (14/10 → 20/10) · **planejada em 25/09 em 7 cards (T-039 a T-045) e puxada para S6-S7**; decisões D1 a D12 em `03-TAREFAS.md`
+### S8 — Contato (14/10 → 20/10) · **planejada em 25/09 em 8 cards (T-039 a T-046) e puxada para S6-S7**; decisões D1 a D12 **aprovadas em 25/09 (DL-071)**
 - CTA WhatsApp com mensagem pré-preenchida.
 - Cada clique registra em `contatos` (quem, pra quem, quando).
 - `/app/responsavel/historico` passa a listar contatos reais. **Atenção:** hoje essa tela promete "Seus agendamentos" e desenha cards de consulta. Agendamento está fora dos 3 meses, então ela precisa virar "Seus contatos" (DL-047).
@@ -262,7 +262,7 @@ escrita com as recomendações; **se a de 07/10 também não acontecer, a folga 
 3. Clicar no card abre o perfil público com dado real, indexável pelo Google.
 4. Clicar em WhatsApp abre a conversa **e** o contato aparece no histórico do responsável.
 5. E2E do fluxo busca → perfil → contato passando em CI.
-6. **Portão de abertura fechado** (DL-063, acrescentado em 23/09): os seis itens provados, não escritos.
+6. **Portão de abertura fechado** (DL-063, acrescentado em 23/09): os seis itens provados, não escritos. **Desde 25/09, sete:** o item 7 é a decisão escrita sobre o plano do Supabase de produção (DL-072).
 
 > **Conferido item por item em 25/09/2026 (`vetria-maestro`). Não é fechamento; é onde cada um está.**
 >
@@ -287,6 +287,11 @@ escrita com as recomendações; **se a de 07/10 também não acontecer, a folga 
 > system também. **Nenhuma página foi construída.** ⚠️ **Pendência de produto com prazo aqui:** o
 > **R-011** (vet e estabelecimento entregam o mesmo produto por preços diferentes) precisa de resposta
 > antes da S10. ⚠️ **As LPs só vão ao ar com o portão de abertura fechado** (DL-063).
+>
+> ⚠️ **25/09/2026:** a copy de preço promete recursos que não existem e traz depoimentos de pessoas que não
+> usaram o produto (**R-077**, 🟠). "Não reescrever copy aprovada" e "nada de dado falso em tela" batem de
+> frente: **decisão do Elber antes da S10**, com recomendação em `docs/07-RODADA-2.md` §2. **Card novo na S10:
+> T-047** ("Quero ser avisado quando o plano abrir", mede a demanda que libera a rodada 2).
 
 ### S9 — LPs de valor
 - `/para-veterinarios`, `/para-estabelecimentos`, `/para-empresas`.

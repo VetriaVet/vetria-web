@@ -754,7 +754,9 @@ dia, fica para a F6; a T-033 entrega o que fecha o clickjacking do botão *Aprov
 - **Nada disto é escopo novo:** os seis itens apontam para E2 (cadastro), E3 (admin) e para a transversal
   **Segurança** do `00-ESCOPO.md` §2. Não há emenda. **Mas é trabalho que o plano original não tinha**, estimado em
   ~3 dias de backend, e ele entra na F4 junto com a busca. Ver `01-PLANO.md` §Atraso.
-**Status:** ✅ decidida pelo `vetria-maestro`, confirmar na leitura do diff · ⬜ portão: 0 de 6 provados
+**Status:** ✅ decidida pelo `vetria-maestro`, confirmar na leitura do diff · ⬜ portão: 0 de 6 provados ·
+**25/09/2026:** o portão ganhou o **item 7** (decisão escrita sobre o plano do Supabase de produção, DL-072) e, se a
+T-031 atrasar, o Turnstile no clique de contato (DL-071 D4)
 
 ### DL-064 — Um projeto Supabase só de teste (`vetria-e2e`), que também serve de ensaio para toda migration
 **Data:** 23/09/2026 · **Fase/Task:** F4/S5 · T-029, R-033, T-027
@@ -910,3 +912,59 @@ muda no mesmo commit.
   (endereço comercial, necessário para o responsável chegar e para o mapa). **Do veterinário, só o bairro**, nunca o
   endereço. Os comentários do código passam a dizer que a omissão na tela é só de apresentação (SEC-117).
 - **F** — o perfil público ganha o selo **"Verificado pela Vetria"**: todo perfil visível passou pela validação.
+
+### DL-071 — As decisões D1 a D12 do contato (S8), aprovadas como recomendadas
+**Data:** 25/09/2026 · **Fase:** F4 (S5, planejando a S8) · **Cards:** T-039 a T-046 · **Quem decidiu:** o Elber,
+na sessão presencial adiantada para 25/09: *"de acordo, o que for melhor e mais padrão pro mercado"*.
+**Contexto:** o desenho do contato por WhatsApp (`03-TAREFAS.md`, seção "PLANEJADA — F4 / S8") deixou 12 decisões
+com recomendação. A T-039 (`0006`) exigia este DL **antes** do SQL, e a matriz §3 e §6 emendadas no mesmo passo.
+**Decisão (cada uma exatamente como a recomendação):**
+- **D1** — o número sai pela rota `POST /api/contato` chamando `registrar_contato(...)`, `SECURITY DEFINER` + `SET search_path = public`, `EXECUTE` **só para `service_role`**; grava e devolve na mesma transação. → T-039, T-040
+- **D2** — o cookie `vetria_visitante` nasce no **primeiro clique de contato** (não na primeira visita), UUID aleatório, 180 dias, `httpOnly`/`Secure`/`SameSite=Lax`; base legal legítimo interesse, com aviso de uma linha sob o botão. Emenda a matriz §6.1. → T-040, T-041
+- **D3** — limites: por visitante no banco, **5 profissionais distintos em 10 min e 20 em 24 h**; por IP na borda da Vercel, **10/min** em `/api/contato`; IP nunca gravado. → T-039, T-040
+- **D4** — Turnstile invisível no clique, com a chave da T-031. Se a T-031 atrasar, a S8 sai sem ele e ele vira **item do portão de abertura** (DL-063). → T-040
+- **D5** — deduplicação: mesmo visitante + mesmo profissional em **24 h conta 1** (o número volta, a linha não se repete). → T-039
+- **D6** — o profissional vê **contagem + data + canal + origem da busca**, sem identidade de quem clicou; `anon_id` e `user_id` ilegíveis para ele (privilégio por coluna, R-074). Emenda a matriz §3. → T-039, T-042
+- **D7** — mensagem pré-preenchida: *"Olá! Encontrei seu perfil na Vetria e gostaria de mais informações."* → T-041
+- **D8** — o botão fica **só no perfil público** na V1, não no cartão da busca. → T-041
+- **D9** — WhatsApp **obrigatório para concluir o onboarding** a partir de agora (Server Action, 🟡); quem já está `active` sem WhatsApp vê aviso no painel. Fecha a parte 1 do R-036. → **T-046** (card novo)
+- **D10** — contatos anônimos são vinculados **só na criação de conta de responsável**, os dos últimos 30 dias daquele navegador; nunca em todo login. Emenda a matriz §6.4. → T-039, T-042
+- **D11** — retenção: contato anônimo não vinculado **perde o `anon_id` em 12 meses** (a contagem fica); excluir conta **anonimiza** a linha em vez de apagar. A regra e o CHECK são da `0006` (R-076); a rotina que roda é da F6. → T-039
+- **D12** — indexação no Google e `sitemap` ligam **no dia em que o portão fechar**, num commit que cite este DL. → T-045
+- **Fora da tabela, mesma frase do Elber:** a **SEC-115** fica no padrão recomendado, **trigger** recusando mudança de `slug` fora do gerador e do master (a matriz §3 não afrouxa). → T-039
+**Alternativas descartadas:** as do desenho da S8 (função chamável pelo `anon`; rota com `service_role` fazendo duas
+operações sem transação; cookie na primeira visita; botão no cartão da busca; vínculo em todo login).
+**Implicações:**
+- A matriz `06-PERMISSOES.md` §3 (linha `contatos`) e §6 foram emendadas **neste commit**, marcadas *"entra com a
+  0006"*: até a `0006` ser aplicada, o banco ainda libera a linha inteira (R-074 aberto), e a regra é intenção.
+- A T-039 perde a dependência de decisão: a `0006` é escrita na forma final. **Aplicar continua 🔴**, com o Elber,
+  `vetria-e2e` primeiro, e auditoria do `vetria-seguranca` antes.
+- A D9 não tinha card; ganhou a **T-046**.
+**Status:** ✅ decidida · ⬜ aplicada (entra com a `0006` e as T-040 a T-046)
+
+### DL-072 — O Supabase de produção fica no plano grátis, por decisão do Elber, com o R-073 aceito e mitigado
+**Data:** 25/09/2026 · **Fase:** F4 (S5) · **Riscos:** R-073 · **Portão:** DL-063 · **Quem decidiu:** o Elber, na
+sessão presencial de 25/09.
+**Contexto:** o R-073 perguntava em que plano está o projeto de produção. Resposta: **grátis**. Projeto grátis do
+Supabase pausa depois de 7 dias sem atividade, não tem backup diário gerenciado com restauração a um clique, e não
+tem os controles do §Ideias (tempo de sessão, senha vazada). A recomendação do `vetria-maestro` era **Pro antes da
+abertura**.
+**Decisão:** produção **continua no plano grátis**. O R-073 passa de "pergunta que pode virar 🔴" a **risco aceito
+com mitigação**:
+1. **O CI agendado da T-044** (a cada 3 dias) mantém o `vetria-e2e` ativo.
+2. **Produção** se mantém ativa pelo **tráfego do site** (busca e perfis públicos leem o banco como anônimo) e pelo
+   uso do painel do admin. Até a abertura, esse tráfego é pequeno: a T-044 passa a incluir **um pedido leve de
+   leitura contra produção** no mesmo agendamento (uma chamada pública, sem segredo novo), para que 7 dias sem
+   visita não derrubem o site.
+3. **Reavaliar o Pro no portão de abertura** (DL-063): vira o **7º item do portão**, *"decisão escrita sobre o plano
+   do Supabase de produção antes do primeiro profissional de fora"*. Motivo: com gente de fora, pausa é site fora
+   do ar para cliente real, e perda de dado sem backup diário é perda de confiança que não volta.
+**Alternativas descartadas:** Pro agora (custo mensal antes de haver uso; a decisão é do Elber e está registrada);
+nada fazer (a primeira semana parada derrubaria o site sem ninguém saber).
+**Implicações:**
+- O item 7 do portão é uma **decisão**, não uma compra: o Elber pode manter o grátis, mas por escrito, olhando o
+  risco com gente de fora. Sem a linha escrita, o portão não fecha.
+- **Backup:** no grátis, o backup antes de cada migration continua sendo o manual (`pg_dump` / exportação), como na
+  `0004` e na `0005`. Isso não muda.
+- Os itens do §Ideias que dependem do Pro (tempo de sessão, senha vazada) continuam no mês 4.
+**Status:** ✅ decidida · risco aceito com mitigação · ⬜ reavaliar no portão (item 7)

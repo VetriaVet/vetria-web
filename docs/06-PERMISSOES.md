@@ -9,7 +9,7 @@
 > painel pro outro não é bug: é receita perdida e é a razão de existir de dois planos
 > desaparecendo ao mesmo tempo.
 >
-> **Criado:** 26/08/2026 · **Decisões:** DL-044 a DL-047 · §5 ampliada por DL-061 (23/09/2026) e pelo DL-066 (aplicado pela `0004`, 23/09/2026)
+> **Criado:** 26/08/2026 · **Decisões:** DL-044 a DL-047 · §5 ampliada por DL-061 (23/09/2026) e pelo DL-066 (aplicado pela `0004`, 23/09/2026) · §3 (`contatos`) e §6 emendadas pelo **DL-071** (25/09/2026), **entram com a `0006`**
 
 ---
 
@@ -81,7 +81,7 @@
 | `vet_profiles` / `clinic_profiles` | **público, apenas se `role` bate E `status='active'`**; sempre o dono; admin e master | o dono (menos `slug`), admin (moderação), master |
 | `perfil_privado` (whatsapp, telefone, email, documento) | **só o dono e admin/master. Nunca anônimo, nunca outro usuário.** Admin e master, só enquanto a conta está na fila de validação (DL-061; no banco, a partir da `0004`, §5) | o dono |
 | Documento no Storage | **só o dono e admin/master**, por URL assinada de vida curta | o dono, e o caminho tem que começar com o próprio uuid |
-| `contatos` | o responsável que originou, o profissional que recebeu, admin, master. ⚠️ **25/09: hoje a linha inteira, inclusive `anon_id`; a S8 restringe as colunas (R-074, T-039), por DL, antes do primeiro contato gravado** | o servidor (nunca o cliente direto) |
+| `contatos` | o responsável que originou (a própria linha), o profissional que recebeu, admin, master. **O profissional lê só `created_at`, `canal` e a origem da busca: nunca `anon_id` nem `user_id`** (DL-071 D6, R-074). **`anon_id` não é lido por ninguém fora do servidor.** 🔜 **Entra com a `0006`** (T-039): até ela ser aplicada, o banco ainda libera a linha inteira | **só o servidor**, pela função `registrar_contato` (`EXECUTE` só `service_role`, DL-071 D1); o vínculo ao criar conta, pela `vincular_contatos_do_visitante` (D10). Nunca o cliente direto. 🔜 **Entra com a `0006`** |
 | `audit_logs` | **só master** | só o servidor |
 | `vet_profiles.slug` / `clinic_profiles.slug` (o endereço público) | como a linha do perfil | **só o servidor**, quando a conta passa a `active` (DL-067). Nunca o dono (SEC-008). Troca manual só pelo master, no SQL Editor. _Aplicado pela `0005` em 24-25/09/2026._ |
 | `especialidades`, `servicos`, `cidades` (listas da busca) | **todos**, logado ou não | **só migration**. Ninguém escreve pelo app, nem admin (DL-068). _Aplicado pela `0005` em 24-25/09/2026._ |
@@ -233,10 +233,13 @@ aprovado é explícito em `Cadastro ≠ Benefício`.
 
 **O clique no WhatsApp é um evento de servidor, não um link:**
 
-1. Cookie primário `httpOnly` com UUID aleatório na primeira visita. **Nunca IP** — IP agrupa milhares de pessoas atrás do NAT da operadora e ainda é dado pessoal pela LGPD.
+1. Cookie primário `vetria_visitante`, `httpOnly`, `Secure`, `SameSite=Lax`, UUID aleatório, 180 dias, **criado no primeiro clique de contato, não na primeira visita** (DL-071 D2: quem só olha não ganha identificador). Base legal: legítimo interesse, com uma linha de aviso sob o botão. **Nunca IP** — IP agrupa milhares de pessoas atrás do NAT da operadora e ainda é dado pessoal pela LGPD. 🔜 **Entra com a `0006`** (e a T-040). _Texto anterior, de 26/08: "na primeira visita"._
 2. Clique → POST no servidor → grava em `contatos` (profissional, quando, origem da busca, `anon_id` ou `user_id`, `canal`) → **só então** devolve o número.
 3. Número revelado **na hora**, sem pedir nada. Na mesma tela, embaixo, o convite: *"Quer acompanhar esse contato? Diga só como te chamar."* Com "agora não" visível. **Convite, nunca portão.**
-4. Se ele criar conta depois: `UPDATE contatos SET user_id = <novo> WHERE anon_id = <cookie>`. O histórico dele aparece inteiro.
+4. Se ele **criar conta de responsável** depois, o servidor vincula os contatos **dos últimos 30 dias** daquele navegador que ainda não têm `user_id` (`vincular_contatos_do_visitante`, só `service_role`). **Só na criação de conta, nunca em todo login** (computador compartilhado). 🔜 **Entra com a `0006`** (DL-071 D10). _Texto anterior: "UPDATE ... WHERE anon_id = cookie", o histórico inteiro, em qualquer momento._
+5. **O que o profissional vê** em "Contatos recebidos": contagem (30 dias e mês corrente), data, canal e a origem da busca. **Sem identidade de quem clicou** na V1 (DL-071 D6). 🔜 **Entra com a `0006`** e a T-042.
+6. **Retenção:** o contato anônimo não vinculado perde o `anon_id` em 12 meses (a contagem do profissional fica); excluir a conta anonimiza a linha em vez de apagar (DL-071 D11, R-076). A regra entra com a `0006`; a rotina, na F6.
+7. **Limites:** 5 profissionais distintos em 10 min e 20 em 24 h por visitante (no banco); 10 pedidos/min por IP na borda da Vercel (DL-071 D3). Mesmo visitante e mesmo profissional em 24 h contam 1 (D5).
 
 **Por que isso importa em três frentes:**
 - O tutor entra na base sem atrito.

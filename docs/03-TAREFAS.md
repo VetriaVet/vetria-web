@@ -21,10 +21,21 @@
 > **contato (S8, zero linhas)** e o **portão de abertura (1 de 6 provados)**, e os dois são 🔴 em parte.
 > A folga vai para eles, e o que sobrar, para começar a F5 (construir as LPs, **sem publicar**).
 >
-> ### 🔴 Precisa de sessão presencial com o Elber — AGENDE: terça 30/09 à noite (sugestão)
+> ### ✅ 25/09/2026 — a sessão presencial foi ADIANTADA para hoje, e decidiu
 >
-> 1. **As decisões D1 a D12 da S8** (seção "PLANEJADA — S8", abaixo). Sem elas a `0006` (T-039) não é
->    escrita na forma final.
+> - **D1 a D12 da S8 aprovadas exatamente como recomendadas** (**DL-071**): *"de acordo, o que for melhor e mais
+>   padrão pro mercado"*. A matriz §3 e §6 foi emendada, marcada *"entra com a 0006"*. A T-039 perde a
+>   dependência de decisão. A D9 ganhou card próprio: **T-046**.
+> - **Supabase de produção fica no plano grátis** (**DL-072**): R-073 aceito com mitigação (T-044 ampliada) e o
+>   portão de abertura ganhou o **item 7** (reavaliar o Pro antes do primeiro profissional de fora).
+> - **Rodada 2** (cobrança e o que ficou fora, depois de 25/11): documento de decisão em **`docs/07-RODADA-2.md`**,
+>   sem código. Card novo na F5: **T-047**, o "Quero ser avisado quando o plano abrir".
+>
+> ### 🔴 Precisa de sessão presencial com o Elber — AGENDADA: terça 30/09 à noite (horário fixo semanal)
+>
+> 1. ~~As decisões D1 a D12 da S8~~ **decididas em 25/09 (DL-071).** Em troca, trazer a decisão do **R-077** (a
+>    copy de preço promete o que não existe e tem depoimentos fictícios) e as recomendações do `07-RODADA-2.md`
+>    que valem para a F5 (§2 e a T-047).
 > 2. **Ligar o Turnstile no painel do Supabase**, só **depois** do deploy da T-031 e da conferência de que o
 >    token está indo (DL-063 item 3). E subir o limite em Auth → Rate Limits (SEC-114).
 > 3. **Regras do firewall da Vercel** (T-020): `/api/documentos/*`, `/buscar`, `/api/cidades` e, quando
@@ -36,7 +47,7 @@
 > - **R-064:** a senha mínima foi configurada junto da T-034; **falta a prova**: cadastrar com 7 caracteres e
 >   ver recusar, e escrever aqui. Sem isso o item 6 do portão não fecha
 > - **Conferir a `RESEND_API_KEY` na Vercel (Production)**: a prova do email foi em `localhost`
-> - **Dizer em que plano está o Supabase de produção** (R-073: projeto grátis pausa após 7 dias sem uso)
+> - ~~Dizer em que plano está o Supabase de produção~~ **respondido em 25/09: grátis, e fica** (DL-072)
 
 ---
 
@@ -571,6 +582,9 @@ agendamentos"* e vira **"Seus contatos"** (DL-047): nome do profissional com lin
 
 ## ⚖️ Decisões que o Elber precisa tomar (cada uma com a recomendação do `vetria-maestro`)
 
+> ✅ **25/09/2026 — TODAS DECIDIDAS como recomendadas (DL-071).** A tabela abaixo passa a ser a especificação,
+> não mais a pergunta. A SEC-115 fica no trigger. O plano de produção: grátis (DL-072).
+
 | # | Decisão | Recomendação, em uma linha |
 |:-:|---|---|
 | **D1** | Como o servidor entrega o número | Rota `/api/contato` + função `registrar_contato` com `EXECUTE` **só para `service_role`**: grava e devolve na mesma transação, e o `anon` não a alcança. |
@@ -586,7 +600,7 @@ agendamentos"* e vira **"Seus contatos"** (DL-047): nome do profissional com lin
 | **D11** | Retenção | Contato anônimo não vinculado **perde o `anon_id` em 12 meses** (a contagem do profissional fica); excluir conta anonimiza a linha em vez de apagar. A rotina é da F6; **a regra (e o CHECK) é da `0006`**. |
 | **D12** | Indexação no Google (DoD F4 item 3) | Ligar `PAGINAS_PUBLICAS_INDEXAVEIS` **e** publicar `sitemap` **no dia em que o portão fechar**, com DL (T-045). Antes disso, não. |
 
-**Fora da tabela, mas precisa de resposta:** o projeto Supabase de **produção** está no plano grátis? (R-073.
+**Fora da tabela** (✅ respondido em 25/09: **grátis, e fica**, DL-072; a SEC-115 fica no **trigger**, DL-071)**:** o projeto Supabase de **produção** está no plano grátis? (R-073.
 Se sim, recomendação: **Pro antes da abertura**; site que pausa sozinho não é entrega.) E a **SEC-115**: o
 padrão da `0006` é **trigger** recusando mudança de `slug` fora do gerador e do master (em vez de afrouxar a
 matriz); se o Elber preferir o DL, é uma linha a menos.
@@ -599,10 +613,10 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
 - **Capacidade:** **E5** — *"CTA de WhatsApp funciona e o contato fica registrado"*
 - **Nível:** 🔴 — migration, função `SECURITY DEFINER`, grants, RLS
 - **Agente dono:** vetria-backend, **com o Elber na aplicação** · **auditoria obrigatória:** vetria-seguranca (correção volta para ela, DL-050)
-- **Depende de:** **as decisões D1, D2, D3, D5, D6, D10, D11** (sem elas, escreve com as recomendações e marca "confirmar antes de aplicar"); DL novo emendando a matriz §3 e §6 **antes** do SQL
+- **Depende de:** ~~as decisões D1, D2, D3, D5, D6, D10, D11~~ ✅ **decididas (DL-071, 25/09)**; ~~DL novo emendando a matriz §3 e §6~~ ✅ **feito no DL-071**, matriz marcada "entra com a 0006". Escreve na forma final
 - **Por quê:** sem ela o número não tem como sair do banco para quem não é o dono, e o clique não tem onde ser gravado. É a peça 🔴 da S8
 - **Feito quando:**
-  - [ ] **DL** com D1 a D11 como decididos, e a matriz §3 (linha `contatos`: quem lê **quais colunas**) e §6 (quando nasce o cookie) atualizadas **antes** do SQL
+  - [x] **DL** com D1 a D11 como decididos, e a matriz §3 (linha `contatos`: quem lê **quais colunas**) e §6 (quando nasce o cookie) atualizadas **antes** do SQL: **DL-071, 25/09**
   - [ ] `registrar_contato(tipo, slug, user_id, anon_id, origem_cidade, origem_especialidade)` como no desenho §2: `SECURITY DEFINER` + `SET search_path = public` (DL-014/015), `EXECUTE` só `service_role`, uma transação, número só depois da linha gravada, limites (D3), deduplicação (D5), origem conferida contra as listas
   - [ ] **R-074:** `anon_id` e `user_id` de `contatos` fora do alcance do profissional pelo PostgREST (privilégio por coluna: `revoke select` na tabela e `grant select` só nas colunas que as telas usam), com a sonda provando o `42501`
   - [ ] **R-076:** o CHECK `contatos_tem_origem` deixa de impedir a anonimização (excluir a conta de um responsável hoje **falharia**: `user_id` vira nulo pelo `on delete set null` e a linha sem `anon_id` viola o CHECK)
@@ -674,8 +688,9 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
 - **Estado:** ⬜ **semana de 30/09**, em paralelo (é do `vetria-qa`, 30 minutos)
 - **Fase / Semana:** F4 / S6 · **Capacidade:** **E5**, transversal **Testes** (o DoD da F4 item 5 é "passando em CI", e o CI mora nesse projeto) · **Nível:** 🟡 — `ci.yml` · **Dono:** vetria-qa
 - **Por quê:** **R-073.** Projeto grátis do Supabase pausa após 7 dias sem uso; o CI quebraria na primeira semana sem PR (feriado, doença, semana de decisão), e voltaria a ser o CI que ninguém confere
-- **Feito quando:** [ ] `schedule` no `ci.yml` (ex.: a cada 3 dias) rodando a suíte ou um pedido leve ao `vetria-e2e` · [ ] uma execução agendada verde, com o link escrito aqui
-- **Não fazer:** mexer no projeto de produção (a pergunta do plano de produção é do Elber, R-073).
+- **Feito quando:** [ ] `schedule` no `ci.yml` (ex.: a cada 3 dias) rodando a suíte ou um pedido leve ao `vetria-e2e` · [ ] **(DL-072, 25/09)** no mesmo agendamento, um `GET` na página pública de produção (`https://vetriabrasil.com.br/buscar`, que lê o banco como anônimo), para o projeto de produção, **que fica no grátis**, não pausar numa semana sem visita. Sem segredo novo, sem escrita · [ ] uma execução agendada verde, com o link escrito aqui
+- **Por que agora é mitigação de risco aceito:** o Elber decidiu manter produção no grátis (DL-072). **Esta task é a mitigação.** Se ela parar de rodar sem ninguém ver, o R-073 vira 🔴.
+- **Não fazer:** escrever em produção, usar chave de serviço de produção no CI, ou mudar o plano do projeto (decisão do Elber, reavaliada no item 7 do portão).
 - **Resultado:** _(a preencher)_
 
 ### T-045 — Fechar a F4: indexação no Google e `sitemap`, depois do portão
@@ -684,6 +699,47 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
 - **Depende de:** portão de abertura 6 de 6 (DL-063) e DL da D12
 - **Feito quando:** [ ] `PAGINAS_PUBLICAS_INDEXAVEIS = true` num commit que cite o DL · [ ] `app/sitemap.ts` com os perfis `active` (lidos como anônimo) e `robots.ts` apontando para ele · [ ] `/buscar` continua `noindex` (`robotsDaBusca`) · [ ] conferido em produção (`curl` do HTML e do `sitemap.xml`), saída escrita aqui
 - **Não fazer:** blog, SEO de conteúdo (fora do escopo).
+- **Resultado:** _(a preencher)_
+
+### T-046 — WhatsApp obrigatório para concluir o onboarding, e aviso para quem já está `active` sem ele (D9)
+- **Estado:** ⬜ **semana de 30/09**, antes de a T-041 ligar o botão em produção
+- **Fase / Semana:** F4 / S6-S7 · **Capacidade:** **E2** (o onboarding que hoje aprova perfil sem contato) e **E5** (sem WhatsApp não há CTA) · **Nível:** 🟡 — Server Actions do onboarding e `components/` · **Dono:** vetria-backend (Actions) + vetria-ui (aviso)
+- **Depende de:** DL-071 D9 ✅. **Não** depende da `0006`
+- **Por quê:** R-036 item 1, aberto desde 31/08. Perfil sem WhatsApp aparece na busca e não gera lead; com a S8, o botão nem aparece e o profissional acha que a Vetria não funciona
+- **Feito quando:**
+  - [ ] As duas Server Actions de onboarding (vet e estabelecimento) **recusam concluir** sem WhatsApp válido (mesma regra e máscara da T-035), com erro em português no campo; o formulário marca o campo como obrigatório
+  - [ ] Quem já está `active` sem WhatsApp vê, no painel inicial e em `/perfil`, um aviso honesto: *"Seu perfil aparece na busca, mas sem WhatsApp ninguém consegue te chamar. Complete seu contato."* com link para onde se edita (hoje é o onboarding; o editor é a T-019)
+  - [ ] Teste no CI: concluir sem WhatsApp é recusado (as duas personas); com WhatsApp segue para `pending_validation`
+  - [ ] Contagem, em produção, de contas `active` sem WhatsApp, escrita aqui (sonda de leitura, sem alterar dado)
+- **Não fazer:** CHECK no banco (`NOT NULL` em `perfil_privado.whatsapp` seria migration 🔴 e quebraria as contas antigas; a D9 decidiu Action). Tirar da busca quem está `active` sem WhatsApp (não foi decidido).
+- **Resultado:** _(a preencher)_
+
+---
+
+# 📋 PLANEJADA — F5 (S9-S10): card novo de 25/09/2026
+
+### T-047 — "Quero ser avisado quando o plano abrir" nas páginas de planos, gravando o interesse de forma LGPD-correta
+- **Estado:** ⬜ **F5 / S10**, junto das LPs de preço. A migration pode ir antes, de carona numa sessão 🔴
+- **Fase / Semana:** F5 / S10 · **Capacidade:** **E6** (*"Preço é vitrine, sem checkout"*: a vitrine passa a medir quem quer comprar) · **Nível:** 🔴 na parte da tabela (migration, RLS) · 🟡 na rota e no componente · **Dono:** vetria-backend (tabela e rota) + vetria-ui (formulário) · **Auditoria:** vetria-seguranca
+- **Depende de:** LPs de preço (S10); **R-077** decidido (o CTA principal continua o cadastro); T-031 (Turnstile) no ar; portão de abertura fechado (a página só vai ao ar com ele)
+- **Por quê:** o `00-ESCOPO.md` §3 põe a cobrança no mês 4, *"cobrar antes de ter demanda comprovada é vender fumaça"*. Sem medir, a rodada 2 decide no escuro. Este é o número (quantas pessoas, de que persona, em que plano) que o `docs/07-RODADA-2.md` §8 usa como gatilho
+- **Custo honesto:** não estava no plano. ~1 dia de backend + ~0,5 de tela + uma migration 🔴. Cabe na folga que a F4 abriu; **se a F4 comer essa folga, a T-047 é a primeira coisa da F5 a cair** (a LP de preço funciona sem ela)
+- **Precisa de tabela nova? Sim. Recomendação: tabela própria, `interesse_planos`, numa migration pequena e separada (`0007`), não de carona na `0006`.**
+  - **Nada que existe serve:** `contatos` é evento de busca (responsável → profissional) e a métrica que se vende ao profissional; misturar interesse comercial ali suja a métrica e a policy. `profiles` exige conta, e o dono de empresa (persona 3) nem tem role. O formulário de newsletter do rodapé (`app/page.tsx`) é casca desabilitada, sem backend.
+  - **Por que não a lista de contatos do Resend (sem migration):** resolveria sem 🔴, mas o dado sai do nosso banco para um operador, não tem RLS, e a métrica de demanda passa a morar fora do produto. Fica como plano B se a sessão 🔴 não couber na F5.
+  - **Por que separada da `0006`:** a `0006` está em auditoria e é a peça crítica da F4. Não se mistura carga da F5 nela.
+- **Desenho recomendado (LGPD):**
+  - Tabela `interesse_planos`: `id`, `email` (minúsculo, sem espaços), `persona` (`vet`/`clinic`/`empresa`), `plano` (lista fechada: os nomes da copy), `consentimento_texto_versao`, `created_at`, `unique (email, plano)`. **Sem nome, telefone, IP ou cookie.** RLS ligada, **zero policy**, `revoke all` de `anon` e `authenticated`: só o servidor escreve (`service_role`) e só o master lê, pelo SQL Editor
+  - Rota `POST /api/interesse` (caminho fixo para a regra do firewall da Vercel), `Sec-Fetch-Site: same-origin`, Turnstile, corpo contra lista fechada, `no-store`, e-mail nunca em log. Resposta igual para e-mail novo e repetido (não revela quem já está na lista)
+  - Formulário: e-mail + **caixa de consentimento desmarcada** com o texto *"Quero receber um e-mail da Vetria quando este plano abrir. Posso pedir para sair a qualquer momento."* Finalidade única e escrita (LGPD art. 8º e 9º). Link para a Política de Privacidade (F6)
+  - **Uso e retenção:** a lista serve **só** para o aviso de abertura do plano. Cada e-mail enviado tem link de saída. A lista é **apagada 90 dias depois de o plano abrir**, ou em 12 meses se ele não abrir. A exclusão por pedido entra na rotina LGPD da F6
+  - **Sem confirmação por e-mail (double opt-in) na V1:** um formulário público que dispara e-mail para qualquer endereço vira arma de spam e gasta a cota do Resend. A contagem honesta vem do `unique` + Turnstile; a prova de demanda de verdade é a conversão na rodada 2
+- **Feito quando:**
+  - [ ] `0007` com pré-voo, backup, sondas (`anon` e `authenticated` recebem recusa ao ler e escrever; o `service_role` grava; o `unique` barra repetido) aplicada no `vetria-e2e` e depois em produção, com o Elber
+  - [ ] Rota e formulário nas 3 LPs de preço, abaixo do CTA principal (que continua sendo o cadastro)
+  - [ ] Teste no CI: sem consentimento é recusado; plano fora da lista é recusado; repetido não duplica e responde igual
+  - [ ] Uma consulta de contagem por persona e plano, para o master, escrita aqui (é o painel da demanda, sem tela nova)
+- **Não fazer:** checkout, preço cobrado, tela de admin para a lista (a consulta SQL basta na V1), pedir nome ou telefone, usar a lista para newsletter ou marketing geral.
 - **Resultado:** _(a preencher)_
 
 ---
