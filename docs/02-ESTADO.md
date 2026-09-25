@@ -3,7 +3,7 @@
 > **Este é o primeiro arquivo que qualquer sessão ou agente lê.**
 > Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
 >
-> **Última atualização:** 25/09/2026 (`vetria-maestro`, planejamento da S8 e reavaliação do atraso) ·
+> **Última atualização:** 25/09/2026, noite (`vetria-maestro`, decisões da sessão presencial de 25/09: DL-071, DL-072, rodada 2) ·
 > **Fase:** **F4 (S5)** · **Último commit em produção:** `7b7a3f9` (PR #8). **Tudo entra por PR**: o CI é
 > obrigatório na `main` (ruleset) e `git push` direto é recusado.
 
@@ -37,22 +37,35 @@ calendário novo em `01-PLANO.md` §Reavaliação de 25/09.
 
 🔵 **Em execução:** **T-038**, a prévia do perfil público para o próprio profissional (`vetria-ui`).
 
+✅ **Sessão presencial de 25/09 (adiantada da terça, a pedido do Elber). Decidido:**
+- **D1 a D12 da S8 aprovadas exatamente como recomendadas** (**DL-071**). A matriz `06-PERMISSOES.md` §3
+  (`contatos`) e §6 foi emendada, marcada *"entra com a 0006"*. A T-039 escreve a `0006` na forma final. A D9
+  (WhatsApp obrigatório) ganhou card: **T-046**. A SEC-115 fica no trigger.
+- **Supabase de produção fica no plano GRÁTIS** (**DL-072**). R-073 **aceito com mitigação**: a T-044 agenda o CI
+  e faz um `GET` na página pública de produção a cada 3 dias. Reavaliar o Pro é o **item 7 do portão**.
+- **Rodada 2** (depois de 25/11): documento de decisão em **`docs/07-RODADA-2.md`**, sem código, com 9
+  recomendações (R2-1 a R2-9). Dele saiu o **R-077** (🟠: a copy de preço promete o que não existe e tem
+  depoimentos fictícios) e o card **T-047** na F5 ("Quero ser avisado quando o plano abrir", tabela própria `0007`).
+
 **Fila dos próximos 5 dias (26/09 a 30/09):** T-038 prévia → **T-033** cabeçalhos (+ SEC-112) → **T-020**
 teto do bucket + regras de firewall → **T-031** captcha (código) → **T-039** a `0006` do contato, **escrita
-e auditada, não aplicada**. Detalhe em `03-TAREFAS.md`.
+na forma final e auditada, não aplicada**. Na semana de 30/09 entram T-040, T-041, T-044 e **T-046**.
+Detalhe em `03-TAREFAS.md`.
 
-🔴 **SESSÃO PRESENCIAL COM O ELBER — AGENDE: terça 30/09 à noite (sugestão, horário fixo semanal).**
-Pauta: responder as decisões D1 a D12 da S8 (em `03-TAREFAS.md`) · ligar o Turnstile **depois** do deploy
-da T-031 · subir o limite de verificação em Auth → Rate Limits (SEC-114) · regras do firewall da Vercel
-(T-020) · provar a senha mínima 8 (tentar 7) · aplicar a `0006` no `vetria-e2e` se a auditoria aprovar.
+🔴 **SESSÃO PRESENCIAL COM O ELBER — AGENDADA: terça 30/09 à noite. Horário fixo semanal (toda terça à noite).**
+Pauta: ligar o Turnstile **depois** do deploy da T-031 · subir o limite de verificação em Auth → Rate Limits
+(SEC-114) · regras do firewall da Vercel (T-020) · provar a senha mínima 8 (tentar 7) · aplicar a `0006` no
+`vetria-e2e` se a auditoria aprovar · **decidir o R-077 e as R2-1/R2-2** (valem para a F5).
 
-🚪 **Portão de abertura (DL-063), prazo 20/10: 1 de 6 provados.**
+🚪 **Portão de abertura (DL-063), prazo 20/10: 1 de 7 provados.**
 ✅ T-027 `0004` · ⬜ T-020 teto do bucket + rate limit · ⬜ T-031 captcha · ⬜ T-032 2FA do admin (trava
 própria: antes do segundo admin) · ⬜ T-033 cabeçalhos · 🟡 senha mínima 8 (configurada junto da T-034,
-**falta a prova escrita**: cadastrar com 7 caracteres e ver recusar).
+**falta a prova escrita**: cadastrar com 7 caracteres e ver recusar) · ⬜ **item 7 (DL-072): decisão escrita
+sobre o plano do Supabase de produção** antes do primeiro profissional de fora. Se a T-031 atrasar, o
+Turnstile no clique de contato também entra no portão (DL-071 D4).
 
-⚠️ **Pergunta que pode virar 🔴:** o projeto Supabase de **produção** está no plano grátis? Projeto grátis
-**pausa depois de 7 dias sem uso** (R-073). Em produção isso é site fora do ar; no `vetria-e2e` é CI quebrado.
+⚠️ **R-073 aceito, não resolvido:** produção no grátis pausa após 7 dias sem uso. A mitigação **é a T-044**;
+se ela não estiver rodando, o R-073 vira 🔴 no dia.
 
 📏 **Gesto do Elber ainda aberto:** conferir a `RESEND_API_KEY` na Vercel (Production). A prova do email da
 aprovação foi em `localhost`.
@@ -105,7 +118,7 @@ aprovação foi em `localhost`.
 | Auth + DB + Storage | Supabase (produção + `vetria-e2e`) | Resend como SMTP; ícones `lucide-react` |
 | Hospedagem | Vercel, deploy no merge da PR na `main` | |
 | Testes | Playwright + GitHub Actions | CI obrigatório na `main` (ruleset) |
-| Pagamento | Stripe | **fora do escopo dos 3 meses** |
+| Pagamento | nenhum | **fora do escopo dos 3 meses.** O plano original dizia Stripe; a proposta da rodada 2 recomenda Asaas (`docs/07-RODADA-2.md` §4, não decidido) |
 
 ---
 
@@ -136,6 +149,7 @@ API       /api/admin/profiles  /api/admin/set-access  /api/onboarding/set-role  
 | Preciso de... | Está em |
 |---|---|
 | O que foi contratado | `docs/00-ESCOPO.md` 🔒 |
+| O que vem depois de 25/11 (cobrança e o resto) | `docs/07-RODADA-2.md` (proposta para decisão) |
 | **Quem acessa o quê** | **`docs/06-PERMISSOES.md`** — vira RLS e middleware |
 | O plano das 13 semanas | `docs/01-PLANO.md` |
 | A fila de tasks | `docs/03-TAREFAS.md` |

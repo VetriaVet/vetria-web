@@ -18,8 +18,10 @@ de crítico foi medido.** A seção 🟠 logo abaixo continua com quatro entrada
 quinta hoje** (**R-057**), e o 🟠 da auditoria da T-008 (SEC-081) está no card **T-020**, com
 trava escrita: **antes do primeiro profissional de fora.**
 
-**25/09/2026 — continua sem 🔴 de severidade, com uma pergunta que pode criar um:** se o Supabase de
-**produção** estiver no plano grátis, o **R-073** vira 🔴 (o site pausa sozinho após 7 dias sem uso). O
+**25/09/2026 — continua sem 🔴 de severidade.** A pergunta do **R-073** foi respondida: produção **está no plano
+grátis e fica nele por decisão do Elber** (**DL-072**). O risco foi **aceito com mitigação** (CI agendado e pedido
+leve contra produção na T-044) e a reavaliação virou o **item 7 do portão de abertura**. Não é 🔴 enquanto a
+mitigação rodar; **vira 🔴 no dia em que a T-044 parar de rodar sem ninguém ver**. O
 **R-039** (🟠) fechou com a `0004`. Os 🟠 que sobram (R-057, R-061, R-062) estão todos no portão de abertura.
 
 **23/09/2026 — continua sem 🔴 de severidade.** A auditoria da T-024 e a avaliação de rate limit
@@ -55,6 +57,26 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
 - **Não é bug.** É pergunta de produto sem dono, e ela vence antes do mês 4, quando o Stripe entra e o preço vira real.
 - **Precisa de decisão até:** F5 / S10 (LPs de preço)
 - **Registrado em:** `06-PERMISSOES.md` §7
+
+### R-077 — A copy de preço aprovada promete o que o produto não tem, e traz depoimentos de pessoas que não existem
+- **Descoberto:** 25/09/2026, pelo `vetria-maestro`, lendo as três `Copy Preço - ....docx` para o `07-RODADA-2.md`
+- **O quê:** (1) os planos listam **avaliações verificadas**, **destaque em pesquisas**, **dashboard de
+  performance**, **SEO pessoal**, **consultoria**, **badge dourado**, **destaque na home**, **até 3/6/10 profissionais
+  listados** (equipe, V2), **campanhas geolocalizadas**, **newsletter e banner** (empresas). Nada disso existe, e boa
+  parte está fora do escopo dos 3 meses (`00-ESCOPO.md` §3). (2) A FAQ afirma *"As avaliações são reais? Sim"* e
+  *"Meu perfil aparece no Google? Sim"* (só depois da T-045). (3) Os **depoimentos** trazem nomes (Mariana Lopes,
+  Ricardo Azevedo, Luciana Martins...) de pessoas que não usaram o produto: **dado falso em tela de produção**, o que
+  a regra do projeto proíbe, e publicidade enganosa pelo CDC (art. 37). (4) O CTA *"Escolher plano"* sugere compra,
+  e não há compra.
+- **Por que 🟠:** a F5 publica essas páginas (S10), e o `01-PLANO.md` diz *"não reescrever copy aprovada"*. As duas
+  regras batem de frente. Publicar como está é vender o que não existe no mesmo dia em que o produto abre.
+- **Correção recomendada (decisão do Elber, antes da S10):** a LP de preço mostra os planos como **vitrine "em
+  breve"**, com os preços da copy; cada benefício que não existe ganha a marca *"em breve"* ou sai; **depoimentos
+  saem** até existirem pessoas reais que autorizem; a FAQ responde a verdade de hoje; o CTA principal vira o
+  cadastro grátis (*"Criar meu perfil"*) e o secundário, *"Quero ser avisado quando o plano abrir"* (**T-047**).
+  Mexer na copy aprovada é gesto do Elber: o `vetria-ui` não reescreve sozinho. Detalhe em `docs/07-RODADA-2.md` §2.
+- **Liga com:** **R-011** (vet e estabelecimento iguais) e a T-047. **Task:** decisão na sessão de 30/09 ou 07/10;
+  execução nas LPs da F5 (S9-S10). 🟠
 
 ### R-004 — `dangerouslyAllowSVG: true` no `next.config.ts`
 - **O quê:** necessário pra logo SVG renderizar via `next/image` (DL-040). Está mitigado por CSP sandbox. Vira risco real se algum dia entrar SVG enviado por usuário (foto de perfil, documento).
@@ -148,7 +170,7 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
   fazer `PATCH slug=...`. A matriz §3 diz que troca de slug é gesto do master (DL-067 item 5).
 - **Por que 🟡:** exige conta admin, e hoje só existe o Elber. Vira real com o segundo admin (R-014).
 - **Correção recomendada:** trigger `BEFORE UPDATE` recusando mudança de `slug` fora do gerador e do
-  master. Alternativa: DL corrigindo a matriz.
+  master. Alternativa: DL corrigindo a matriz. ✅ **25/09: decidido o trigger** (DL-071, "fora da tabela").
 - **Task:** **T-039** (`0006`). 🟡
 
 ### R-070 — Aprovação de conta sem linha de perfil passa sem `slug` (SEC-116)
@@ -183,10 +205,15 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
   primeira semana sem PR deixa o CI vermelho por motivo que não é código, e CI vermelho à toa é CI que
   deixa de ser olhado. **Em produção, se também for grátis:** o site sai do ar sozinho, e ninguém sabe
   hoje em que plano ela está (não está escrito em lugar nenhum).
-- **Correção:** `vetria-e2e`: CI agendado a cada 3 dias (**T-044**). Produção: **o Elber responde em que
-  plano está**; se for grátis, a recomendação é **Pro antes da abertura** (o portão de 20/10), que também
-  destrava backup diário e os controles do §Ideias.
-- 🟡 no `vetria-e2e` · **🔴 se produção for grátis** (vira o único 🔴 aberto)
+- **Correção:** `vetria-e2e`: CI agendado a cada 3 dias (**T-044**). Produção: **o Elber respondeu em 25/09:
+  plano grátis, e fica** (**DL-072**).
+- ✅ **25/09/2026 — ACEITO COM MITIGAÇÃO (DL-072).** (1) A T-044 agenda o CI a cada 3 dias, o que mantém o
+  `vetria-e2e` ativo, **e** faz um pedido leve de leitura à página pública de produção (`/buscar`), o que mantém o
+  projeto de produção ativo mesmo numa semana sem visita. (2) O tráfego do site faz o mesmo quando houver uso.
+  (3) **Reavaliar o Pro antes do primeiro profissional de fora: item 7 do portão (DL-063)**, por escrito.
+  O que o grátis continua sem ter: backup diário gerenciado (segue o backup manual antes de cada migration) e os
+  controles do §Ideias.
+- 🟡 aceito · **vira 🔴 se a T-044 não estiver rodando** (a mitigação é ela)
 
 ### R-074 — O profissional consegue ler o `anon_id` de quem o contatou, e o `anon_id` é a chave do histórico do visitante
 - **Descoberto:** 25/09/2026, pelo `vetria-maestro`, planejando a S8 (leitura de `0002_nucleo.sql:346-355` e `:610-611`)
@@ -750,6 +777,8 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
   **Item 1 (WhatsApp opcional) virou a decisão D9 da S8** (`03-TAREFAS.md`), com recomendação: **obrigatório
   para concluir o onboarding a partir de agora**, e aviso no painel de quem já está `active` sem ele. Sem
   WhatsApp, o botão da S8 nem aparece, e o perfil é vitrine sem lead.
+- ✅ **25/09/2026 — D9 DECIDIDA como recomendada (DL-071).** Execução: **T-046**. O item 1 fecha quando a
+  T-046 estiver em produção com o teste de "concluir sem WhatsApp é recusado".
 
 ### R-019 — O plano promete foto de perfil e horários, e não existe nem campo nem coluna para nenhum dos dois
 - **Descoberto:** 26/08/2026, na abertura da S2, conferindo o `01-PLANO.md` §S2 contra o código e o schema
