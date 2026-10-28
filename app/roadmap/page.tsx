@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const ATUALIZADO = "25 de setembro de 2026";
+const ATUALIZADO = "28 de outubro de 2026";
 const ENTREGA = "25 de novembro de 2026";
 
 type Status = "done" | "doing" | "todo" | "later";
@@ -90,7 +90,7 @@ const SPRINTS: Sprint[] = [
       "O profissional se cadastra, envia o documento, é aprovado por uma pessoa da equipe e recebe o aviso por email. A plataforma passou a ter dados reais.",
   },
   {
-    num: "Fase 4 · de 23 de setembro a 20 de outubro",
+    num: "Fase 4 · de 23 de setembro a 10 de novembro",
     title: "Busca, perfil público e contato",
     status: "doing",
     goal: "O momento em que a Vetria começa a girar: o responsável encontra o profissional certo e fala com ele.",
@@ -100,20 +100,40 @@ const SPRINTS: Sprint[] = [
       { label: "Só profissionais validados aparecem na busca, com o selo Verificado pela Vetria", status: "done" },
       { label: "Página pública do veterinário", status: "done" },
       { label: "Página pública do estabelecimento", status: "done" },
-      { label: "Prévia do perfil público para o próprio profissional", status: "todo" },
+      { label: "Prévia do perfil público para o próprio profissional", status: "done" },
       { label: "Páginas preparadas para o Google encontrar", status: "todo" },
-      { label: "Contato direto por WhatsApp", status: "todo" },
+      { label: "Contato direto por WhatsApp (primeira demonstração em 31 de outubro, no site real a partir de 4 de novembro)", status: "doing" },
       { label: "Cada contato recebido fica registrado para o profissional", status: "todo" },
       { label: "O banco de dados recusa informação inválida no cadastro (CRMV, estado, endereço de site)", status: "done" },
       { label: "Senhas mais fortes, com mensagens de erro em português e opção de mostrar a senha", status: "done" },
       { label: "Campos com formato automático no cadastro (CRMV, CNPJ, telefone, CEP e email), para ninguém digitar errado", status: "done" },
-      { label: "Proteções antes de abrir para profissionais de fora: verificação contra robôs no cadastro, segundo fator de acesso para a equipe Vetria e limites de envio", status: "todo" },
+      { label: "Proteção contra golpes comuns de navegador em todas as páginas", status: "done" },
+      { label: "Proteções antes de abrir para profissionais de fora: verificação contra robôs no cadastro e no contato, segundo fator de acesso para a equipe Vetria e limites de envio", status: "todo" },
     ],
     result:
       "O marketplace passa a funcionar. E o profissional passa a ver quantos contatos recebeu, que é exatamente o valor que ele contrata.",
   },
   {
-    num: "Fase 5 · até 3 de novembro",
+    num: "Fase 6 · de 4 a 17 de novembro",
+    title: "Segurança, privacidade e qualidade",
+    status: "todo",
+    goal: "O que separa um sistema que funciona na demonstração de um sistema que pode receber gente de verdade. Vem antes das páginas de venda, de propósito: primeiro o produto seguro, depois a vitrine.",
+    items: [
+      { label: "Revisão de segurança a cada entrega (13 revisões até agora)", status: "done" },
+      { label: "Testes automáticos rodando a cada publicação", status: "done" },
+      { label: "Ambiente de testes separado do site real, para ensaiar cada mudança antes de publicar", status: "done" },
+      { label: "Auditoria completa de acesso aos dados (a equipe Vetria já só enxerga os documentos de quem está em validação)", status: "doing" },
+      { label: "Rodada completa de testes internos de segurança e qualidade, com todos os tipos de conta", status: "todo" },
+      { label: "LGPD: consentimento, exportação e exclusão de dados", status: "todo" },
+      { label: "Termos de uso e política de privacidade, escritos a partir do que a plataforma faz de verdade", status: "todo" },
+      { label: "Velocidade das páginas públicas", status: "todo" },
+      { label: "Acessibilidade e telas de erro", status: "todo" },
+    ],
+    result:
+      "A plataforma passa a tratar o dado de quem confia nela com o cuidado que ele merece.",
+  },
+  {
+    num: "Fase 5 · de 18 a 21 de novembro",
     title: "Páginas de venda",
     status: "todo",
     goal: "Montar o funil comercial: páginas que explicam o valor e páginas que apresentam os planos.",
@@ -122,36 +142,17 @@ const SPRINTS: Sprint[] = [
       { label: "Página para veterinários", status: "todo" },
       { label: "Página para estabelecimentos veterinários", status: "todo" },
       { label: "Página para empresas do setor veterinário e agro", status: "todo" },
-      { label: "Três páginas de planos e preços", status: "todo" },
+      { label: "Três páginas de planos e preços, como vitrine", status: "todo" },
     ],
-    warn: "Os planos aparecem como vitrine. A cobrança entra depois da entrega.",
+    warn: "Os planos aparecem como vitrine, com o que ainda não existe marcado como em breve. A cobrança entra depois da entrega.",
     result:
       "O caminho completo existe: o profissional descobre a Vetria, entende o valor, vê os planos e se cadastra.",
-  },
-  {
-    num: "Fase 6 · até 17 de novembro",
-    title: "Segurança, privacidade e qualidade",
-    status: "todo",
-    goal: "O que separa um sistema que funciona na demonstração de um sistema que pode receber gente de verdade.",
-    items: [
-      { label: "Revisão de segurança a cada entrega (13 revisões até agora)", status: "done" },
-      { label: "Testes automáticos rodando a cada publicação", status: "done" },
-      { label: "Ambiente de testes separado do site real, para ensaiar cada mudança antes de publicar", status: "done" },
-      { label: "Auditoria completa de acesso aos dados (a equipe Vetria já só enxerga os documentos de quem está em validação)", status: "doing" },
-      { label: "LGPD: consentimento, exportação e exclusão de dados", status: "todo" },
-      { label: "Termos de uso e política de privacidade", status: "todo" },
-      { label: "Varredura de qualidade em todos os fluxos", status: "todo" },
-      { label: "Velocidade das páginas públicas", status: "todo" },
-      { label: "Acessibilidade e telas de erro", status: "todo" },
-    ],
-    result:
-      "A plataforma passa a tratar o dado de quem confia nela com o cuidado que ele merece.",
   },
   {
     num: "Entrega · 25 de novembro",
     title: "MVP no ar, pronto para receber usuários",
     status: "todo",
-    goal: "Semana reservada para acabamento e para a apresentação. Nada novo é planejado aqui, de propósito.",
+    goal: "Fechamento: o que ficou pendente, o relatório de entrega e a apresentação.",
     items: [
       { label: "Correção do que ficou pendente", status: "todo" },
       { label: "Relatório de entrega", status: "todo" },
@@ -267,8 +268,8 @@ export default function RoadmapPage() {
             </h2>
             <span className="text-[13px] text-corpo-texto">
               <b className="text-[15px] text-principal">{concluidas}</b> de{" "}
-              {ENTREGAVEIS.length} etapas concluídas · busca no ar,
-              agora construindo o contato pelo WhatsApp
+              {ENTREGAVEIS.length} etapas concluídas · busca e perfis no ar,
+              agora o contato pelo WhatsApp e as proteções de segurança
             </span>
           </div>
           <div className="flex gap-[3px] overflow-hidden rounded-pill">

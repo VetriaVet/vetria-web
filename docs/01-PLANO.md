@@ -29,19 +29,59 @@ S1  S2  S3  S4  | S5  S6  S7  S8  | S9  S10 | S11 S12 | S13
 > **A S13 é buffer de verdade.** Não planeje nada nela. Ela existe porque
 > todo projeto atrasa, e o que separa entrega de desastre é ter previsto o atraso.
 
-### Onde estamos em 25/09/2026 (meio da S5)
+### Onde estamos em 28/10/2026 (retomada depois da pausa de 25/09 a 28/10)
 
 | Fase | Estado | DoD |
 |---|---|---|
-| **F3** | ✅ **CONCLUÍDA** (DL-069, que revisa o DL-062) | **6 de 6** · item 5 medido no CI do `vetria-e2e` em 23/09 (70/70) |
-| **F4** | 🔵 **em andamento, ~1,5 semana adiantada** | **2 de 6 provados**, 2 parciais, 2 abertos (tabela em §F4) |
-| **F5** | ⬜ | 0 de 3 · os textos das 6 páginas já estão escritos |
-| **F6** | ⬜ | 0 de 4 · parte da auditoria já foi feita ao longo da F3 |
-| **F7** | ⬜ | buffer intacto |
+| **F3** | ✅ **CONCLUÍDA** (DL-069) | **6 de 6** |
+| **F4** | 🔵 **por fechar, ~3 semanas atrasada** | **2 de 6 provados**, 2 parciais, 2 abertos. Portão 3 de 7 |
+| **F5** | ⬜ | 0 de 3 · textos das 6 páginas escritos, nada construído |
+| **F6** | ⬜ | 0 de 4 |
+| **F7** | ⛔ **buffer consumido pela pausa** | a S13 deixa de ser buffer e vira semana de trabalho |
 
 ---
 
-## REAVALIAÇÃO DE 25/09/2026 (`vetria-maestro`): o atraso foi recuperado, e a F4 está adiantada
+## REAVALIAÇÃO DE 28/10/2026 (`vetria-maestro`): a pausa comeu o buffer inteiro
+
+**O número honesto: ~3 semanas de atraso contra o plano, buffer zero, 28 dias até a entrega.**
+
+- **O projeto ficou pausado por decisão do Elber de 25/09 a 28/10** (33 dias, nenhum commit). Em 25/09 estávamos
+  ~1,5 semana adiantados; a pausa consumiu ~4,5 semanas. Saldo: ~3 semanas atrás.
+- **O que falta, em semanas de plano:** o resto da F4 (contato, portão, indexação: ~1,5), a F5 (2), a F6 (2) e a S13
+  (1). São ~6,5 semanas de plano para 4 de calendário. **Só cabe com três condições:** (a) a F5 e a F6 entram na
+  versão mínima do que o contrato pede, sem extras; (b) os auditores (`vetria-seguranca`, `vetria-qa`) trabalham em
+  paralelo com os escritores desde a semana 2, porque são só leitura; (c) **sessões presenciais diárias** para o que é 🔴
+  (o Elber está disponível todo dia até 25/11, DL-074).
+- **Efeito colateral da pausa:** o R-073 aconteceu (produção pausou sozinha, restaurada em 28/10). **Produção fica no
+  grátis (decisão do Elber, 28/10)**, então a T-044 é prioridade zero.
+- **Prioridade decidida pelo Elber em 28/10:** aplicativo ponta a ponta primeiro, segurança e testes internos em
+  seguida, landing pages no fim. **Conferido contra o `00-ESCOPO.md`:** as landing pages **são a E6, contratada**.
+  Ficar no fim é ordem, não corte. Elas entram na semana 4 na versão mínima (R-078). Tirar a E6 da entrega exige
+  **emenda** com a linha "o que sai em troca".
+- **O que é cortado agora, e não é contrato:** **T-047** ("Quero ser avisado", nunca foi capacidade contratada; já
+  estava escrito que seria a primeira a cair). **T-019** (editores de perfil, DL-056) só entra se sobrar. CSP com
+  nonce e SEC-091 ficam para depois de 25/11.
+
+### O calendário de 28/10 a 25/11
+
+| Semana | Datas | O quê | Fecha o quê |
+|---|---|---|---|
+| **1** | 28/10 a 03/11 | **T-044** bancos acordados · PR #15 sem conflito · 🔴 qua 29/10: restaurar `vetria-e2e`, `0006` nele, chave do Turnstile · **T-040** rota · **T-046** WhatsApp obrigatório · **T-041** botão · **T-031** captcha (código) · 🔴 seg 03/11: `0006` em produção, Turnstile no painel, firewall, prova da senha 8 | 🎯 **sex 31/10: contato ponta a ponta no `vetria-e2e`**, mostrável |
+| **2** | 04/11 a 10/11 | 🎯 **ter 04/11: contato em produção** com Turnstile no clique · **T-042** painéis de contatos e "Seus contatos" · **T-043** E2E do contato · **T-020** teto do bucket · 🔴 **T-032** 2FA do admin · **T-045** indexação (só com o portão 7 de 7) · **T-048** começa: a rodada de testes internos (auditores, em paralelo) | **DoD da F4 fechado em 10/11** e portão 7 de 7 |
+| **3** | 11/11 a 17/11 | **T-048** correções de tudo 🔴 e 🟠 da rodada · **T-049** LGPD mínimo (consentimento no cadastro, exportar, excluir, Termos e Política) com 🔴 de migration · **T-018** de carona na exclusão | DoD da F6 itens 1, 2 e 3 |
+| **4** | 18/11 a 25/11 | **T-050** as 6 landing pages na versão mínima (18 a 21/11) · Lighthouse nas 3 páginas públicas · 24/11 `/entrega-final` e `DEMO.md` · **25/11 apresentação** | DoD da F5 e F6 item 4 · entrega |
+
+**Gatilhos escritos, para ninguém descobrir na véspera:**
+1. **Se a `0006` não estiver no `vetria-e2e` até sex 31/10**, o marco de 31/10 cai e o contato em produção vai para
+   qui 06/11. Isso será dito em 31/10.
+2. **Se o DoD da F4 não fechar até 10/11**, a T-049 (LGPD) e a T-050 (LPs) passam a disputar a semana 4, e o Elber
+   decide por emenda o que sai. **Decidido (DL-074 item 4):** a primeira coisa a sair é a meta de Lighthouse >= 90,
+   que vira só medição.
+3. **Se a rodada de testes (T-048) achar 🔴**, ele passa na frente de tudo, inclusive das LPs. É a regra do projeto.
+
+**O que um agente faz sozinho e o que precisa do Elber está separado card por card em `03-TAREFAS.md`.**
+
+## REAVALIAÇÃO DE 25/09/2026 (`vetria-maestro`): o atraso foi recuperado, e a F4 está adiantada (histórico, superado pela de 28/10)
 
 **O número honesto hoje: ~1,5 semana ADIANTADOS na F4, buffer da S13 intacto.**
 
@@ -274,6 +314,9 @@ escrita com as recomendações; **se a de 07/10 também não acontecer, a folga 
 > | 4 | ⬜ | Nada escrito. S8: T-039 a T-042 |
 > | 5 | 🟡 | busca → perfil verde no CI; **→ contato** não existe. T-043 |
 > | 6 | 🟡 | **1 de 6** (T-027). Senha 8 configurada, sem prova. T-020, T-031, T-032, T-033 abertos |
+>
+> **Atualizado em 28/10/2026:** item 6 passa a **3 de 7** (T-027, T-033 em produção conferido por `curl -I`, item 7
+> decidido: grátis). Itens 1 a 5 sem mudança: nada foi escrito entre 25/09 e 28/10. Prazo novo do DoD da F4: **10/11**.
 
 ---
 
