@@ -968,3 +968,58 @@ nada fazer (a primeira semana parada derrubaria o site sem ninguém saber).
   `0004` e na `0005`. Isso não muda.
 - Os itens do §Ideias que dependem do Pro (tempo de sessão, senha vazada) continuam no mês 4.
 **Status:** ✅ decidida · risco aceito com mitigação · ⬜ reavaliar no portão (item 7)
+
+### DL-073: Produção continua no plano grátis do Supabase, decidido de novo em 28/10, e o item 7 do portão fecha
+**Data:** 28/10/2026 · **Fase:** F4 (fechamento) · **Riscos:** R-073 · **Portão:** DL-063 item 7 · **Confirma:** DL-072
+· **Quem decidiu:** o Elber, em 28/10.
+**Contexto:** o projeto ficou pausado por decisão do Elber de 25/09 a 28/10. Nesse intervalo o R-073 aconteceu: sem uso,
+o Supabase de produção (grátis) pausou sozinho, e o Elber o restaurou em 28/10. A T-044, que era a mitigação escrita no
+DL-072, não tinha sido feita. O item 7 do portão pedia *"decisão escrita sobre o plano do Supabase de produção antes do
+primeiro profissional de fora"*.
+**Decisão:** produção **continua no plano grátis**. Esta é a decisão escrita que o item 7 pedia: **o item 7 do portão
+está fechado** (portão em 3 de 7). O R-073 continua aceito, com uma condição a mais do que em 25/09: **a mitigação
+obrigatória é a T-044** (CI agendado a cada 3 dias no `vetria-e2e` e um `GET` leve contra produção), e ela vira a
+prioridade zero da fila.
+**Alternativa descartada:** Pro antes da abertura (a recomendação do DL-072). A decisão é do Elber e está registrada.
+**Implicações:**
+- O risco não muda de natureza: pausa após 7 dias sem uso e nenhum backup diário gerenciado. O backup antes de cada
+  migration continua manual.
+- O R-073 só fica 🟡 enquanto a T-044 rodar. A execução agendada é conferida toda segunda, na abertura da semana.
+- Se o plano mudar depois da entrega, é DL novo, não emenda deste.
+**Status:** ✅ decidida · item 7 do portão ✅ · ⬜ T-044 (a mitigação)
+
+### DL-074: O Elber disponível todo dia até 25/11, com as decisões de 28/10 delegadas e aprovadas como recomendadas
+**Data:** 28/10/2026 · **Fase:** F4 (fechamento), com F5 e F6 comprimidas · **Riscos:** R-077, R-078 · **Cards:**
+T-049, T-050 · **Quem decidiu:** o Elber, sobre a recomendação do `vetria-maestro` no replanejamento de 28/10:
+*"o que for melhor pro projeto e pra qualidade"*.
+**Contexto:** o replanejamento de 28/10 (`01-PLANO.md` §Reavaliação de 28/10) deixou cinco decisões abertas para o Elber,
+num calendário de 4 semanas sem folga. O Elber informou que está disponível todo dia até 25/11 e delegou as cinco.
+**Decisão (cada uma exatamente como a recomendação):**
+1. **Sessões presenciais diárias** para o que é 🔴 substituem a sessão fixa de terça e as "duas por semana" do
+   replanejamento. As sessões **A (qua 29/10)** e **B (seg 03/11)** continuam como marcos, com o roteiro já escrito em
+   `03-TAREFAS.md`. Qualquer outro 🔴 pode ser agendado para o mesmo dia em que fica pronto.
+2. **R-077: a página de preço vira vitrine "em breve"** (R2-1 do `07-RODADA-2.md`): os preços da copy, cada benefício
+   que não existe marcado *"em breve"* ou fora, **sem depoimentos**, FAQ que responde a verdade de hoje, e o CTA leva
+   ao cadastro. Sem o "Quero ser avisado" (T-047 adiada). **O texto ajustado fica pronto até 14/11**, antes da T-050.
+3. **Termos de Uso e Política de Privacidade:** um agente rascunha a partir do que o app faz de verdade (dados coletados,
+   cookie do visitante do DL-071 D2, retenção do D11, operadores) **até 10/11**; o Elber aprova; a revisão por advogado
+   fica para **depois da entrega**. Destrava a T-049.
+4. **Gatilho de 10/11:** se o DoD da F4 não fechar até 10/11, **a primeira coisa a sair é a meta de Lighthouse >= 90**
+   (DoD da F6 item 4, que é meta do plano, não do `00-ESCOPO.md`): ela vira só medição, com o número escrito, sem
+   trabalho de otimização. A LGPD (T-049) e as LPs (T-050) não são o que sai primeiro.
+5. **A demonstração de 31/10 é no ambiente de teste** (`vetria-e2e`, por localhost ou preview da Vercel). **Produção só a
+   partir de 04/11**, depois da sessão B.
+**Prioridade registrada junto, do Elber:** aplicativo funcionando e testes internos de segurança primeiro, landing pages
+no fim. As LPs são a E6 contratada: ficam no fim **na versão mínima, sem corte** (R-078). Tirar a E6 da entrega continua
+exigindo emenda no `00-ESCOPO.md` §5.
+**Alternativas descartadas:** manter a sessão fixa de terça (não cabe o 🔴 de 4 semanas em 4 sessões); publicar a copy de
+preço como está (R-077: benefício inexistente e depoimento de pessoa que não existe); esperar advogado antes de publicar
+os Termos (não cabe até 25/11, e a LGPD é transversal contratada); cortar a LGPD ou as LPs primeiro no gatilho de 10/11;
+demonstrar em produção antes de a `0006` estar lá.
+**Implicações:**
+- O R-077 sai de "decisão do Elber" para "execução": a decisão está aqui, o risco fecha quando a página publicada
+  seguir este DL.
+- A T-049 perde a dependência "decisão aberta" sobre o texto; continua dependendo da aprovação do rascunho pelo Elber.
+- A T-050 perde a dependência "decisão do R-077".
+- O roadmap público (`app/roadmap/page.tsx`) foi ressincronizado com o calendário de 28/10 no mesmo passo.
+**Status:** ✅ decidida · ⬜ executada (sessões A e B, texto da LP de preço até 14/11, rascunho dos Termos até 10/11)

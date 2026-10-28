@@ -18,7 +18,14 @@ de crítico foi medido.** A seção 🟠 logo abaixo continua com quatro entrada
 quinta hoje** (**R-057**), e o 🟠 da auditoria da T-008 (SEC-081) está no card **T-020**, com
 trava escrita: **antes do primeiro profissional de fora.**
 
-**25/09/2026 — continua sem 🔴 de severidade.** A pergunta do **R-073** foi respondida: produção **está no plano
+**28/10/2026: continua sem 🔴 de severidade, mas o R-073 ACONTECEU.** O projeto ficou pausado por decisão do Elber
+de 25/09 a 28/10. Sem uso, o Supabase de produção (plano grátis) pausou sozinho, e o site ficou sem banco até o Elber
+restaurar em 28/10 (conferido hoje: `/api/cidades`, `/buscar` e um perfil público respondem 200). O `vetria-e2e`
+provavelmente também pausou. **Decidido em 28/10: produção fica no grátis** (item 7 do portão fechado). O R-073 segue
+🟡 aceito **só enquanto a T-044 rodar**; ela é a prioridade zero da fila. Entrou o **R-078** (🟠): o buffer acabou e a
+E6 e a LGPD ficaram no fim de um calendário sem folga.
+
+**25/09/2026: continua sem 🔴 de severidade.** A pergunta do **R-073** foi respondida: produção **está no plano
 grátis e fica nele por decisão do Elber** (**DL-072**). O risco foi **aceito com mitigação** (CI agendado e pedido
 leve contra produção na T-044) e a reavaliação virou o **item 7 do portão de abertura**. Não é 🔴 enquanto a
 mitigação rodar; **vira 🔴 no dia em que a T-044 parar de rodar sem ninguém ver**. O
@@ -29,6 +36,24 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
 "antes de abrir" viraram **uma lista só, o portão de abertura** (**DL-063**), com prazo 20/10.
 
 ## 🟠 ABERTOS — ALTOS
+
+### R-078 · O buffer acabou: a E6 (landing pages) e a LGPD ficaram no fim de um calendário sem folga
+- **Descoberto:** 28/10/2026, pelo `vetria-maestro`, no replanejamento depois da pausa de 25/09 a 28/10
+- **O quê:** o que o plano punha em ~6,5 semanas (fim da F4, F5, F6 e a S13 de buffer) agora cabe em 4. A prioridade
+  do Elber (app primeiro, segurança depois, LPs por último) é a ordem certa, mas põe duas coisas **contratadas** no fim:
+  as 6 landing pages (**E6**, `00-ESCOPO.md` §2) e a LGPD (consentimento, exportação, exclusão: transversal
+  obrigatória). Qualquer atraso nas semanas 1 a 3 cai em cima delas, e não há S13 para absorver.
+- **Mitigação:** (1) versão mínima das duas (T-049, T-050), sem nenhum extra; (2) auditores em paralelo com os
+  escritores desde a semana 2; (3) sessões presenciais diárias para o 🔴, com o Elber disponível todo dia até 25/11 (DL-074); (4) **T-047 adiada** e **T-019 só se
+  sobrar**, já em 28/10; (5) gatilho escrito em `01-PLANO.md`: se o DoD da F4 não fechar até 10/11, o Elber decide por
+  **emenda** o que sai, antes, não na véspera. **Decidido (DL-074 item 4):** o primeiro a sair é a meta de Lighthouse
+  >= 90, que vira só medição; a LGPD e as LPs não são cortadas.
+- **O que o `vetria-maestro` não faz:** cortar a E6 ou a LGPD por conta própria. Mover qualquer das duas para depois de
+  25/11 é emenda no `00-ESCOPO.md` §5, com a linha "o que sai em troca" preenchida e aprovada pelo Elber.
+- **Próximo passo:** ✅ as decisões de 28/10 foram tomadas (DL-074: R-077, Termos e Política, sessões diárias, gatilho
+  de 10/11). Falta executar: semanas 1 a 4 do `01-PLANO.md`.
+  🟠
+
 
 > **R-020, R-021, R-022 e R-025 FECHARAM em 26/08**, quando a `0003` foi aplicada em produção
 > e verificada por 18 sondas. Estão em ✅ FECHADOS, e a regra que os manteve abertos até o
@@ -75,8 +100,10 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
   saem** até existirem pessoas reais que autorizem; a FAQ responde a verdade de hoje; o CTA principal vira o
   cadastro grátis (*"Criar meu perfil"*) e o secundário, *"Quero ser avisado quando o plano abrir"* (**T-047**).
   Mexer na copy aprovada é gesto do Elber: o `vetria-ui` não reescreve sozinho. Detalhe em `docs/07-RODADA-2.md` §2.
-- **Liga com:** **R-011** (vet e estabelecimento iguais) e a T-047. **Task:** decisão na sessão de 30/09 ou 07/10;
-  execução nas LPs da F5 (S9-S10). 🟠
+- **Liga com:** **R-011** (vet e estabelecimento iguais) e a T-047. **Task:** execução na **T-050**.
+- ✅ **28/10/2026, DECIDIDO (DL-074 item 2):** a correção recomendada, sem o CTA secundário (a T-047 foi adiada): vitrine
+  "em breve", sem depoimentos, FAQ verdadeira, CTA para o cadastro. Texto ajustado **até 14/11**. O risco fecha quando
+  a página publicada seguir o DL. 🟠 até lá
 
 ### R-004 — `dangerouslyAllowSVG: true` no `next.config.ts`
 - **O quê:** necessário pra logo SVG renderizar via `next/image` (DL-040). Está mitigado por CSP sandbox. Vira risco real se algum dia entrar SVG enviado por usuário (foto de perfil, documento).
@@ -213,7 +240,18 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
   (3) **Reavaliar o Pro antes do primeiro profissional de fora: item 7 do portão (DL-063)**, por escrito.
   O que o grátis continua sem ter: backup diário gerenciado (segue o backup manual antes de cada migration) e os
   controles do §Ideias.
-- 🟡 aceito · **vira 🔴 se a T-044 não estiver rodando** (a mitigação é ela)
+- ⚠️ **28/10/2026: MATERIALIZADO.** O projeto ficou pausado por decisão do Elber de 25/09 a 28/10, e a T-044, que era
+  a mitigação, **nunca tinha sido feita**. Sem visita e sem CI, a produção pausou após 7 dias sem uso. O Elber
+  restaurou em 28/10; o site voltou (200 em `/api/cidades`, `/buscar` e `/veterinario/larissa-lima-goiania-go`). O
+  `vetria-e2e` não foi conferido daqui (a URL não está no repositório), mas o último CI foi em 25/09: é quase certo que
+  pausou também, e o próximo CI falha até ele ser restaurado.
+- **Lição:** mitigação escrita e não executada é risco aberto. O risco foi aceito em 25/09 com a T-044 "para a semana de
+  30/09"; ela não saiu do papel, e no primeiro intervalo sem uso o risco aconteceu.
+- ✅ **28/10/2026, decisão do Elber: produção FICA no plano grátis** (confirma o DL-072; o item 7 do portão está
+  fechado, **DL-073**). O risco continua valendo daqui para frente: pausa
+  automática após 7 dias sem uso.
+- 🟡 aceito · **a mitigação é a T-044, prioridade zero da fila de 28/10** · vira 🔴 no dia em que a T-044 parar de
+  rodar sem ninguém ver. Conferir a execução agendada toda segunda, na abertura da semana
 
 ### R-074 — O profissional consegue ler o `anon_id` de quem o contatou, e o `anon_id` é a chave do histórico do visitante
 - **Descoberto:** 25/09/2026, pelo `vetria-maestro`, planejando a S8 (leitura de `0002_nucleo.sql:346-355` e `:610-611`)
@@ -846,6 +884,7 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
 | **Perda de contexto entre sessões** | Alta | Médio | `02-ESTADO.md` + protocolo de handoff obrigatório em toda task |
 | **Migration destruir dado de produção** | Baixa | Fatal | Backup obrigatório antes; migration aditiva; revisão de segurança antes de aplicar |
 | **Esteticismo comendo a funcionalidade** | Média | Alto | `vetria-ui` reporta, mas polimento visual só entra na fila depois do DoD da fase |
+| **Projeto parado por semanas** (aconteceu de 25/09 a 28/10, por decisão do Elber) | Média | Alto: consome buffer e acorda riscos de infraestrutura (R-073) | Antes de qualquer pausa: rodar a T-044 e escrever no `02-ESTADO.md` a data de volta. Na volta: o `vetria-maestro` replaneja no primeiro dia (feito em 28/10) |
 
 ---
 
