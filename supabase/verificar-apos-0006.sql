@@ -19,11 +19,16 @@
 -- ⚠️ A sonda 2 NÃO imprime número de telefone: ela planta um WhatsApp falso
 -- ('62900000001') na conta de teste e confere por contagem. Nada de dado de
 -- gente real sai na tela.
+--
+-- Emenda de 28/10/2026 (antes da sessão A): sonda 1 ganhou a linha 7 (índice
+-- do freio global); sonda 2 ganhou os casos 26-28 (SEC-128, número fora do
+-- formato) e 80-85 (SEC-120 c, freio global de 30/min, DL-075). Contagens
+-- novas: sonda 1 com 7 `true`, sonda 2 com 68 OK.
 -- ============================================================================
 
 
 -- ####### SONDA 1 — o catálogo ##############################################
--- Esperado: TODAS as linhas com `ok` = true. (É o mesmo que o select final da
+-- Esperado: 7 linhas, TODAS com `ok` = true. (É o mesmo que o select final da
 -- migration mostrou; rodar de novo aqui prova que nada mudou depois.)
 select * from (
   select 1 as ordem, 'registrar_contato: EXECUTE so service_role' as item,
@@ -66,12 +71,18 @@ select * from (
                or (p.proname = 'slug_ao_ativar'
                    and md5(regexp_replace(p.prosrc, '[[:space:]]+', '', 'g')) = '6e2da6385b4ddca66cd51863b207e8ce'))),
          'se false: a funcao foi mexida depois da 0006'
+  union all
+  select 7, 'indice do freio global (idx_contatos_created_at) existe',
+         exists (select 1 from pg_indexes where schemaname = 'public' and tablename = 'contatos'
+                  and indexname = 'idx_contatos_created_at'),
+         'se false: o freio global le a tabela inteira a cada clique'
 ) s
 order by ordem;
 
 
 -- ####### SONDA 2 — cada regra nova, com controle positivo ##################
--- Esperado: TODAS as linhas com `veredito` = OK (59 linhas).
+-- Esperado: TODAS as linhas com `veredito` = OK (68 linhas; eram 59 até a
+-- emenda de 28/10).
 -- Os limites (21 a 25) contam profissionais DISTINTOS: a sonda planta
 -- contatos antigos apontando para outras contas (4 para o limite curto, 5
 -- para a janela, 20 para o limite de 24 h). Se o banco não tiver 20 outras
@@ -95,11 +106,18 @@ order by ordem;
 --    4-20   registrar_contato: grava e devolve; D5; origem; nao_encontrado;
 --           sem_whatsapp; logado; consigo mesmo; anon_id obrigatório
 --   21-25   D3: os limites, e a janela de 10 min
+--   26-28   SEC-128: WhatsApp fora do formato devolve sem_whatsapp e NAO grava
 --   30-38   R-074: quem lê quais colunas de contatos
 --   40-45   D10: o vínculo na criação de conta (a data vem de auth.users)
 --   50-55   R-076 / D11: a linha anonimizada
 --   60-68   SEC-115: o slug só muda pelo gerador e pelo master
 --   70      SEC-116: aprovação sem linha de perfil falha
+--   80-85   SEC-120 (c) / DL-075: o freio global de 30 contatos por minuto.
+--           A sonda inteira roda numa transação só, então `now()` é o mesmo
+--           instante em todos os casos e a conta do minuto é exata. Os casos
+--           usam o estabelecimento (o slug do vet muda nos casos 60-68).
+--           ⚠️ O 30 está escrito aqui e na função: mudar o teto é migration
+--           nova, DL novo E esta sonda.
 --
 -- Códigos no `obtido`: 42501 sem permissão · 23514 CHECK recusou · 22004
 -- parâmetro nulo · 55000 pré-condição · linhas=N o comando alcançou N linhas.
@@ -219,6 +237,19 @@ declare
            $c$insert into public.contatos (profissional_id, anon_id, created_at) select o, 'a0000000-0000-4000-8000-000000000025', now() - interval '2 hours' from unnest('%OUTROS20%'::uuid[]) o$c$,
            $c$select count(*) from (select public.registrar_contato('vet', '%SLUGVET%', null, 'a0000000-0000-4000-8000-000000000025', null, null) r) x where r ->> 'motivo' = 'muitas_tentativas'$c$, 'linhas=1', '20'],
 
+    -- ------------------------------------------------ SEC-128: formato
+    ['26', 'SEC-128: WhatsApp gravado com +55 e mascara: sem_whatsapp, sem numero',
+           'service', '',
+           $c$insert into public.perfil_privado (id, whatsapp) values ('%CLINIC%', '+55 (62) 3000-0001') on conflict (id) do update set whatsapp = '+55 (62) 3000-0001'$c$,
+           $c$select count(*) from (select public.registrar_contato('clinic', '%SLUGCLI%', null, 'a0000000-0000-4000-8000-000000000026', null, null) r) x where r ->> 'ok' = 'false' and r ->> 'motivo' = 'sem_whatsapp' and r -> 'whatsapp' is null$c$, 'linhas=1', '0'],
+    ['27', 'SEC-128: WhatsApp com 12 digitos (o 55 na frente): sem_whatsapp, sem numero',
+           'service', '',
+           $c$update public.perfil_privado set whatsapp = '556230000001' where id = '%CLINIC%'$c$,
+           $c$select count(*) from (select public.registrar_contato('clinic', '%SLUGCLI%', null, 'a0000000-0000-4000-8000-000000000027', null, null) r) x where r ->> 'ok' = 'false' and r ->> 'motivo' = 'sem_whatsapp' and r -> 'whatsapp' is null$c$, 'linhas=1', '0'],
+    ['28', 'SEC-128: e o numero fora do formato NAO grava linha (zero linhas novas)',
+           'dono', '', '',
+           $c$select count(*) from public.contatos where anon_id in ('a0000000-0000-4000-8000-000000000026', 'a0000000-0000-4000-8000-000000000027')$c$, 'linhas=0', '0'],
+
     -- ------------------------------------------------ R-074: colunas
     ['30', 'controle positivo: o vet le as colunas das telas dos proprios contatos',
            'vet', '', '',
@@ -332,7 +363,29 @@ declare
            $c$select count(*) from (select public.admin_definir_status('%TUTOR%', 'active', null)) x$c$, '55000', '0'],
     ['71', 'e a conta continua fora do ar',
            'dono', '', '',
-           $c$select count(*) from public.profiles where id = '%TUTOR%' and status = 'pending_validation'$c$, 'linhas=1', '0']
+           $c$select count(*) from public.profiles where id = '%TUTOR%' and status = 'pending_validation'$c$, 'linhas=1', '0'],
+
+    -- ------------------------------------------------ SEC-120 (c): freio global
+    ['80', 'freio global: 30 contatos de 61 s atras nao contam (a janela e de 1 min)',
+           'service', '',
+           $c$update public.perfil_privado set whatsapp = '6230000001' where id = '%CLINIC%'; insert into public.contatos (profissional_id, anon_id, created_at) select '%VET%', gen_random_uuid(), now() - interval '61 seconds' from generate_series(1, 30)$c$,
+           $c$select count(*) from (select public.registrar_contato('clinic', '%SLUGCLI%', null, 'a0000000-0000-4000-8000-000000000080', null, null) r) x where r ->> 'ok' = 'true'$c$, 'linhas=1', '0'],
+    ['81', 'controle positivo: com 29 contatos no ultimo minuto, o 30o passa',
+           'service', '',
+           $c$insert into public.contatos (profissional_id, anon_id, created_at) select '%VET%', gen_random_uuid(), now() - interval '30 seconds' from generate_series(1, greatest(0, 29 - (select count(*) from public.contatos where created_at > now() - interval '1 minute'))::int)$c$,
+           $c$select count(*) from (select public.registrar_contato('clinic', '%SLUGCLI%', null, 'a0000000-0000-4000-8000-000000000081', null, null) r) x where r ->> 'ok' = 'true'$c$, 'linhas=1', '0'],
+    ['82', 'o 30o foi gravado: o sistema tem 30 contatos no ultimo minuto',
+           'dono', '', '',
+           $c$select count(*) from public.contatos where created_at > now() - interval '1 minute'$c$, 'linhas=30', '0'],
+    ['83', 'DL-075: visitante NOVO com 30 no minuto recebe muitas_tentativas, sem numero',
+           'service', '', '',
+           $c$select count(*) from (select public.registrar_contato('clinic', '%SLUGCLI%', null, 'a0000000-0000-4000-8000-000000000083', null, null) r) x where r ->> 'ok' = 'false' and r ->> 'motivo' = 'muitas_tentativas' and r -> 'whatsapp' is null$c$, 'linhas=1', '0'],
+    ['84', 'e o freio NAO grava linha',
+           'dono', '', '',
+           $c$select count(*) from public.contatos where anon_id = 'a0000000-0000-4000-8000-000000000083'$c$, 'linhas=0', '0'],
+    ['85', 'o freio nao alcanca o clique repetido (D5): quem ja tem a linha recebe o numero',
+           'service', '', '',
+           $c$select count(*) from (select public.registrar_contato('clinic', '%SLUGCLI%', null, 'a0000000-0000-4000-8000-000000000081', null, null) r) x where r ->> 'ok' = 'true' and r ->> 'whatsapp' = '6230000001'$c$, 'linhas=1', '0']
   ];
   i           int;
   ator        text;
@@ -375,8 +428,11 @@ begin
     insert into public.vet_profiles (id, nome_exibicao, crmv, crmv_uf, cidade, estado)
     values (v_vet, 'Sonda Seis', '12345', 'SP', 'Cidade da Sonda', 'SP')
     on conflict (id) do nothing;
+    -- nome diferente do vet: com o mesmo nome e a mesma cidade, os dois
+    -- ganhariam o mesmo slug (o gerador so evita colisao dentro da propria
+    -- tabela) e o caso 13 (slug de vet pedido como clinic) acharia a clinic
     insert into public.clinic_profiles (id, nome_fantasia, cidade, estado)
-    values (v_clinic, 'Sonda Seis', 'Cidade da Sonda', 'SP')
+    values (v_clinic, 'Sonda Seis Estabelecimento', 'Cidade da Sonda', 'SP')
     on conflict (id) do nothing;
     insert into public.perfil_privado (id, whatsapp) values (v_vet, '62900000001')
     on conflict (id) do update set whatsapp = '62900000001';

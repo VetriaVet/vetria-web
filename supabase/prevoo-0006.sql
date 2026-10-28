@@ -105,7 +105,7 @@ where conname = 'contatos_tem_origem_ou_anonimizado'
 union all
 select 'indice', indexname::text
 from pg_indexes
-where schemaname = 'public' and indexname in ('idx_contatos_anon_recentes', 'idx_contatos_user_recentes');
+where schemaname = 'public' and indexname in ('idx_contatos_anon_recentes', 'idx_contatos_user_recentes', 'idx_contatos_created_at');
 
 
 -- ############################################################
