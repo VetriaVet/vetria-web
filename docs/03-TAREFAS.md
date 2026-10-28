@@ -680,20 +680,58 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
   **Commits:** branch `t-039-migration-0006` (hash na resposta ao maestro).
 
 ### T-040 — A rota `POST /api/contato` e o cookie do visitante
-- **Estado:** ⬜ **fila de 28/10, item 2**, depois da T-039 no `vetria-e2e` (sessão A, 29/10). Pode ser escrita antes, contra o desenho
+- **Estado:** 🔵 **escrita em 28/10, NÃO commitada na `main`, aguardando aprovação do diff (🟡) e auditoria do `vetria-seguranca`.** Branch `t-040-api-contato` (a partir da `t-039-migration-0006`). A parte que depende da `0006` só roda depois da sessão A (29/10)
 - **Fase / Semana:** F4 / S6-S7 · **Capacidade:** **E5** · **Nível:** 🟡 — `/api/*` e `lib/` · **Dono:** vetria-backend · **Auditoria:** vetria-seguranca
 - **Depende de:** **T-039** aplicada no `vetria-e2e`; **T-031** se D4 = sim
 - **Por quê:** é a única porta pela qual o número sai. Tem que estar certa antes de o botão existir
 - **Feito quando:**
-  - [ ] Só POST; `Sec-Fetch-Site` diferente de `same-origin` é recusado; corpo validado contra listas fechadas; resposta no formato `RespostaDoContato`; `Cache-Control: no-store`
-  - [ ] Cookie `vetria_visitante` criado no primeiro clique (D2), com os atributos do desenho §4
-  - [ ] Chama `registrar_contato` pelo `lib/supabase/admin.ts` (`server-only`) e nada mais com esse cliente
-  - [ ] Número e `anon_id` **nunca** em log (só o `code` do erro, como no resto do projeto)
-  - [ ] Turnstile conferido no servidor, se D4 = sim
-  - [ ] **Gesto do Elber, guiado por este card:** regra do firewall da Vercel em `/api/contato` (D3), escrita aqui
-  - [ ] Teste de API no CI: sem `Sec-Fetch-Site` recusa; slug inválido recusa; o número só vem no corpo da resposta do POST
+  - [x] Só POST; `Sec-Fetch-Site` diferente de `same-origin` é recusado; corpo validado contra listas fechadas; resposta no formato `RespostaDoContato`; `Cache-Control: no-store`
+  - [x] Cookie `vetria_visitante` criado no primeiro clique (D2), com os atributos do desenho §4 _(escrito; a prova com banco é a parte B do teste, depois da 0006)_
+  - [x] Chama `registrar_contato` pelo `lib/supabase/admin.ts` (`server-only`) e nada mais com esse cliente
+  - [x] Número e `anon_id` **nunca** em log (só o `code` do erro, como no resto do projeto)
+  - [x] Turnstile conferido no servidor, se D4 = sim _(ponto de verificação pronto e **desligado** por `TURNSTILE_NO_CONTATO = false`: a chave não existe; ver Resultado)_
+  - [ ] **Gesto do Elber, guiado por este card:** regra do firewall da Vercel em `/api/contato` (D3), escrita aqui _(roteiro no Resultado)_
+  - [ ] Teste de API no CI: sem `Sec-Fetch-Site` recusa; slug inválido recusa; o número só vem no corpo da resposta do POST _(parte A verde local; parte B escrita, liga com `CONTATO_ABERTO_PARA_TESTE: "1"` no CI depois da 0006)_
 - **Não fazer:** o botão (T-041). Server Action no lugar da rota (a regra de firewall precisa de caminho fixo).
-- **Resultado:** _(a preencher)_
+- **Resultado:** 🔵 **28/10/2026, escrita e testada no que dá para testar sem a `0006`. Nada em produção, nada em banco.**
+  Arquivos: `app/api/contato/route.ts` (novo), `lib/contato/porta.ts` (novo, `server-only`), `lib/contato/turnstile.ts`
+  (novo, `server-only`), `lib/perfil-publico/contato.ts` (comentário e um motivo novo, `verificacao_recusada`),
+  `tests/e2e/contato-rota.spec.ts` (novo).
+
+  **O que passou a funcionar:** existe a rota `POST /api/contato`. **Em produção ela fica fechada**: enquanto
+  `CONTATO_PELO_SITE_ABERTO = false`, um pedido válido recebe `503 {"ok":false,"motivo":"indisponivel"}`, sem cookie,
+  sem ler sessão e sem tocar no banco. Pedido de fora do site (sem `Sec-Fetch-Site: same-origin`) recebe 403; corpo que
+  não é JSON, 415; corpo acima de 4 KB, 413; tipo fora de `vet`/`clinic` ou slug fora do formato do DL-067, 400
+  `nao_encontrado`. Toda resposta tem `Cache-Control: no-store`.
+
+  **Como a porta abre (`lib/contato/porta.ts`):** (1) produção: `CONTATO_PELO_SITE_ABERTO = true` **e**
+  `TURNSTILE_NO_CONTATO = true`. A SEC-120 (a) está em código: ligar o botão sem o captcha deixa a rota fechada.
+  (2) teste: `CONTATO_ABERTO_PARA_TESTE=1` no servidor, `VERCEL_ENV` diferente de `production` e a URL do Supabase
+  **não** sendo a de produção (ref `gdqnnrozbxrtaaquarnd`). Medido em 28/10: build com a URL de produção e a variável
+  ligada respondeu 503 sem chamar o banco; build com uma URL de teste e a variável ligada chamou o banco.
+
+  **Prova local (28/10):** `npm run lint` limpo; `npm run build` verde (`ƒ /api/contato`); parte A do teste, **6 de 6
+  verdes** contra `next start` local: recusa sem/`cross-site`/`same-site`/`none` em `Sec-Fetch-Site`, o `fetch` de
+  dentro da página passa da conferência de origem (o navegador manda `same-origin`), GET dá 405, 415/400/413, 10
+  corpos ruins com `nao_encontrado` e 5 com `indisponivel`, e o teste "porta" exige 503 com a variável desligada.
+
+  **A parte B (só depois da 0006 no `vetria-e2e`):** com `CONTATO_ABERTO_PARA_TESTE: "1"` no `env:` do job do
+  `ci.yml`, 3 testes: o número só vem no corpo do POST e nunca no HTML (antes e depois do clique), a linha nasce em
+  `contatos` com `anon_id` igual ao cookie e a origem certa, o cookie tem `HttpOnly`, `Secure`, `SameSite=Lax`,
+  `Path=/`, `Max-Age=15552000`; o 2º clique em 24 h não duplica (D5); cookie que não é UUID vira cookie novo; origem
+  fora da lista vira nula; perfil sem WhatsApp dá 422 `sem_whatsapp` sem gravar; conta suspensa dá 404 sem gravar.
+  **Não ligar a variável antes da 0006:** o teste "porta" fica vermelho dizendo por quê.
+
+  **Gesto do Elber, regra do firewall da Vercel** (Firewall > Custom Rules, sessão do firewall junto com a T-020):
+  nome `contato-por-ip`; **se** o caminho for igual a `/api/contato` **e** o método for `POST`; **então** Rate Limit,
+  janela fixa de 60 s, **10 pedidos**, chave **IP** (no plano que permitir, acrescentar **JA4**), ação **429** por
+  60 s. Para o IPv6 contar por /64 (SEC-120 b): conferir no painel se a chave por IP já agrupa por /64; se não
+  agrupar, anotar aqui o que o plano oferece. Escrever aqui a regra aplicada e a data.
+
+  **Ficou de fora, de propósito:** limite em memória na rota (função serverless não guarda estado; o limite é da
+  borda e do banco); o freio global no banco da SEC-120 (c) (seria migration nova, sem decisão); o widget do
+  Turnstile e a chave (T-031, T-041); o vínculo na criação de conta (T-042); o teste do `muitas_tentativas` pela
+  rota (precisa de 6 profissionais ativos; já está provado na sonda 2 da `0006` e é item da T-043).
 
 ### T-041 — O botão "Chamar no WhatsApp", a revelação do número e o convite, no perfil público
 - **Estado:** ⬜ **fila de 28/10, item 3** (construída contra o `vetria-e2e`; **liga em produção só com a T-039 em produção e o Turnstile no clique**, meta ter 04/11)

@@ -1,16 +1,16 @@
-// A INTERFACE do evento de contato (DL-047, matriz §6). Só os tipos.
+// A INTERFACE do evento de contato (DL-047, matriz §6). Só os tipos e a
+// constante que liga o botão. Este arquivo vai para o navegador (o perfil
+// público importa a constante): NADA de servidor aqui.
 //
-// ⚠️ O QUE ESTE ARQUIVO NÃO FAZ, e por quê: não lê telefone, não grava em
-// `contatos`, não monta link de WhatsApp. O registro do contato é a F4/S8, e
-// o que ele precisa ainda não está decidido por escrito:
-//   · o cookie `anon_id` (nome, duração, onde é criado);
-//   · como o servidor lê `perfil_privado.whatsapp` de OUTRA pessoa (hoje só
-//     o dono e o admin leem; o caminho óbvio é uma função SECURITY DEFINER
-//     que grava o contato E devolve o número na mesma transação, ou a rota
-//     com `service_role`; qualquer um dos dois é 🔴);
-//   · o limite de cliques por visitante (raspagem pelo próprio evento).
+// Quem implementa (T-040, 28/10/2026):
+//   · a rota `POST /api/contato` (`app/api/contato/route.ts`), que valida o
+//     pedido, cria o cookie `vetria_visitante` no primeiro clique (DL-071 D2)
+//     e chama `registrar_contato` da 0006 pelo cliente de serviço;
+//   · a função `registrar_contato` (0006, T-039), que grava a linha em
+//     `contatos` e SÓ ENTÃO devolve o número, na mesma transação (D1);
+//   · `lib/contato/porta.ts`, que diz se a rota está aberta neste servidor.
 //
-// O que JÁ está decidido e amarra a S8 (DL-047):
+// O que amarra tudo (DL-047):
 //   1. O número NUNCA vai no HTML, nem na resposta da busca, nem no perfil.
 //      As páginas públicas só conhecem o `AlvoDoContato` abaixo.
 //   2. O clique é POST no servidor; o servidor grava em `contatos` e SÓ ENTÃO
@@ -48,12 +48,18 @@ export type RespostaDoContato =
         | "nao_encontrado" //   slug inexistente ou conta que saiu do ar
         | "sem_whatsapp" //     o profissional não informou número
         | "muitas_tentativas"
-        | "indisponivel"; //    a S8 ainda não existe, ou o banco não respondeu
+        | "verificacao_recusada" // o Turnstile não confirmou (SEC-120): a tela pede para recarregar
+        | "indisponivel"; //    rota fechada, pedido de fora do site, ou o banco não respondeu
     };
 
 /**
  * Enquanto for `false`, a tela mostra que o contato "abre em breve" e não
- * desenha botão que não faz nada. Vira `true` no commit que ligar a rota da
- * S8, e só então.
+ * desenha botão que não faz nada, E a rota `POST /api/contato` fica fechada
+ * em produção (responde `indisponivel` sem gravar nada). Vira `true` no commit
+ * da T-041 que liga o botão, e só depois da 0006 em produção.
+ *
+ * ⚠️ Sozinha ela não abre a rota: `lib/contato/porta.ts` exige também
+ * `TURNSTILE_NO_CONTATO = true` (SEC-120 a). Ligar só esta deixa o botão na
+ * tela e a rota respondendo `indisponivel`.
  */
 export const CONTATO_PELO_SITE_ABERTO = false;
