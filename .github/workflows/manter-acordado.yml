@@ -1,0 +1,148 @@
+# Manter acordado: T-044. Ver docs/03-TAREFAS.md, R-073 e DL-072.
+#
+# O Supabase do plano grátis pausa o projeto depois de 7 dias sem uso. Isso já
+# aconteceu (produção pausou entre 25/09 e 28/10). Os DOIS projetos estão no
+# grátis, então este workflow faz uma leitura leve em cada um, todo dia:
+#   1. vetria-e2e: um SELECT de uma linha na tabela pública `cidades`, pela
+#      API REST do Supabase, com a anon key que o CI já usa.
+#   2. Produção: GET em https://vetriabrasil.com.br/api/cidades e /buscar, como
+#      visitante anônimo. O próprio site lê o banco; nenhuma chave de produção.
+# Se qualquer um falhar, o job fica vermelho e o GitHub manda o email de falha.
+#
+# Por que um arquivo separado, e não `schedule` no ci.yml:
+#   · a suíte E2E escreve no vetria-e2e e leva minutos; este job leva segundos
+#     e só lê;
+#   · o ci.yml divide o grupo de concorrência `ci-vetria-e2e` com os PRs, e um
+#     agendamento lá entraria na fila de quem está trabalhando;
+#   · teste instável vermelho de madrugada ensina a ignorar o email. Aqui
+#     vermelho quer dizer uma coisa só: banco fora do ar ou site fora do ar.
+#
+# Por que todo dia, e não a cada 3: o GitHub atrasa e às vezes pula execução
+# agendada em horário de pico. Com 7 tentativas por janela de 7 dias, perder
+# uma ou duas não pausa nada. O custo é ~20 s por dia (repo público: grátis).
+# Horário 09:17 UTC (06:17 em Brasília): minuto quebrado de propósito, porque
+# o minuto 0 de cada hora é o mais congestionado do GitHub.
+#
+# ⚠️ ARMADILHAS DO PRÓPRIO AGENDAMENTO (leia antes de confiar neste arquivo):
+#   · `schedule` só roda no branch padrão (`main`). Antes do merge, nada roda.
+#   · O GITHUB DESATIVA SOZINHO workflow agendado de repositório público depois
+#     de 60 dias sem atividade no repositório (sem commit). Sem aviso por email
+#     de falha: ele simplesmente para, e o R-073 volta calado. Por isso o último
+#     passo falha a partir de 50 dias sem commit na `main`: o email chega antes
+#     do desligamento. Para religar se já tiver desligado: aba Actions >
+#     "Manter acordado" > "Enable workflow".
+#   · O email de falha de workflow agendado vai para quem alterou por último a
+#     linha do `cron` neste arquivo. Se essa pessoa não for o Elber, o aviso
+#     não chega a ele.
+#   · O vetria-e2e precisa estar restaurado no painel. Enquanto estiver pausado,
+#     o passo 1 fica vermelho, e é para ficar: é exatamente o aviso.
+#
+# ⚠️ SEGREDOS — o que entra aqui e o que NUNCA entra:
+#   ENTRA  TESTE_SUPABASE_URL / TESTE_SUPABASE_ANON_KEY   do vetria-e2e, públicos
+#          por desenho (a anon key viaja no bundle e é protegida por RLS)
+#   NUNCA  TESTE_SUPABASE_SERVICE_ROLE_KEY   este job só lê tabela pública
+#   NUNCA  chave nenhuma de PRODUÇÃO. Produção é lida pelo site, como qualquer
+#          visitante. Nem service_role, nem anon key, nem URL do Supabase.
+#   NUNCA  escrita. Nada de POST, PATCH, DELETE, em projeto nenhum.
+
+name: Manter acordado
+
+on:
+  schedule:
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manter-acordado
+  cancel-in-progress: false
+
+jobs:
+  acordar:
+    name: ler os dois bancos
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      SITE: https://vetriabrasil.com.br
+
+    steps:
+      - name: vetria-e2e, uma linha de `cidades` com a anon key
+        env:
+          TESTE_URL: ${{ secrets.TESTE_SUPABASE_URL }}
+          TESTE_ANON: ${{ secrets.TESTE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$TESTE_URL" ] || [ -z "$TESTE_ANON" ]; then
+            echo "::error::Faltam TESTE_SUPABASE_URL ou TESTE_SUPABASE_ANON_KEY (Settings > Secrets > Actions)."
+            exit 1
+          fi
+          case "$TESTE_URL" in
+            https://*.supabase.co) ;;
+            *) echo "::error::TESTE_SUPABASE_URL tem que ser a URL completa: https://<ref>.supabase.co"; exit 1;;
+          esac
+          case "$TESTE_URL" in
+            *gdqnnrozbxrtaaquarnd*) echo "::error::RECUSADO: TESTE_SUPABASE_URL e a de PRODUCAO (DL-064)."; exit 1;;
+          esac
+          codigo=$(curl -sS -o corpo.json -w '%{http_code}' --max-time 30 \
+            --retry 2 --retry-delay 15 --retry-all-errors \
+            -H "apikey: $TESTE_ANON" -H "Authorization: Bearer $TESTE_ANON" \
+            "$TESTE_URL/rest/v1/cidades?select=slug&slug=eq.goiania-go&limit=1") || codigo="000"
+          linhas=$(jq 'if type == "array" then length else 0 end' corpo.json 2>/dev/null || echo 0)
+          if [ "$codigo" != "200" ] || [ "$linhas" -lt 1 ]; then
+            echo "::error::vetria-e2e nao respondeu (HTTP $codigo, $linhas linha). Projeto pausado? Restaurar no painel do Supabase (R-073)."
+            exit 1
+          fi
+          echo "vetria-e2e acordado: HTTP 200, $linhas linha."
+
+      # /api/cidades devolve 503 com lista vazia quando o banco não responde
+      # (app/api/cidades/route.ts), então 200 com lista cheia prova que o
+      # Postgres de produção atendeu. A rota tem cache de 1 h na CDN da Vercel
+      # (s-maxage=3600): o parâmetro `acordar` muda a cada execução, a CDN
+      # trata como endereço novo e o pedido chega ao banco. A rota ignora o
+      # parâmetro.
+      - name: produção, /api/cidades como visitante anônimo
+        if: ${{ !cancelled() }}
+        run: |
+          url="$SITE/api/cidades?q=goi&acordar=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          codigo=$(curl -sS -o cidades.json -w '%{http_code}' --max-time 30 \
+            --retry 2 --retry-delay 15 --retry-all-errors \
+            "$url") || codigo="000"
+          qtd=$(jq '.cidades | length' cidades.json 2>/dev/null || echo 0)
+          if [ "$codigo" != "200" ] || [ "$qtd" -lt 1 ]; then
+            echo "::error::Producao: /api/cidades veio HTTP $codigo com $qtd cidade. Banco de producao pausado? Restaurar no painel do Supabase (R-073)."
+            exit 1
+          fi
+          echo "Producao acordada: /api/cidades HTTP 200, $qtd cidades."
+
+      # /buscar é force-dynamic: cada GET lê especialidades, serviços e perfis
+      # ativos. Ela degrada com elegância quando o banco cai (a tela abre
+      # mesmo assim), então aqui o 200 só prova que o site está no ar; quem
+      # prova o banco é o passo de cima.
+      - name: produção, /buscar como visitante anônimo
+        if: ${{ !cancelled() }}
+        run: |
+          codigo=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+            --retry 2 --retry-delay 15 --retry-all-errors \
+            "$SITE/buscar") || codigo="000"
+          if [ "$codigo" != "200" ]; then
+            echo "::error::Producao: /buscar veio HTTP $codigo. Site fora do ar?"
+            exit 1
+          fi
+          echo "Producao no ar: /buscar HTTP 200."
+
+      # Defesa contra o desligamento de 60 dias (ver o topo). A API devolve o
+      # último commit da `main` sem precisar de checkout nem de chave nova.
+      - name: aviso antes de o GitHub desligar este agendamento
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          data=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq '.commit.committer.date')
+          dias=$(( ( $(date -u +%s) - $(date -u -d "$data" +%s) ) / 86400 ))
+          echo "Ultimo commit na main: $data ($dias dias)."
+          if [ "$dias" -ge 50 ]; then
+            echo "::error::$dias dias sem commit na main. Aos 60 o GitHub desliga este agendamento e o Supabase volta a pausar (R-073). Faca qualquer commit na main."
+            exit 1
+          fi
