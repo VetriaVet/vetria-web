@@ -734,18 +734,70 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
   rota (precisa de 6 profissionais ativos; já está provado na sonda 2 da `0006` e é item da T-043).
 
 ### T-041 — O botão "Chamar no WhatsApp", a revelação do número e o convite, no perfil público
-- **Estado:** ⬜ **fila de 28/10, item 3** (construída contra o `vetria-e2e`; **liga em produção só com a T-039 em produção e o Turnstile no clique**, meta ter 04/11)
+- **Estado:** 🔵 **escrita em 28/10 na branch `t-041-botao-whatsapp` (a partir da `t-040-api-contato`), sem push, aguardando aprovação do diff (🟡).** Produção continua "abre em breve". **Liga em produção só com a T-039 em produção e o Turnstile no clique**, meta ter 04/11
 - **Fase / Semana:** F4 / S7 · **Capacidade:** **E5** · **Nível:** 🟡 — `components/` · **Dono:** vetria-ui
 - **Depende de:** **T-040**
 - **Por quê:** é o que o responsável toca. DoD da F4 item 4, primeira metade
 - **Feito quando:**
-  - [ ] `BlocoDeContato` (`components/publico/Perfil.tsx`) com o fluxo do desenho §1: botão → POST → número formatado + "Abrir no WhatsApp" (`wa.me/55…?text=` com D7) + "Copiar número" → convite com "Agora não"
-  - [ ] Os quatro estados de erro com texto honesto; `sem_whatsapp` não desenha botão (D9)
-  - [ ] A linha de transparência sob o botão (D2)
-  - [ ] `CONTATO_PELO_SITE_ABERTO = true` **no mesmo commit que liga a rota em produção, e só então**
-  - [ ] O HTML inicial continua **sem** número (o teste de hoje continua verde). Toque com teclado e leitor de tela; 360 px; sem travessão
+  - [x] `BlocoDeContato` (`components/publico/Perfil.tsx`) com o fluxo do desenho §1: botão → POST → número formatado + "Abrir no WhatsApp" (`wa.me/55…?text=` com D7) + "Copiar número" → convite com "Agora não" _(escrito; a prova em tela é o `contato-botao.spec.ts`, que liga depois da 0006)_
+  - [x] Os quatro estados de erro com texto honesto (mais o `verificacao_recusada` da T-040 e a falta de rede); `sem_whatsapp` não desenha botão (D9) _(o botão sai depois da resposta: a página pública não sabe, sem o clique, se há número, ver Resultado)_
+  - [x] A linha de transparência sob o botão (D2)
+  - [ ] `CONTATO_PELO_SITE_ABERTO = true` **no mesmo commit que liga a rota em produção, e só então** _(de propósito NÃO feito: continua `false`)_
+  - [x] O HTML inicial continua **sem** número (o teste de hoje continua verde). Toque com teclado e leitor de tela; 360 px; sem travessão _(escrito no teste; falta rodar, ver Resultado)_
 - **Não fazer:** botão no cartão da busca (D8). Abrir o WhatsApp sozinho depois do `await`. Pedir nome ou conta antes do número.
-- **Resultado:** _(a preencher)_
+- **Resultado:** 🔵 **28/10/2026, escrita; lint e checagem de tipos limpos; `npm run build` NÃO rodou (disco cheio, ver abaixo). Nada em produção, nada em banco.**
+  Arquivos: `components/publico/ContatoPeloWhatsapp.tsx` (novo, cliente), `components/publico/Perfil.tsx` (`BlocoDeContato`
+  e a prop `contato`), `app/veterinario/[slug]/page.tsx` e `app/estabelecimento/[slug]/page.tsx` (passam `contato`, que é
+  só tipo + slug), `tests/e2e/contato-botao.spec.ts` (novo), `tests/e2e/busca-com-dados.spec.ts` (o "abre em breve" vira
+  condicional à porta).
+
+  **Quem decide se o botão existe:** a mesma pergunta da rota, `estadoDaPorta()` de `lib/contato/porta.ts`, lida no
+  servidor a cada pedido (a página já é `force-dynamic`). Porta fechada: o bloco de sempre, *"O contato pelo WhatsApp abre
+  em breve."*, sem botão. **Produção fica igual a hoje**: a porta só abre lá com `CONTATO_PELO_SITE_ABERTO` **e**
+  `TURNSTILE_NO_CONTATO` em `true`. No teste, abre com `CONTATO_ABERTO_PARA_TESTE=1` contra o `vetria-e2e`, e o botão
+  aparece junto com a rota, sem uma segunda chave para esquecer. Botão nunca aparece com a rota fechada.
+
+  **Os estados:** inicial (frase curta, botão verde "Chamar no WhatsApp", linha do D2 embaixo); enviando (botão
+  desabilitado com `aria-busy`, girando, e "Buscando o número." anunciado); revelado (número formatado em destaque, com
+  foco nele; "Abrir no WhatsApp" em outra aba com `rel="noopener noreferrer"` e a mensagem do D7; "Copiar número" com
+  retorno "Número copiado" ou o pedido para copiar à mão; a frase dizendo que a mensagem vai escrita; o convite *"Quer
+  acompanhar seus contatos?"* com "Criar minha conta" (`/cadastro/responsavel`) e "Agora não"); `sem_whatsapp` (o botão
+  sai, *"Este veterinário ainda não informou um WhatsApp para contato."*); `nao_encontrado` (*"Este perfil não está mais
+  disponível."* e link para a busca, sem botão); `muitas_tentativas` (*"Você abriu muitos contatos em pouco tempo. Espere
+  alguns minutos e tente de novo."*, botão volta); `verificacao_recusada` (o botão vira "Recarregar a página");
+  `indisponivel`, resposta fora do formato e falta de rede (*"Não conseguimos mostrar o número agora. A falha foi do nosso
+  lado."*, botão volta). Nada abre sozinho depois do `await`. Uma região `aria-live` fixa anuncia o envio e o número;
+  as falhas saem em `role="alert"`.
+
+  **Decisões pequenas tomadas aqui (para o Elber confirmar ou desfazer):**
+  1. **Prévia do dono no painel:** com a porta aberta, o botão aparece esmaecido (tracejado) e não faz nada, com a frase
+     *"Na prévia ele não funciona, para não contar um contato seu."* Com a porta fechada, o "abre em breve" de hoje.
+  2. **Convite só sem sessão:** quem tem cookie de sessão do Supabase no navegador não vê "Crie sua conta" (seria
+     convidar quem já tem conta). É só a presença do cookie, sem chamada ao Supabase na página.
+  3. **`sem_whatsapp` só depois do toque:** o card pede "não desenha botão" (D9), mas a página pública lê como `anon` e
+     não alcança `perfil_privado`; saber antes do toque exigiria expor um "tem WhatsApp" no perfil público (mudança de
+     banco ou de matriz, fora deste card). Com a T-046 (WhatsApp obrigatório), o caso fica raro.
+  4. **Turnstile:** `pedirTokenDoTurnstile()` em `ContatoPeloWhatsapp.tsx` é o ponto: devolve nulo e não carrega script
+     nenhum. Quando a T-031 existir, o token entra no campo `turnstile` do corpo, que já é montado ali.
+
+  **⚠️ A origem da busca ainda chega nula.** O botão lê `cidade` e `especialidade` do endereço do perfil (só no formato de
+  slug), mas o cartão da busca (`lib/busca/buscar.ts`, `href: /veterinario/<slug>`) não leva esses parâmetros. Para a
+  métrica *"veio de uma busca por Clínica geral em Goiânia"* (desenho §5) é preciso o cartão acrescentar
+  `?cidade=<slug>&especialidade=<slug>` quando a busca tiver esses filtros. É `lib/` (🟡, backend) e tem efeito de
+  indexação (o perfil ganha endereços com parâmetro; pedir `canonical` junto na T-045). **Fica para a T-042 ou T-043.**
+
+  **Teste (`tests/e2e/contato-botao.spec.ts`), registrado só com `CONTATO_ABERTO_PARA_TESTE=1` e rodando só com
+  `E2E_ALVO=teste`** (mesmo padrão da parte B do `contato-rota.spec.ts`), em 360 px: HTML sem o número antes e depois;
+  sem rolagem lateral; toque pelo teclado (Enter) revela o número formatado com foco nele; `href`, `target` e `rel` do
+  "Abrir no WhatsApp" exatos; nenhuma aba abre sozinha; a linha nasce em `contatos`; convite e "Agora não"; perfil sem
+  WhatsApp tira o botão e não grava; 429, 403, 503, resposta fora do formato, 404 e falta de rede pela rota interceptada;
+  botão desabilitado durante o envio e um toque a mais não manda segundo pedido. **Não rodou:** depende da 0006 no
+  `vetria-e2e` (sessão A, 29/10).
+
+  **Prova local (28/10):** `npm run lint` limpo (eslint no repositório inteiro); `tsc --noEmit` limpo. **`npm run build`
+  não rodou:** o disco C: está com ~150 MB livres, a instalação das dependências nesta cópia falhou com `ENOSPC` e um build
+  completo não cabe. **Antes do push, o Elber (ou o próximo agente) roda `npm run build` com espaço livre.** Também não
+  houve conferência visual no navegador pelo mesmo motivo.
 
 ### T-042 — "Contatos recebidos" do profissional, "Seus contatos" do responsável e o vínculo na criação de conta
 - **Estado:** ⬜ **semana 2 (04/11 a 10/11)**, primeira do backend depois do contato no ar. ⚠️ Lembrete da T-039: pedir colunas pelo nome (`select=*` dá 42501) e chamar o vínculo no cadastro, não em login qualquer
