@@ -911,7 +911,7 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
   - [x] FAQ da Ajuda sem "agendamento direto chega em breve"
   - [x] `tests/e2e/portao-status.spec.ts`: agenda e avaliações seguem na lista do portão (a rota existe e tem que barrar quem espera validação), com a razão escrita. Nenhum teste procurava as abas pelo nome
 - **Não fazer:** apagar as rotas (link antigo e o portão), mexer na matriz, renomear o "Histórico" do menu do responsável (a PR #19 mexe no mesmo bloco; o nome muda na T-042)
-- **Resultado:** lint e build verdes. Quem abre o painel do vet ou do estabelecimento vê um menu menor (Dashboard, perfil, Contatos recebidos; Meu plano, Configurações, Ajuda) e um painel inicial sem números de mentira, com um único cartão de contatos esmaecido. Digitar `/agenda`, `/avaliacoes`, `/equipe` ou `/admin/moderacao` leva de volta ao painel. ⚠️ A PR #19 remove a mesma linha "Avaliações" de `app/app/layout.tsx`: se der conflito, fica a versão da #19. Ficou para depois (fora deste card): o texto "Em breve seu perfil entra na busca pública" no painel inicial, que já está desatualizado com a busca no ar
+- **Resultado:** lint e build verdes. Quem abre o painel do vet ou do estabelecimento vê um menu menor (Dashboard, perfil, Contatos recebidos; Meu plano, Configurações, Ajuda) e um painel inicial sem números de mentira, com um único cartão de contatos esmaecido. Digitar `/agenda`, `/avaliacoes`, `/equipe` ou `/admin/moderacao` leva de volta ao painel. A PR #19 removeu a mesma linha "Avaliações" de `app/app/layout.tsx`; o merge entrou limpo. Ficou para depois (fora deste card): o texto "Em breve seu perfil entra na busca pública" no painel inicial, que já está desatualizado com a busca no ar
 
 ---
 
