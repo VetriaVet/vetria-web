@@ -6,6 +6,9 @@ import AppShell, { type ShellSection } from "@/components/app/AppShell";
 // só as telas de painel ganham a sidebar; o onboarding (fora do grupo) fica
 // sem sidebar, evitando sidebar dupla (DL-025). A URL não muda (`/app/veterinario`...).
 
+// T-055: Agenda e Avaliações saíram do menu. As duas estão fora da entrega de
+// 25/11 (docs/00-ESCOPO.md) e o menu não oferece o que não existe. As rotas
+// continuam de pé, atrás do mesmo portão, e só devolvem para o painel.
 const SECTIONS: ShellSection[] = [
   {
     title: "Principal",
@@ -13,8 +16,6 @@ const SECTIONS: ShellSection[] = [
       { label: "Dashboard", href: "/app/veterinario", icon: "dashboard" },
       { label: "Meu perfil", href: "/app/veterinario/perfil", icon: "user" },
       { label: "Contatos recebidos", href: "/app/veterinario/contatos", icon: "message" },
-      { label: "Agenda", href: "/app/veterinario/agenda", icon: "calendar" },
-      { label: "Avaliações", href: "/app/veterinario/avaliacoes", icon: "star" },
     ],
   },
   {

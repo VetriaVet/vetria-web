@@ -898,6 +898,21 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
 - **Não fazer:** checkout, botão "Escolher plano" que sugira compra, reescrever a copy aprovada além do que o DL-074 item 2 decidiu
 - **Resultado:** _(a preencher)_
 
+### T-055: Os painéis param de oferecer agenda, avaliações e equipe (continuação da T-054)
+- **Estado:** ✅ **concluída em 29/10** (`vetria-ui`), PR para a `main` com merge automático
+- **Fase / Semana:** F4 / semana 1 · **Capacidade:** **E3** e **E5** (o painel mostra só o que existe: perfil, contatos, plano honesto) · **Nível:** 🟡 (`components/app/cascas.tsx` e mais de 3 arquivos)
+- **Agente dono:** vetria-ui · **Origem:** pedido do `vetria-maestro` depois da T-054 (PR #21). `00-ESCOPO.md`: avaliações, agenda e equipe ficam fora dos 3 meses
+- **Feito quando:**
+  - [x] Menu do veterinário sem Agenda e Avaliações; menu do estabelecimento sem Equipe, Agenda e Avaliações; menu do responsável sem Avaliações; admin sem Moderação (menu e cartão do painel)
+  - [x] As rotas fora do menu continuam de pé e **devolvem para o painel** depois do mesmo guard de antes (`requirePainel(..., SO_ATIVO)` no vet e no estabelecimento, role no responsável e no admin). `lib/auth/status.ts`, `middleware.ts` e a matriz não mudaram
+  - [x] "Meu plano" fica no menu: já é honesto (Gratuito · beta, planos pagos em breve, sem preço nem depoimento), como o DL-074 item 2 pede para a vitrine de preço
+  - [x] `/contatos` e `/historico` ficam (T-042): sem "nome e mensagem" que o contato não guarda (D6) e sem agendamento. O histórico do responsável vira "Seus contatos", com estado vazio honesto e link para `/buscar`
+  - [x] Painel inicial do vet e do estabelecimento: saíram a busca desabilitada, os números fantasma (visualizações, avaliações, salvos, equipe), o bloco de agenda e o de equipe. Fica o cartão "Contatos recebidos" (ghost), onde a contagem da T-042 vai entrar
+  - [x] FAQ da Ajuda sem "agendamento direto chega em breve"
+  - [x] `tests/e2e/portao-status.spec.ts`: agenda e avaliações seguem na lista do portão (a rota existe e tem que barrar quem espera validação), com a razão escrita. Nenhum teste procurava as abas pelo nome
+- **Não fazer:** apagar as rotas (link antigo e o portão), mexer na matriz, renomear o "Histórico" do menu do responsável (a PR #19 mexe no mesmo bloco; o nome muda na T-042)
+- **Resultado:** lint e build verdes. Quem abre o painel do vet ou do estabelecimento vê um menu menor (Dashboard, perfil, Contatos recebidos; Meu plano, Configurações, Ajuda) e um painel inicial sem números de mentira, com um único cartão de contatos esmaecido. Digitar `/agenda`, `/avaliacoes`, `/equipe` ou `/admin/moderacao` leva de volta ao painel. A PR #19 removeu a mesma linha "Avaliações" de `app/app/layout.tsx`; o merge entrou limpo. Ficou para depois (fora deste card): o texto "Em breve seu perfil entra na busca pública" no painel inicial, que já está desatualizado com a busca no ar
+
 ---
 
 # 📋 PLANEJADA: F5 (S9-S10), card novo de 25/09/2026, adiado em 28/10

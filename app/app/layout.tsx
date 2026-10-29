@@ -22,7 +22,7 @@ const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
   // celular, dentro do menu). O logo continua indo ao painel (/app): é o
   // padrão de área logada, e a home pública devolve logado para /app de
   // qualquer jeito (app/page.tsx). "Avaliações" saiu do menu: avaliação está
-  // fora da entrega de 25/11 (a página fica, a limpeza dela é da T-054).
+  // fora da entrega de 25/11 (a rota fica e, desde a T-055, devolve para o painel).
   tutor: [
     { href: "/app/responsavel", label: "Início" },
     { href: "/buscar", label: "Buscar" },
