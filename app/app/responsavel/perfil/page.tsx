@@ -32,7 +32,7 @@ export default async function TutorPerfilPage() {
       <div>
         <h1 className="font-bold text-2xl text-titulo">Meu perfil</h1>
         <p className="text-[14px] text-corpo-texto mt-1">
-          Suas informações e os animais da sua família.
+          Seus dados de contato e como a Vetria fala com você.
         </p>
       </div>
 

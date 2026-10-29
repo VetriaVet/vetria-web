@@ -792,6 +792,24 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
 
 # 📋 PLANEJADA: semanas 2 a 4 (cards novos de 28/10/2026)
 
+### T-054: O site para de prometer o que não existe (QA-005, QA-009, QA-010, QA-011)
+- **Estado:** ✅ **concluída em 29/10** (`vetria-ui`), PR para a `main` com merge automático
+- **Fase / Semana:** F4 / semana 1 · **Capacidade:** **E4** e **E5** (a home e os cadastros vendem só a busca e o contato que existem) · **Nível:** 🟢 copy e link · 🟡 em `components/publico/CascaPublica.tsx`
+- **Agente dono:** vetria-ui · **Origem:** `docs/relatorios/QA-2026-10-28.md`
+- **Feito quando:**
+  - [x] Home sem agenda, avaliações, valores nem "disponibilidade visível"; "News" vira "Novidade"; "Por que confiar"; "Área B2B" vira "Para profissionais"
+  - [x] Redes sociais saem do rodapé (nenhum endereço real no repo); a newsletter sem envio sai
+  - [x] Chips de categoria viram links para `/buscar` com filtro real (slug de especialidade, serviço ou forma de atendimento da 0005); o que não é filtro saiu
+  - [x] "Novos perfis" vira "Perfis na Vetria": até 4 perfis ativos pela mesma leitura anônima da `/buscar`, ou vazio honesto; nada de skeleton eterno
+  - [x] Cadastros sem "avaliações reais", "equipe vinculada" e "gestão centralizada"
+  - [x] `/app/responsavel/perfil` sem "animais da sua família", sem "Adicionar animal" e sem lembretes de consulta
+  - [x] Cabeçalho público mostra "Meu painel" (`/app`) para quem tem sessão
+  - [x] `/entrega-fase-2`: nomenclatura legal, título sem travessão, links reais, sem "a preencher", sem agenda e avaliações no futuro
+  - [x] Placeholder da home igual ao da `/buscar`: "Nome, especialidade ou serviço"
+- **Resultado:** home, cadastros, perfil do responsável, cabeçalho público e `/entrega-fase-2` corrigidos; lint e build verdes. **Ficou de fora, para o maestro:** as abas Agenda e Avaliações dos painéis de veterinário e estabelecimento, as páginas `/app/responsavel/historico` e `/avaliacoes`, e o "Moderação: avaliações" do admin ainda prometem o que não existe (painéis fora do pedido desta task). A vitrine da home mostra o perfil de teste da Larissa enquanto ele estiver `active` (QA-004, decisão do Elber).
+
+---
+
 ### T-048: A rodada de testes internos de segurança e QA, e a correção do que ela achar
 - **Estado:** ⬜ **auditoria começa qui 06/11** (em paralelo, só leitura) · **correções na semana 3 (11 a 17/11)**
 - **Fase / Semana:** F6 / semanas 2 e 3 · **Capacidade:** transversais **Segurança** e **Testes** (`00-ESCOPO.md` §2), sobre **E1 a E5**

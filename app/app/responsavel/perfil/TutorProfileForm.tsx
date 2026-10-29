@@ -5,9 +5,9 @@ import { Input } from "../../../../components/ui/Input";
 import { Label } from "../../../../components/ui/Label";
 import { CampoMascarado } from "@/components/ui/CampoMascarado";
 
-// Perfil do tutor — casca fiel (DL-020). Dados pessoais (email real, do login),
-// pets em empty-state (sem persistência ainda) e preferências como toggles
-// locais. "Salvar" e "Excluir conta" desabilitados até o backend (migration
+// Perfil do responsável, casca fiel (DL-020). Dados pessoais (email real, do
+// login) e preferências como toggles locais. Cadastro de animais e lembretes
+// de consulta saíram na T-054: estão fora do escopo da entrega de 25/11. "Salvar" e "Excluir conta" desabilitados até o backend (migration
 // 029/031). Sem dado fictício.
 
 export default function TutorProfileForm({
@@ -22,7 +22,6 @@ export default function TutorProfileForm({
   const [cidade, setCidade] = useState("");
   const [prefs, setPrefs] = useState({
     email: true,
-    whatsapp: true,
     dicas: false,
   });
 
@@ -75,31 +74,6 @@ export default function TutorProfileForm({
         </div>
       </Section>
 
-      {/* Meus pets */}
-      <Section title="Meus animais">
-        {/* TODO: lista real de pets (captura no onboarding + tabela própria) */}
-        <div className="text-center py-8 border border-dashed border-gray-200 rounded-xl">
-          <div className="text-4xl mb-3" aria-hidden="true">
-            🐾
-          </div>
-          <p className="font-semibold text-titulo mb-1">
-            Nenhum animal cadastrado ainda
-          </p>
-          <p className="text-[13px] text-corpo-texto leading-relaxed max-w-sm mx-auto">
-            Em breve você poderá cadastrar seus animais (espécie, idade, condições)
-            pra agilizar o atendimento com os profissionais.
-          </p>
-        </div>
-        <button
-          type="button"
-          disabled
-          className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 text-corpo-texto/60 py-3 text-sm font-medium cursor-not-allowed"
-        >
-          <PlusIcon />
-          Adicionar animal (em breve)
-        </button>
-      </Section>
-
       {/* Preferências */}
       <Section title="Preferências de comunicação">
         <div className="flex flex-col">
@@ -107,13 +81,7 @@ export default function TutorProfileForm({
             on={prefs.email}
             onClick={() => togglePref("email")}
             title="Notificações por e-mail"
-            desc="Lembretes de consultas, novidades e dicas."
-          />
-          <ToggleRow
-            on={prefs.whatsapp}
-            onClick={() => togglePref("whatsapp")}
-            title="Lembretes por WhatsApp"
-            desc="Mensagens curtas pra te lembrar de consultas."
+            desc="Avisos da sua conta e novidades da Vetria."
           />
           <ToggleRow
             on={prefs.dicas}
@@ -227,13 +195,5 @@ function ToggleRow({
         />
       </button>
     </div>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 12h14M12 5v14" />
-    </svg>
   );
 }
