@@ -18,11 +18,16 @@ import AppHeaderNav from "./AppHeaderNav";
 // inalcançável e ensinava errado a quem lesse. O master continua vendo o link
 // de Admin: ele cai na chave `admin`, que é o role dele de verdade.
 const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
+  // T-052 (QA-002): "Buscar" é o segundo item, visível em toda largura (no
+  // celular, dentro do menu). O logo continua indo ao painel (/app): é o
+  // padrão de área logada, e a home pública devolve logado para /app de
+  // qualquer jeito (app/page.tsx). "Avaliações" saiu do menu: avaliação está
+  // fora da entrega de 25/11 (a página fica, a limpeza dela é da T-054).
   tutor: [
     { href: "/app/responsavel", label: "Início" },
+    { href: "/buscar", label: "Buscar" },
     { href: "/app/responsavel/perfil", label: "Perfil" },
     { href: "/app/responsavel/historico", label: "Histórico" },
-    { href: "/app/responsavel/avaliacoes", label: "Avaliações" },
   ],
   admin: [{ href: "/admin", label: "Admin" }],
 };

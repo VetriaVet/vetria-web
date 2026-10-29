@@ -838,6 +838,21 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
 
 # 📋 PLANEJADA: semanas 2 a 4 (cards novos de 28/10/2026)
 
+### T-052: O responsável logado chega à busca pelo painel (QA-002)
+- **Estado:** 🟡 **entregue na branch `t-052-busca-no-painel-do-responsavel`, aguardando revisão do diff** (29/10)
+- **Fase / Semana:** F4 / S8 · **Capacidade:** **E5** (o responsável chega ao perfil público e ao contato pela busca) · **Nível:** 🟡 (`app/app/layout.tsx` é o chrome de `/app`) · **Agente dono:** vetria-ui
+- **Depende de:** nada (a `/buscar` já está no ar, T-037)
+- **Por quê:** QA-002 (`docs/relatorios/QA-2026-10-28.md`, branch `t-039-migration-0006`): logado como responsável, o campo de busca do painel estava `disabled`, o cartão "Buscar profissional" não clicava, o menu não tinha "Buscar" e o logo voltava ao painel. Quem cria conta ficava fora do fluxo principal do produto
+- **Feito quando:**
+  - [x] O campo do painel é um formulário GET para `/buscar` com `q` e `cidade`, os mesmos campos da home (contrato de `lib/busca/pedido.ts`), com `<label>`, foco visível e funcionando sem JavaScript
+  - [x] O cartão "Buscar profissional" é link para `/buscar`; os atalhos do painel só apontam para rotas que existem
+  - [x] "Buscar" no menu do responsável (desktop e menu do celular)
+  - [x] Destino do logo decidido e explicado no código
+  - [x] O painel para de prometer agenda, avaliações e cadastro de animais
+  - [x] E2E que, logado com a conta fixa de responsável, chega a `/buscar` pelo campo, pelo cartão e pelo menu; roda só com `E2E_ALVO=teste`
+- **Não fazer:** mexer na home, nas outras personas ou no cabeçalho público (`components/publico/CascaPublica.tsx`); a limpeza geral de promessas é a T-054; "Histórico" vira "Seus contatos" na T-042
+- **Resultado:** painel do responsável reescrito (`app/app/responsavel/page.tsx`): busca com termo e cidade que envia para `/buscar`; dois atalhos clicáveis ("Buscar profissional" para `/buscar`, "Meu perfil" para `/app/responsavel/perfil`); saíram os cartões "Meus agendamentos", "Minhas avaliações", "Próximas consultas" (com "é só buscar um profissional e agendar") e "Meus animais" (cadastro de animais e agenda estão fora de 25/11); o texto do topo passou a dizer só o que existe. Menu (`app/app/layout.tsx`): Início, Buscar, Perfil, Histórico; "Avaliações" saiu do menu (a página continua, fica para a T-054). Logo segue indo a `/app`: é o padrão de área logada, "Buscar" fica visível ao lado, e a home pública devolve quem está logado para `/app` de qualquer jeito (`app/page.tsx`), então apontar o logo para `/` só daria um salto a mais. Teste: `tests/e2e/painel-responsavel-busca.spec.ts` (3 casos, pula sem `E2E_ALVO=teste`). Lint e build verdes; o E2E não rodou nesta máquina (o `.env.local` aponta para produção). **Descoberto:** em `/buscar`, o cabeçalho público mostra "Entrar" mesmo para quem está logado e não tem caminho de volta ao painel (fica para a T-054 ou card próprio); `/app/responsavel/perfil` ainda diz "os animais da sua família" e tem "Adicionar animal (em breve)"; `/app/responsavel/historico` ainda promete agendamentos (T-042)
+
 ### T-048: A rodada de testes internos de segurança e QA, e a correção do que ela achar
 - **Estado:** ⬜ **auditoria começa qui 06/11** (em paralelo, só leitura) · **correções na semana 3 (11 a 17/11)**
 - **Fase / Semana:** F6 / semanas 2 e 3 · **Capacidade:** transversais **Segurança** e **Testes** (`00-ESCOPO.md` §2), sobre **E1 a E5**
