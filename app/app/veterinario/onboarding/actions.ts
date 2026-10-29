@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normalizarWhatsapp } from "@/lib/contato/whatsapp";
+import { ONBOARDING } from "@/lib/auth/status";
 import {
   ESPECIALIDADES,
   EXPERIENCIA,
@@ -11,16 +12,20 @@ import {
   TITULOS,
   UFS,
   normalizarCrmv,
+  type PassoDoRascunho,
   type ResultadoOnboarding,
+  type ResultadoPasso,
   type VetOnboardingPayload,
 } from "./campos";
 
 // T-006 — o onboarding do veterinário passa a persistir.
+// T-051 — e passa a persistir A CADA PASSO: `salvarPassoVet` grava o rascunho
+// em cada "Continuar"; `salvarOnboardingVet` continua sendo a conclusão.
 //
 // Padrão da casa (DL-012): Server Component busca → Server Action muta →
 // Client Form interage.
 //
-// O que esta Action faz, na ordem, e por quê:
+// O que a conclusão faz, na ordem, e por quê:
 //   1. confere sessão e role no SERVIDOR (a matriz §3 não é negociável)
 //   2. valida e normaliza o payload (o cliente não é fonte de verdade)
 //   3. grava o que é PÚBLICO em `vet_profiles`
@@ -97,13 +102,24 @@ function mensagemDoBanco(
   );
 }
 
-export async function salvarOnboardingVet(
-  entrada: VetOnboardingPayload
-): Promise<ResultadoOnboarding | void> {
+// -------------------------------------------------------------------------
+// 1. QUEM GRAVA (sessão, role e status, no SERVIDOR)
+// -------------------------------------------------------------------------
+// Serve às duas Actions deste arquivo. A lista de status muda entre elas, e é
+// a única coisa que muda.
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+type QuemGrava =
+  | { ok: true; supabase: Supabase; userId: string; perfil: PerfilAtual }
+  | ResultadoOnboarding;
+
+async function conferirQuemGrava(
+  podemGravar: readonly string[]
+): Promise<QuemGrava> {
   const supabase = await createClient();
 
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
+  // DL-016: redirect() fora de try/catch, aqui e em todo o caminho até a Action.
   if (!user) redirect("/login");
 
   const { data: perfil, error: erroPerfil } = await supabase
@@ -133,13 +149,7 @@ export async function salvarOnboardingVet(
   // NÃO refila e NÃO escreve em `audit_logs`. Se o master reativasse a conta
   // depois, o dado trocado no escuro entrava na busca sem revalidação e sem
   // trilha nenhuma.
-  //
-  // `active` é aceito aqui de propósito, e é a única diferença em relação ao
-  // guard da página: a Action continua alcançável por aba velha, e é o passo 6
-  // (a releitura de status) que conta a verdade pra quem acabou de se derrubar
-  // da busca sozinho. Quem não está na lista não grava.
-  const PODEM_GRAVAR = ["incomplete", "pending_validation", "active"];
-  if (!PODEM_GRAVAR.includes(perfil.status)) {
+  if (!podemGravar.includes(perfil.status)) {
     console.warn("[vet/onboarding] escrita recusada por status", {
       userId: user.id,
       status: perfil.status,
@@ -149,28 +159,49 @@ export async function salvarOnboardingVet(
         "Sua conta está suspensa e não aceita alterações no perfil. Fale com a gente para entender o motivo."
       );
     }
+    if (perfil.status === "active") {
+      return erro(
+        "Seu perfil já foi aprovado, e esta tela é a do primeiro cadastro. Recarregue a página para ir ao seu painel."
+      );
+    }
     return erro(
       "Sua conta está num estado que não permite editar o perfil agora. Fale com a gente."
     );
   }
 
-  // -------------------------------------------------------------------------
-  // 2. VALIDAÇÃO E NORMALIZAÇÃO
-  // -------------------------------------------------------------------------
+  return { ok: true, supabase, userId: user.id, perfil };
+}
+
+// -------------------------------------------------------------------------
+// 2. VALIDAÇÃO E NORMALIZAÇÃO, UM PASSO POR VEZ
+// -------------------------------------------------------------------------
+// T-051 — a validação saiu do corpo da Action e virou uma função por passo,
+// porque agora são DUAS Actions validando: o rascunho de cada "Continuar"
+// (`salvarPassoVet`) e a conclusão (`salvarOnboardingVet`). As duas chamam as
+// MESMAS funções: uma regra que existe em duas cópias diverge, e a cópia que
+// diverge é sempre a que ninguém está olhando.
+//
+// Cada função devolve só as colunas DO SEU PASSO, já normalizadas. É isso que
+// deixa o rascunho gravar só o que a pessoa acabou de preencher, e não o
+// formulário inteiro por cima de outra aba (QAF-002).
+
+type Validado<T> = { ok: true; valor: T } | ResultadoOnboarding;
+
+type ColunasPasso1 = {
+  nome_exibicao: string;
+  titulo: string | null;
+  crmv: string;
+  crmv_uf: string;
+  especialidades: string[];
+  experiencia: string | null;
+};
+
+function validarPasso1(entrada: VetOnboardingPayload): Validado<ColunasPasso1> {
   const nome = limpar(entrada?.nome);
   const crmvBruto = limpar(entrada?.crmv);
   const crmvUf = limpar(entrada?.crmvUf).toUpperCase();
-  const cidade = limpar(entrada?.cidade);
-  const estado = limpar(entrada?.estado).toUpperCase();
-  const bairro = limpar(entrada?.bairro);
-  const bio = typeof entrada?.bio === "string" ? entrada.bio.trim() : "";
-  const whatsappBruto = limpar(entrada?.whatsapp);
   const titulo = limpar(entrada?.titulo);
   const experiencia = limpar(entrada?.experiencia);
-
-  const atendePresencial = entrada?.atendePresencial === true;
-  const atendeDomiciliar = entrada?.atendeDomiciliar === true;
-  const atendeTeleorientacao = entrada?.atendeTeleorientacao === true;
 
   // ⚠️ SEC-058 — o teto vem ANTES da normalização, e a deduplicação usa `Set`.
   // A primeira versão deduplicava com `arr.indexOf(e)` dentro do `filter`, que
@@ -204,11 +235,9 @@ export async function salvarOnboardingVet(
   // ⚠️ R-059 / T-027 — a MESMA regra do CHECK `vet_profiles_crmv_formato` da
   // `0004`, escrita uma vez em `campos.ts`. Sem ela a Action aceitava
   // "GO-0155", e depois da `0004` o banco recusaria com um 23514 sem dizer
-  // qual campo: a pessoa ouviria "não foi possível salvar" no passo 4 por um
-  // erro do passo 1.
+  // qual campo.
   const crmvNormalizado = normalizarCrmv(crmvBruto);
   if (!crmvNormalizado.ok) return erro(crmvNormalizado.motivo);
-  const crmv = crmvNormalizado.valor;
 
   if (!crmvUf) return erro("Passo 1: escolha o estado de registro do CRMV.");
   if (!(UFS as readonly string[]).includes(crmvUf))
@@ -226,6 +255,36 @@ export async function salvarOnboardingVet(
   if (foraDaLista.length > 0)
     return erro(`Passo 1: especialidade não reconhecida: ${foraDaLista[0]}.`);
 
+  return {
+    ok: true,
+    valor: {
+      nome_exibicao: nome,
+      titulo: titulo || null,
+      crmv: crmvNormalizado.valor,
+      crmv_uf: crmvUf,
+      especialidades,
+      experiencia: experiencia || null,
+    },
+  };
+}
+
+type ColunasPasso2 = {
+  cidade: string;
+  estado: string;
+  bairro: string | null;
+  atende_presencial: boolean;
+  atende_domiciliar: boolean;
+  atende_teleorientacao: boolean;
+};
+
+function validarPasso2(entrada: VetOnboardingPayload): Validado<ColunasPasso2> {
+  const cidade = limpar(entrada?.cidade);
+  const estado = limpar(entrada?.estado).toUpperCase();
+  const bairro = limpar(entrada?.bairro);
+  const atendePresencial = entrada?.atendePresencial === true;
+  const atendeDomiciliar = entrada?.atendeDomiciliar === true;
+  const atendeTeleorientacao = entrada?.atendeTeleorientacao === true;
+
   if (!cidade) return erro("Passo 2: informe a cidade em que você atende.");
   if (cidade.length > LIMITES.cidade)
     return erro(`Passo 2: o nome da cidade passa de ${LIMITES.cidade} caracteres.`);
@@ -241,14 +300,36 @@ export async function salvarOnboardingVet(
   // Não é preciosismo de formulário: `atende_presencial`, `atende_domiciliar` e
   // `atende_teleorientacao` são os filtros da busca da F4/S6. Com os três
   // falsos, o profissional preenche tudo, é aprovado por uma pessoa e não
-  // aparece em filtro nenhum, sem erro em tela nenhuma. É o sintoma da SEC-044
-  // de novo: usuário legítimo sumindo do produto sem entender por quê. Aqui dá
-  // pra impedir na entrada, e custa um clique.
+  // aparece em filtro nenhum, sem erro em tela nenhuma.
   if (!atendePresencial && !atendeDomiciliar && !atendeTeleorientacao) {
     return erro(
       "Passo 2: marque pelo menos uma forma de atendimento, presencial, domiciliar ou teleorientação. É por ela que responsáveis filtram a busca: sem nenhuma marcada, seu perfil fica fora dos resultados."
     );
   }
+
+  return {
+    ok: true,
+    valor: {
+      cidade,
+      estado,
+      bairro: bairro || null,
+      atende_presencial: atendePresencial,
+      atende_domiciliar: atendeDomiciliar,
+      atende_teleorientacao: atendeTeleorientacao,
+    },
+  };
+}
+
+type ColunasPasso3 = {
+  /** Vai para `vet_profiles` (público). */
+  bio: string | null;
+  /** Vai para `perfil_privado` (nunca público, SEC-002). */
+  whatsapp: string | null;
+};
+
+function validarPasso3(entrada: VetOnboardingPayload): Validado<ColunasPasso3> {
+  const bio = typeof entrada?.bio === "string" ? entrada.bio.trim() : "";
+  const whatsappBruto = limpar(entrada?.whatsapp);
 
   if (bio.length > LIMITES.bio)
     return erro(`Passo 3: a bio passa de ${LIMITES.bio} caracteres.`);
@@ -256,16 +337,9 @@ export async function salvarOnboardingVet(
   if (whatsappBruto.length > LIMITES.whatsapp)
     return erro(`Passo 3: o WhatsApp passa de ${LIMITES.whatsapp} caracteres.`);
 
-  // ⚠️ R-041 / SEC-062 — a normalização que faltava DESTE lado.
-  //
-  // A T-007 escreveu a normalização dentro do onboarding do estabelecimento e
-  // o veterinário ficou sem. O defeito só apareceu na prova em tela de
-  // 20/09/2026: a mesma consulta devolveu `62992653278` para o estabelecimento
-  // e `62 992653278`, COM ESPAÇO, para o veterinário. Mesmo número, mesma
-  // coluna, dois formatos, por dois caminhos que deviam ser idênticos.
-  //
-  // A função mora em `lib/contato/whatsapp.ts` e é a MESMA para os dois, de
-  // propósito: o bug nasceu de duplicação e não se conserta duplicando melhor.
+  // ⚠️ R-041 / SEC-062 — a normalização mora em `lib/contato/whatsapp.ts` e é
+  // a MESMA para vet e estabelecimento, de propósito: o bug de 20/09 (o mesmo
+  // número gravado em dois formatos) nasceu de duplicação.
   let whatsapp = "";
   if (whatsappBruto) {
     const normalizado = normalizarWhatsapp(whatsappBruto);
@@ -273,36 +347,28 @@ export async function salvarOnboardingVet(
     whatsapp = normalizado.valor;
   }
 
-  // -------------------------------------------------------------------------
-  // 3. O QUE É PÚBLICO → vet_profiles
-  // -------------------------------------------------------------------------
-  // upsert por `id`: a primeira conclusão insere, a correção depois atualiza.
-  // `slug` fica FORA do payload nos dois caminhos, de propósito.
-  //
-  // O `.select().single()` no fim não é enfeite: é o DL-011. Sem ele, uma
-  // gravação que não alcança linha nenhuma volta sem erro e a tela manda a
-  // pessoa pra fila de validação como se tivesse dado certo.
+  return { ok: true, valor: { bio: bio || null, whatsapp: whatsapp || null } };
+}
+
+// -------------------------------------------------------------------------
+// 3 e 4. A GRAVAÇÃO (público em `vet_profiles`, privado em `perfil_privado`)
+// -------------------------------------------------------------------------
+// upsert por `id`: a primeira gravação insere, as seguintes atualizam. O
+// upsert do PostgREST só escreve as colunas ENVIADAS, então gravar o passo 2
+// não apaga o passo 1, e nenhuma das duas apaga o documento da T-008.
+// `slug` fica FORA do payload, de propósito (SEC-008).
+//
+// O `.select().single()` no fim não é enfeite: é o DL-011. Sem ele, uma
+// gravação que não alcança linha nenhuma volta sem erro e a tela segue como se
+// tivesse dado certo.
+async function gravarPublico(
+  supabase: Supabase,
+  userId: string,
+  colunas: Partial<ColunasPasso1 & ColunasPasso2 & { bio: string | null }>
+): Promise<ResultadoOnboarding | null> {
   const { data: linhaVet, error: erroVet } = await supabase
     .from("vet_profiles")
-    .upsert(
-      {
-        id: user.id,
-        nome_exibicao: nome,
-        titulo: titulo || null,
-        crmv,
-        crmv_uf: crmvUf,
-        especialidades,
-        experiencia: experiencia || null,
-        bio: bio || null,
-        cidade,
-        estado,
-        bairro: bairro || null,
-        atende_presencial: atendePresencial,
-        atende_domiciliar: atendeDomiciliar,
-        atende_teleorientacao: atendeTeleorientacao,
-      },
-      { onConflict: "id" }
-    )
+    .upsert({ id: userId, ...colunas }, { onConflict: "id" })
     .select("id")
     .single<{ id: string }>();
 
@@ -312,25 +378,22 @@ export async function salvarOnboardingVet(
       "Seus dados profissionais não chegaram ao banco. Tente de novo; se continuar, fale com a gente antes de sair desta tela."
     );
   }
+  return null;
+}
 
-  // -------------------------------------------------------------------------
-  // 4. O QUE É PRIVADO → perfil_privado
-  // -------------------------------------------------------------------------
-  // ⚠️ Duas colunas e mais nada. Telefone em tabela de leitura pública entrega
-  // a base inteira pela API anônima (SEC-002), e qualquer campo a mais aqui
-  // esbarra na guarda da SEC-044 ou no CHECK all-or-nothing do documento.
-  // O formulário do vet só coleta WhatsApp hoje: `telefone` e `email_contato`
-  // não têm campo em tela e por isso não entram no payload (escrevê-los como
-  // nulo apagaria o que o editor de perfil da S3 vier a gravar).
+// ⚠️ Uma coluna e mais nada. Telefone em tabela de leitura pública entrega a
+// base inteira pela API anônima (SEC-002), e qualquer campo a mais aqui
+// esbarra na guarda da SEC-044 ou no CHECK all-or-nothing do documento.
+// `telefone` e `email_contato` não têm campo em tela e por isso não entram no
+// payload (escrevê-los como nulo apagaria o que o editor de perfil gravar).
+async function gravarPrivado(
+  supabase: Supabase,
+  userId: string,
+  whatsapp: string | null
+): Promise<ResultadoOnboarding | null> {
   const { data: linhaPrivada, error: erroPrivado } = await supabase
     .from("perfil_privado")
-    .upsert(
-      {
-        id: user.id,
-        whatsapp: whatsapp || null,
-      },
-      { onConflict: "id" }
-    )
+    .upsert({ id: userId, whatsapp }, { onConflict: "id" })
     .select("id")
     .single<{ id: string }>();
 
@@ -340,6 +403,99 @@ export async function salvarOnboardingVet(
       "Seu contato não chegou ao banco. Tente de novo; se continuar, fale com a gente antes de sair desta tela."
     );
   }
+  return null;
+}
+
+// -------------------------------------------------------------------------
+// O RASCUNHO DE CADA "CONTINUAR" (T-051 / QA-001, causa do R-072)
+// -------------------------------------------------------------------------
+// Até a T-051 nada era gravado antes do passo 4: fechar a aba, recarregar ou
+// deixar a sessão expirar apagava os passos 1 a 3, enquanto a barra lateral
+// prometia "pausar e voltar". Agora cada "Continuar" chama esta Action com o
+// número do passo, e ela:
+//   · confere sessão, role e status, como a conclusão
+//   · valida SÓ o passo pedido (com as mesmas funções da conclusão)
+//   · grava SÓ as colunas daquele passo
+//   · NÃO chama `concluir_onboarding_profissional()` e NÃO escreve status.
+//     O status continua `incomplete` até o "Concluir cadastro" (matriz §4 e
+//     `lib/auth/status.ts`, sem mudança)
+//   · devolve `{ ok: true }` em vez de redirecionar: o próximo passo é decisão
+//     da tela
+//
+// O portão de status é `ONBOARDING` (`lib/auth/status.ts`): `incomplete` e
+// `pending_validation`, os mesmos da página. `active` fica de fora, ao
+// contrário da conclusão: gravar CRMV ou nome de um perfil aprovado a cada
+// clique o tiraria da busca no meio do caminho, e esta tela não é a do editor.
+//
+// ⚠️ Sem migration: todas as colunas tocadas aqui são anuláveis e os CHECKs
+// da `0004` aceitam nulo, então uma linha com só o passo 1 é válida no banco.
+export async function salvarPassoVet(
+  entrada: VetOnboardingPayload,
+  passo: PassoDoRascunho
+): Promise<ResultadoPasso> {
+  if (passo !== 1 && passo !== 2 && passo !== 3) {
+    return erro("Não entendemos qual passo salvar. Recarregue a página e tente de novo.");
+  }
+
+  const quem = await conferirQuemGrava(ONBOARDING);
+  if (!quem.ok) return quem;
+  const { supabase, userId } = quem;
+
+  if (passo === 1) {
+    const v = validarPasso1(entrada);
+    if (!v.ok) return v;
+    const falha = await gravarPublico(supabase, userId, v.valor);
+    if (falha) return falha;
+  } else if (passo === 2) {
+    const v = validarPasso2(entrada);
+    if (!v.ok) return v;
+    const falha = await gravarPublico(supabase, userId, v.valor);
+    if (falha) return falha;
+  } else {
+    const v = validarPasso3(entrada);
+    if (!v.ok) return v;
+    const falhaPublico = await gravarPublico(supabase, userId, { bio: v.valor.bio });
+    if (falhaPublico) return falhaPublico;
+    const falhaPrivado = await gravarPrivado(supabase, userId, v.valor.whatsapp);
+    if (falhaPrivado) return falhaPrivado;
+  }
+
+  console.log("[vet/onboarding] rascunho salvo", { userId, passo });
+  return { ok: true };
+}
+
+// -------------------------------------------------------------------------
+// A CONCLUSÃO (passo 4)
+// -------------------------------------------------------------------------
+export async function salvarOnboardingVet(
+  entrada: VetOnboardingPayload
+): Promise<ResultadoOnboarding | void> {
+  // `active` é aceito aqui de propósito, e é a única diferença em relação ao
+  // guard da página: a Action continua alcançável por aba velha, e é o passo 6
+  // (a releitura de status) que conta a verdade pra quem acabou de se derrubar
+  // da busca sozinho. Quem não está na lista não grava.
+  const quem = await conferirQuemGrava(["incomplete", "pending_validation", "active"]);
+  if (!quem.ok) return quem;
+  const { supabase, perfil } = quem;
+  const user = { id: quem.userId };
+
+  const p1 = validarPasso1(entrada);
+  if (!p1.ok) return p1;
+  const p2 = validarPasso2(entrada);
+  if (!p2.ok) return p2;
+  const p3 = validarPasso3(entrada);
+  if (!p3.ok) return p3;
+
+  const falhaPublico = await gravarPublico(supabase, user.id, {
+    ...p1.valor,
+    ...p2.valor,
+    bio: p3.valor.bio,
+  });
+  if (falhaPublico) return falhaPublico;
+
+  const falhaPrivado = await gravarPrivado(supabase, user.id, p3.valor.whatsapp);
+  if (falhaPrivado) return falhaPrivado;
+
 
   // -------------------------------------------------------------------------
   // 5. A FILA DE VALIDAÇÃO

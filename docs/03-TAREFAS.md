@@ -82,6 +82,52 @@
 
 **Nada em execução em 28/10.** A primeira da fila é a **T-044**.
 
+# ✅ FEITA EM 29/10, aguardando prova no `vetria-e2e`
+
+### T-051 — O onboarding salva cada passo no "Continuar" e reabre onde a pessoa parou
+- **Estado:** ✅ código pronto e commitado na branch `t-051-onboarding-salva-cada-passo` (sem push) · ⏳ **prova no `vetria-e2e` pendente** (os testes novos só rodam com `E2E_ALVO=teste`)
+- **Fase / Semana:** F6 / semana 1 (achado da varredura de QA de 28/10, antes da T-048)
+- **Capacidade:** **E2** — *"o que o profissional digita no onboarding persiste e reaparece"*
+- **Nível:** 🟡 — Server Actions do onboarding, `components/` de formulário e helpers de teste. **Sem migration**
+- **Agente dono:** vetria-backend · **conferência:** vetria-qa (prova em tela) e vetria-seguranca (as duas Actions novas)
+- **Depende de:** nada
+- **Por quê:** QA-001 (🔴, causa do R-072). A tela dizia "Você pode pausar e voltar quando quiser" e nada era salvo antes do passo 4; só o documento ia ao banco na hora. F5, fechar a aba, "Voltar" do navegador ou sessão expirada apagavam os passos 1 a 3. Junto, QA-013: "Continuar" deixava passar campo obrigatório vazio e o erro só aparecia no fim
+- **Feito quando:**
+  - [x] Cada "Continuar" grava o passo atual no servidor, só as colunas daquele passo, nas tabelas que já existem (`vet_profiles`, `clinic_profiles`, `perfil_privado`), respeitando os CHECKs da `0004` e a matriz
+  - [x] Ao reabrir, o formulário vem com o que foi salvo e abre no primeiro passo incompleto (revisão e reprovado abrem no passo 1)
+  - [x] O status continua `incomplete` até o "Concluir cadastro"; só ele chama a RPC que leva a `pending_validation` (`lib/auth/status.ts` e matriz sem mudança)
+  - [x] "Continuar" não passa campo obrigatório vazio do passo, com o motivo em português no rodapé; o servidor valida o mesmo passo de novo
+  - [x] E2E: "preencher passo 1 e 2, recarregar, os dados continuam lá", nas duas personas, com conta nova (`E2E_ALVO=teste`)
+  - [ ] Suíte verde no `vetria-e2e` (pendente: não roda contra produção, e o `.env.local` desta máquina aponta para produção)
+- **Não fazer:** migration (coluna de "último passo" ou tabela de rascunho); WhatsApp obrigatório (é a T-046); aviso ao sair da página; mudar a matriz ou o portão de status
+- **Resultado:**
+
+  **HANDOFF — vetria-backend — T-051 — 29/10/2026**
+
+  **Fiz:**
+  - `app/app/veterinario/onboarding/actions.ts`: a validação virou uma função por passo (`validarPasso1/2/3`), usada pelas duas Actions. Nova `salvarPassoVet(entrada, passo)`: confere sessão, role `vet` e status pela lista `ONBOARDING` de `lib/auth/status.ts` (`incomplete`, `pending_validation`), valida só o passo, grava só as colunas dele, nunca chama `concluir_onboarding_profissional()`, nunca redireciona no sucesso. `salvarOnboardingVet` (conclusão) igual em comportamento, agora montada com as mesmas funções
+  - `app/app/estabelecimento/onboarding/actions.ts`: o mesmo, com `salvarPassoClinic`. Passo 1 grava `nome_fantasia` em `clinic_profiles` e CNPJ, razão social e responsável técnico em `perfil_privado`; passo 2 só `clinic_profiles`; passo 3 `sobre` e `servicos` em `clinic_profiles` e WhatsApp em `perfil_privado`. Tabela sem coluna no passo não é tocada
+  - `campos.ts` (os dois): tipos `PassoDoRascunho` e `ResultadoPasso`, e `primeiroPassoIncompleto()`
+  - `page.tsx` (os dois): calcula `passoInicial` e passa `salvarPasso` ao formulário
+  - `VetOnboardingForm.tsx` e `ClinicOnboardingForm.tsx`: "Continuar" chama o rascunho e só avança com resposta ok (erro fica na tela, no mesmo passo); botão desabilitado e rodapé "Salvando..." enquanto grava; campos obrigatórios seguram o passo com o motivo; texto da barra lateral trocado para "Cada passo é salvo quando você toca em Continuar"; atributo `data-hidratado` para o E2E
+  - `tests/apoio/formulario.ts`: `abrirFormulario` não clica mais em "Continuar" para provar hidratação (escreveria) e aceita o passo esperado; `avancar` tolera a Action em voo e falha com a mensagem do servidor
+  - `tests/e2e/onboarding-vet.spec.ts`: contadores de Server Action começam depois de chegar ao passo; os testes que contornam a tela adulteram o rascunho do passo; o de cidade em branco prova a tela e o servidor; novo teste de F5 na conta fixa (só teste)
+  - `tests/e2e/fluxos-conta-nova.spec.ts`: bloco "T-051" com vet e estabelecimento em conta nova: preenche passos 1 e 2, confere o banco (status `incomplete`), F5 reabre no passo 3 com tudo lá, aba nova idem
+  
+  **Não fiz:** rodar a suíte E2E (o `.env.local` desta máquina aponta para produção; só rodei `tsc`, `eslint`, `playwright --list` e `next build` com `NEXT_PUBLIC_SUPABASE_*` fictícios, todos verdes). Aviso ao sair da página com campo não salvo (o que foi digitado no passo atual e não passou por "Continuar" ainda se perde no F5; "Voltar" dentro do formulário não grava)
+  
+  **Estado agora:** quem preenche os passos 1 a 3 e fecha a aba, recarrega ou perde a sessão volta com tudo lá, no primeiro passo que falta. O status só muda no "Concluir cadastro". Continua casca: nada novo
+  
+  **Descobri:** (1) o status do enum é `incomplete`, não "onboarding". (2) Nenhuma migration foi necessária: todas as colunas tocadas são anuláveis e todo CHECK da `0004` é `col is null or ...`. (3) O passo 3 não tem campo obrigatório e o banco não guarda "último passo visto": a reabertura trata o passo 3 como feito quando tem bio/sobre/serviços/WhatsApp ou documento; no pior caso a pessoa revê um passo opcional. (4) Em produção, o CI que roda `onboarding-vet.spec.ts` na conta fixa passa a regravar os mesmos valores a cada "Continuar" (antes, só o teste de persistência gravava)
+  
+  **Bloqueios:** a prova no `vetria-e2e` (URL e chaves do projeto de teste não estão nesta máquina)
+  
+  **Próximo passo óbvio:** rodar `E2E_ALVO=teste` com `fluxos-conta-nova.spec.ts` e `onboarding-vet.spec.ts` no CI do `vetria-e2e`; passando, fechar o R-072
+  
+  **Docs que atualizei:** `docs/03-TAREFAS.md` (este card), `docs/04-RISCOS.md` (R-072)
+  
+  **Commits:** `fix(T-051): ...` na branch `t-051-onboarding-salva-cada-passo`
+
 # ✅ ENTREGUE EM 25/09, registrado em 28/10
 
 ### T-038 — A prévia do perfil público para o próprio profissional, em `/app/*/perfil`

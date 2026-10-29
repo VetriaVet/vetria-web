@@ -11,7 +11,15 @@ import {
   destinoDeApp,
   rotaExata,
 } from "../apoio/sessao";
-import { abrirFormulario, irParaPasso } from "../apoio/formulario";
+import {
+  abrirFormulario,
+  botaoContinuar,
+  contarServerActions,
+  esperarHidratacao,
+  irParaPasso,
+  passo,
+  voltarParaPasso,
+} from "../apoio/formulario";
 import { EXIGIR, falharSeExigir } from "../apoio/pulo";
 import { alvoEhTeste, exigirAlvoDeTeste, SEM_ALVO_DE_TESTE } from "../apoio/alvo";
 import {
@@ -364,6 +372,169 @@ test.describe("item 1: cadastro novo, onboarding, documento, fila, sair e voltar
     } finally {
       await outra.fechar();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-051 / QA-001 (causa do R-072) — PAUSAR E VOLTAR, NO MEIO DO ONBOARDING
+// ---------------------------------------------------------------------------
+// O item 1 acima prova "salvar no fim e voltar", com a conta já na fila. O
+// R-072 era o outro caminho: sair NO MEIO. Até a T-051 nada era gravado antes
+// do passo 4, e o F5 no passo 3 devolvia o passo 1 vazio. Aqui a conta é nova
+// e fica `incomplete` o tempo todo: o rascunho nunca conclui.
+
+test.describe("T-051: preencher os passos 1 e 2, recarregar, e os dados continuam la", () => {
+  test("veterinario: o rascunho de cada Continuar sobrevive ao F5 e a uma aba nova", async ({
+    browser,
+    page,
+  }) => {
+    test.setTimeout(240_000);
+    const conta = await criarContaDescartavel("vet", `QA E2E Rascunho ${sufixo()}`);
+    const bairro = `Bairro rascunho ${sufixo()}`;
+
+    const sessao = await capturarSessao(browser, conta, "conta descartavel vet do rascunho");
+    await aplicarSessao(page, sessao);
+    expect(await destinoDeApp(page)).toBe(DESTINO_VET.incomplete);
+
+    await abrirFormulario(page, ROTA_ONB_VET, rotaExata(ROTA_ONB_VET));
+    await expect(page.locator("#nome")).toHaveValue(conta.nome);
+
+    // QA-013: campo obrigatório vazio segura o passo NA TELA, sem ir ao servidor.
+    const actions = contarServerActions(page);
+    await expect(botaoContinuar(page)).toBeDisabled();
+    await expect(page.getByText(/informe o número do crmv para continuar/i)).toBeVisible();
+    expect(actions(), "o Continuar desabilitado disparou Server Action").toBe(0);
+
+    // --- passo 1 e passo 2, cada um gravado no seu "Continuar" ------------
+    await page.locator("#crmv").fill("54321");
+    await page.locator("#uf").selectOption("SP");
+    await page.getByRole("button", { name: /^Felinos/ }).click();
+    await irParaPasso(page, 2);
+
+    await page.locator("#cidade").fill("Palmas");
+    await page.locator("#estado").selectOption("TO");
+    await page.locator("#bairro").fill(bairro);
+    await page.getByRole("button", { name: /^Domiciliar/ }).click();
+    await irParaPasso(page, 3);
+
+    // O banco: os dois passos gravados, e a conta continua fora da fila.
+    const s = clienteDeServico();
+    const { data: rascunho } = await s.from("vet_profiles").select("*").eq("id", conta.id).single();
+    expect(rascunho, "o Continuar nao gravou os passos 1 e 2").toMatchObject({
+      nome_exibicao: conta.nome,
+      crmv: "54321",
+      crmv_uf: "SP",
+      especialidades: ["Felinos"],
+      cidade: "Palmas",
+      estado: "TO",
+      bairro,
+      atende_domiciliar: true,
+      slug: null,
+    });
+    expect(
+      (await lerPerfil(conta.id)).status,
+      "o rascunho mudou o status: so o Concluir do passo 4 poe a conta na fila"
+    ).toBe("incomplete");
+
+    // --- F5 no passo 3 -----------------------------------------------------
+    await page.reload();
+    await esperarHidratacao(page);
+    // Reabre no primeiro passo incompleto: o 3, e não o 1 vazio.
+    await expect(passo(page, 3), "o F5 nao reabriu no primeiro passo incompleto").toBeVisible();
+    await voltarParaPasso(page, 1);
+    await expect(page.locator("#crmv")).toHaveValue("54321");
+    await expect(page.locator("#uf")).toHaveValue("SP");
+    await expect(page.getByRole("button", { name: /^Felinos/ })).toHaveAttribute("aria-pressed", "true");
+    await irParaPasso(page, 2);
+    await expect(page.locator("#cidade")).toHaveValue("Palmas");
+    await expect(page.locator("#estado")).toHaveValue("TO");
+    await expect(page.locator("#bairro")).toHaveValue(bairro);
+
+    // --- "fechar a aba": contexto novo, mesma sessão ----------------------
+    const outra = await paginaCom(browser, sessao);
+    try {
+      await abrirFormulario(outra.page, ROTA_ONB_VET, rotaExata(ROTA_ONB_VET), 3);
+      await voltarParaPasso(outra.page, 2);
+      await expect(outra.page.locator("#bairro")).toHaveValue(bairro);
+    } finally {
+      await outra.fechar();
+    }
+
+    expect((await lerPerfil(conta.id)).status).toBe("incomplete");
+  });
+
+  test("estabelecimento: o rascunho de cada Continuar sobrevive ao F5 e a uma aba nova", async ({
+    browser,
+    page,
+  }) => {
+    test.setTimeout(240_000);
+    const conta = await criarContaDescartavel("clinic", `QA E2E Estab Rascunho ${sufixo()}`);
+
+    const sessao = await capturarSessao(browser, conta, "conta descartavel clinic do rascunho");
+    await aplicarSessao(page, sessao);
+    expect(await destinoDeApp(page)).toBe(ROTA_ONB_CLINIC);
+
+    await abrirFormulario(page, ROTA_ONB_CLINIC, rotaExata(ROTA_ONB_CLINIC));
+    await expect(page.locator("#nf")).toHaveValue(conta.nome);
+
+    const actions = contarServerActions(page);
+    await expect(botaoContinuar(page)).toBeDisabled();
+    await expect(page.getByText(/informe o cnpj para continuar/i)).toBeVisible();
+    expect(actions(), "o Continuar desabilitado disparou Server Action").toBe(0);
+
+    await page.locator("#rs").fill("Razao Social Rascunho QA Ltda");
+    // CNPJ de exemplo com dígito verificador válido. Não é de ninguém.
+    await page.locator("#cnpj").fill("11222333000181");
+    await irParaPasso(page, 2);
+
+    await page.locator("#end").fill("Rua do Rascunho, 51");
+    await page.locator("#cep").fill("77001000");
+    await page.locator("#cid").fill("Palmas");
+    await page.locator("#uf").selectOption("TO");
+    await irParaPasso(page, 3);
+
+    const s = clienteDeServico();
+    const { data: clinic } = await s.from("clinic_profiles").select("*").eq("id", conta.id).single();
+    expect(clinic, "o Continuar nao gravou os passos 1 e 2").toMatchObject({
+      nome_fantasia: conta.nome,
+      endereco: "Rua do Rascunho, 51",
+      cep: "77001000",
+      cidade: "Palmas",
+      estado: "TO",
+      slug: null,
+    });
+    const { data: privado } = await s
+      .from("perfil_privado")
+      .select("cnpj, razao_social")
+      .eq("id", conta.id)
+      .single();
+    expect(privado).toMatchObject({
+      cnpj: "11222333000181",
+      razao_social: "Razao Social Rascunho QA Ltda",
+    });
+    expect((await lerPerfil(conta.id)).status).toBe("incomplete");
+
+    await page.reload();
+    await esperarHidratacao(page);
+    await expect(passo(page, 3), "o F5 nao reabriu no primeiro passo incompleto").toBeVisible();
+    await voltarParaPasso(page, 1);
+    await expect(page.locator("#nf")).toHaveValue(conta.nome);
+    await expect(page.locator("#rs")).toHaveValue("Razao Social Rascunho QA Ltda");
+    expect((await page.locator("#cnpj").inputValue()).replace(/\D/g, "")).toBe("11222333000181");
+    await irParaPasso(page, 2);
+    await expect(page.locator("#end")).toHaveValue("Rua do Rascunho, 51");
+    await expect(page.locator("#cid")).toHaveValue("Palmas");
+
+    const outra = await paginaCom(browser, sessao);
+    try {
+      await abrirFormulario(outra.page, ROTA_ONB_CLINIC, rotaExata(ROTA_ONB_CLINIC), 3);
+      await voltarParaPasso(outra.page, 2);
+      await expect(outra.page.locator("#cid")).toHaveValue("Palmas");
+    } finally {
+      await outra.fechar();
+    }
+
+    expect((await lerPerfil(conta.id)).status).toBe("incomplete");
   });
 });
 
