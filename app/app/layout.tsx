@@ -22,7 +22,6 @@ const NAV_BY_ROLE: Record<string, { href: string; label: string }[]> = {
     { href: "/app/responsavel", label: "Início" },
     { href: "/app/responsavel/perfil", label: "Perfil" },
     { href: "/app/responsavel/historico", label: "Histórico" },
-    { href: "/app/responsavel/avaliacoes", label: "Avaliações" },
   ],
   admin: [{ href: "/admin", label: "Admin" }],
 };

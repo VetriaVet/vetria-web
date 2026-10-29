@@ -3,8 +3,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import {
   MessageCircle,
-  CalendarDays,
-  Star,
   Crown,
   Lock,
   Bell,
@@ -23,7 +21,8 @@ import {
 
 // Conteúdos casca compartilhados pelos painéis vet/clínica (DL-034). Páginas
 // finas por papel só fazem o guard (requirePainel) e renderizam estes blocos.
-// Ghost onde ensina (contatos, avaliações); empty seco onde acalma (agenda).
+// Ghost onde ensina (contatos). T-055: Agenda e Avaliações saíram daqui junto
+// com as abas do menu, por estarem fora da entrega de 25/11.
 
 function PageHeader({ title, sub }: { title: string; sub: string }) {
   return (
@@ -40,45 +39,13 @@ export function ContatosCasca() {
     <div className="flex max-w-3xl flex-col gap-6">
       <PageHeader
         title="Contatos recebidos"
-        sub="Responsáveis que entraram em contato a partir do seu perfil."
+        sub="As vezes em que um responsável chamou você a partir do seu perfil na Vetria."
       />
       <EmptyState
         icon={MessageCircle}
         ghost={3}
         title="Nenhum contato ainda"
-        description="Quando um responsável falar com você pelo perfil, aparece aqui, com nome, mensagem e data. Você responde direto pelo WhatsApp ou telefone."
-      />
-    </div>
-  );
-}
-
-/* ---------------- Agenda (empty seco) ---------------- */
-export function AgendaCasca() {
-  return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title="Agenda" sub="Seus horários e agendamentos pela Vetria." />
-      <EmptyState
-        icon={CalendarDays}
-        title="A agenda chega em breve"
-        description="Você poderá definir horários de atendimento e receber agendamentos diretos pela Vetria. Por enquanto, o contato com responsáveis é pelo WhatsApp."
-      />
-    </div>
-  );
-}
-
-/* ---------------- Avaliações (ghost) ---------------- */
-export function AvaliacoesCasca() {
-  return (
-    <div className="flex max-w-3xl flex-col gap-6">
-      <PageHeader
-        title="Avaliações"
-        sub="O que os responsáveis dizem sobre o seu atendimento."
-      />
-      <EmptyState
-        icon={Star}
-        ghost={2}
-        title="Nenhuma avaliação ainda"
-        description="Depois de atender responsáveis pela Vetria, as avaliações deles aparecem aqui, com nota e comentário. Avaliações ajudam novos responsáveis a confiar em você."
+        description="Seus contatos aparecem aqui quando um responsável chamar você pelo seu perfil na Vetria, com a data e o canal usado. A conversa continua no seu WhatsApp ou telefone."
       />
     </div>
   );
@@ -233,7 +200,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Como os responsáveis entram em contato comigo?",
-    a: "Por enquanto, pelo WhatsApp ou telefone do seu perfil. Agendamento direto pela plataforma chega em breve.",
+    a: "Pelo seu perfil na Vetria: o responsável chama você no WhatsApp ou no telefone, e a conversa acontece direto entre vocês.",
   },
   {
     q: "Quanto tempo leva a validação do CRMV?",
