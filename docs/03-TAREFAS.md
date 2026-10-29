@@ -610,7 +610,7 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
 ## Os cards da S8
 
 ### T-039 — A `0006`: a função que registra o contato e devolve o número, e a leitura de `contatos` sem o `anon_id`
-- **Estado:** 🔵 **escrita, ensaiada e auditada (APROVADA em 25/09), NÃO aplicada em banco nenhum.** Mora na **PR #15** (branch `t-039-migration-0006`). **28/10:** a PR está em conflito com a `main` só neste arquivo; este card foi trazido para a `main` em 28/10, então o conflito se resolve ficando com a versão da `main` deste arquivo. Próximo passo: 🔴 aplicar no `vetria-e2e` (sessão de qua 29/10), depois produção (seg 03/11)
+- **Estado:** 🔵 **escrita, ensaiada e auditada (APROVADA em 25/09), NÃO aplicada em banco nenhum.** Mora na **PR #15** (branch `t-039-migration-0006`). **28/10:** a PR está em conflito com a `main` só neste arquivo; este card foi trazido para a `main` em 28/10, então o conflito se resolve ficando com a versão da `main` deste arquivo. **28/10, resolvido:** a branch recebeu o merge da `main` (que já tem o replanejamento e a T-044), ficando com a versão da `main` deste arquivo; SQL relido contra a matriz §3 e §6, sem mudança. Basta o push do Elber para a PR #15 ficar sem conflito. **28/10, emenda antes da sessão A:** SEC-128 e SEC-120 (c) entraram na `0006` (ver Resultado); as contagens do roteiro mudaram para **27 `true`** no select final, **7 `true`** na sonda 1 e **68 OK** na sonda 2. **28/10, auditoria da emenda APROVADA COM RESSALVAS** (`docs/relatorios/SEC-2026-10-28-0006-emenda.md`); SEC-135, SEC-136 e SEC-137 corrigidos na mesma branch. **Contagens finais do roteiro: 27 `true`** no select final, **8 `true`** na sonda 1 e **69 OK** na sonda 2. Próximo passo: 🔴 aplicar no `vetria-e2e` (sessão de qua 29/10), depois produção (seg 03/11)
 - **Fase / Semana:** F4 / S6-S7 (é o trabalho da S8, adiantado)
 - **Capacidade:** **E5** — *"CTA de WhatsApp funciona e o contato fica registrado"*
 - **Nível:** 🔴 — migration, função `SECURITY DEFINER`, grants, RLS
@@ -625,7 +625,7 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
   - [x] `vincular_contatos_do_visitante(user_id, anon_id)`, também só `service_role`, só para conta `tutor`, só linhas sem `user_id` e dos últimos 30 dias (D10) _(ensaiado)_
   - [x] **SEC-115:** trigger recusando mudança de `slug` fora do gerador e do master. **SEC-116:** `raise` quando a aprovação não achar a linha de perfil para gerar o slug _(ensaiado)_
   - [x] Índices para os limites. Pré-voo, backup, verificar e reversão no padrão da `0004`/`0005`
-  - [x] **Sondas:** `anon` e `authenticated` chamando `rpc/registrar_contato` recebem recusa; conta `pending_validation` devolve `nao_encontrado`; perfil sem WhatsApp devolve `sem_whatsapp` **e não grava**; 2º clique em 24 h não duplica; o 6º profissional em 10 min devolve `muitas_tentativas`; o profissional lendo `anon_id` recebe `42501` _(sonda 2 do verificar, 59 casos; verde no ensaio, falta rodar no `vetria-e2e` e em produção)_
+  - [x] **Sondas:** `anon` e `authenticated` chamando `rpc/registrar_contato` recebem recusa; conta `pending_validation` devolve `nao_encontrado`; perfil sem WhatsApp devolve `sem_whatsapp` **e não grava**; 2º clique em 24 h não duplica; o 6º profissional em 10 min devolve `muitas_tentativas`; o profissional lendo `anon_id` recebe `42501` _(sonda 2 do verificar, 69 casos desde a segunda emenda de 28/10; verde no ensaio, falta rodar no `vetria-e2e` e em produção)_
   - [ ] Auditoria APROVADA → `vetria-e2e` (CI verde) → produção, com o Elber
 - **Não fazer:** agendamento, avaliação ou qualquer `canal` além de `whatsapp`. Gravar IP. Tabela nova de "leads" (a `contatos` é a tabela).
 - **Resultado:** 🔵 **ESCRITA e ENSAIADA em 25/09/2026, NÃO APLICADA.** Arquivos: `supabase/migrations/0006_contato_registrado_e_slug_protegido.sql`, `supabase/prevoo-0006.sql`, `supabase/backup-antes-da-0006.sql`, `supabase/verificar-apos-0006.sql`.
@@ -640,15 +640,48 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
      1. `prevoo-0006.sql`, **uma consulta por vez**. Esperado: consulta 0 `contatos_linhas = 0` e `active_sem_perfil = 0`; consulta 1 tudo `true`/3; consulta 2 igual ao comentário dela; consulta 3 **zero linhas**; consulta 4 `active_sem_slug = 0`, `slug_fora_do_formato = 0`; consulta 5 `posso_assumir_service_role = true`. Anote aqui.
      2. `backup-antes-da-0006.sql`: query 0 anotada, queries 1 a 4 em CSV em `supabase/backups/`.
      3. Leia a §10 (reversão) da migration.
-     4. Cole a `0006` **inteira** e rode. Esperado: o select final com **26 linhas, todas `true`**. Se o pré-voo parar, a mensagem diz o quê, e nada entrou.
-     5. `verificar-apos-0006.sql`, **uma sonda por vez**: sonda 1 (6 `true`), sonda 2 (**59 OK**; ela precisa de uma conta vet, uma clinic, uma tutor e uma admin), sonda 3 (`linhas = 0`, `sem_origem_TEM_QUE_SER_0 = 0`), sonda 4 (2 OK).
+     4. Cole a `0006` **inteira** e rode. Esperado: o select final com **27 linhas, todas `true`** (eram 26 antes da emenda de 28/10). Se o pré-voo parar, a mensagem diz o quê, e nada entrou.
+     5. `verificar-apos-0006.sql`, **uma sonda por vez**: sonda 1 (**8** `true`), sonda 2 (**69 OK**; ela precisa de uma conta vet, uma clinic, uma tutor e uma admin), sonda 3 (`linhas = 0`, `sem_origem_TEM_QUE_SER_0 = 0`), sonda 4 (2 OK).
      6. Abra um PR qualquer (ou rode o CI) e confira o **CI verde** contra o `vetria-e2e`: nenhuma tela lê `contatos` hoje, e a aprovação em `/admin/validacoes` continua gerando slug.
   3. **Produção**: os mesmos passos 2.1 a 2.5. Depois, **prova em tela**: aprove uma conta na fila em `/admin/validacoes` e confira que ela ganhou o endereço (o gerador passou pelo trigger novo). Anote a data na tabela do `supabase/migrations/README.md`.
   4. Só então a T-040 liga a rota contra o `vetria-e2e`.
 
+  **Roteiro da sessão A (qua 29/10), só o `vetria-e2e`, em linguagem simples.** Antes de começar: faça o merge da PR #15 ou abra os arquivos dela. No SQL Editor do Supabase, **confira no topo que o projeto aberto é o `vetria-e2e`**, não o de produção. Cole e rode **um bloco por vez**; a cada passo, anote o resultado aqui.
+
+  | Passo | O que rodar | O que tem que aparecer | Se vier diferente |
+  |---|---|---|---|
+  | 1 | `supabase/prevoo-0006.sql`, consulta 0 | `contatos_linhas = 0` e `active_sem_perfil = 0` | Pare. Linha em `contatos` ou conta ativa sem perfil precisa ser entendida antes |
+  | 2 | consulta 1 | tudo `true` (e o número 3) | Pare. A 0005 não está inteira ou uma função foi mexida pelo painel |
+  | 3 | consulta 2 | igual ao comentário dela (3 policies de leitura, CHECK `contatos_tem_origem`, `rls = true`) | Pare. Alguém mexeu em `contatos` pelo painel |
+  | 4 | consulta 3 | **nenhuma linha** | Pare. Já existe algo com o nome que a 0006 cria |
+  | 5 | consulta 4 | `active_sem_slug = 0` e `slug_fora_do_formato = 0` | Pare e anote quais contas |
+  | 6 | consultas 5 e 6 | `true` nas três colunas, `papel_atual = postgres`; a 6 mostra pelo menos 1 vet, 1 clinic, 1 tutor e 1 admin | Sem a conta de algum tipo, crie uma de teste antes do passo 9 |
+  | 7 | `supabase/backup-antes-da-0006.sql` | query 0 anotada; queries 1 a 4 baixadas em CSV para `supabase/backups/` | Sem backup, não segue |
+  | 8 | a `0006` **inteira**, de uma vez | uma tabela com **27** linhas, **todas `true`** | Se aparecer "PARE: ...", nada entrou no banco: copie a mensagem e pare. Se alguma linha vier `false`, não siga e chame o backend; a §10 do arquivo é a reversão |
+  | 9 | `verificar-apos-0006.sql`, sonda 1 e depois sonda 2 (o bloco inteiro dela) | sonda 1: **8** `true`; sonda 2: **69** linhas, todas `OK` | Copie as linhas `FALHA` ou `NAO MEDIDO` e pare. `SONDA INVALIDA` na linha 0 é falta de conta de teste (passo 6) |
+  | 10 | sondas 3 e 4 | sonda 3: `linhas = 0` e `sem_origem_TEM_QUE_SER_0 = 0`; sonda 4: 2 linhas `OK` | `linhas` maior que 0 quer dizer que a sonda 2 deixou sujeira: pare e chame o backend |
+  | 11 | rodar o CI (um PR qualquer, ou o workflow na mão) | CI verde | Vermelho: anote o teste que caiu; a reversão da §10 desfaz tudo sem mexer no código |
+
+  Tudo certo: anote a data na tabela do `supabase/migrations/README.md` e marque "aplicada no `vetria-e2e`" no Estado deste card. Produção (seg 03/11) repete os passos 1 a 10 e acrescenta a prova em tela em `/admin/validacoes`. ⚠️ Confirme na sessão: a 0006 tem **uma** exceção à regra "sem DROP" (a troca do CHECK de `contatos`, pedida pelo R-076/D11 e já auditada).
+
   **Auditoria do `vetria-seguranca` (25/09/2026): APROVADA** (🔴 0 · 🟠 1 · 🟡 6). Corrigido na mesma branch antes da aplicação: **SEC-121** (a janela de 24 h do vínculo usa `auth.users.created_at`, que o usuário não escreve; caso 45 novo na sonda 2, que falha na versão anterior); **SEC-122** (`revoke all` em `contatos` para `authenticated`, cobre o MAINTAIN do Postgres 17); **SEC-125** (README: a `0005` não roda de novo depois da `0006`); **SEC-126** (número de exemplo trocado por um falso); comentário da marca do gerador corrigido. Reensaio: select final **26/26 `true`**, sonda 2 **59/59 OK**, hashes das duas funções **inalterados**.
 
-  **⚠️ Critério de aceite herdado pela T-040 e pela T-041 (SEC-120 da auditoria), antes de `CONTATO_PELO_SITE_ABERTO = true`:** (a) **Turnstile obrigatório no clique**, conferido no servidor (D4 deixa de ser "se a T-031 atrasar"); (b) o limite de borda da Vercel em `/api/contato` conta **IPv6 por /64** (um /64 é um assinante só) e, se o plano permitir, por **JA4**; (c) **considerar um freio global no banco** (teto de contatos por minuto no sistema inteiro), porque o limite por visitante não segura um robô que troca de cookie a cada pedido.
+  **Emenda de 28/10/2026, antes da sessão A (auditoria `docs/relatorios/SEC-2026-10-28-T040-api-contato.md`), NÃO aplicada em banco nenhum:**
+  - **SEC-128:** `registrar_contato` confere o formato do WhatsApp (`^[0-9]{10,11}$`, o mesmo da rota `app/api/contato/route.ts`) **antes** de gravar. Fora do formato, devolve `sem_whatsapp` e não grava nada. Antes, a linha era gravada e só depois a rota recusava o número: lead contado e não entregue. Sonda 2, casos 26 a 28 (`+55 (62) 3000-0001` e `556230000001`: resposta `sem_whatsapp`, zero linhas).
+  - **SEC-120 (c), DL-075:** freio global na mesma função. Com **30 contatos gravados no último minuto** no sistema inteiro, todo pedido que geraria linha nova recebe `muitas_tentativas`, sem número e sem linha. O clique repetido (D5) continua recebendo o número. Concorrência: contagem sem trava no caminho normal; a partir de 20 no minuto, trava global (`pg_advisory_xact_lock`) e recontagem. Índice novo `idx_contatos_created_at`. Sonda 2, casos 80 a 85.
+  - **Contagens novas do roteiro (superadas pela segunda emenda, abaixo):** select final **27 `true`** (26 + o índice novo); sonda 1 **7 `true`** (6 + o índice); sonda 2 **68 OK** (59 + 9). Pré-voo consulta 3 continua **zero linhas** (agora também procura o índice novo).
+  - **Sonda 2, ajuste de montagem:** o estabelecimento plantado pela sonda passou a se chamar "Sonda Seis Estabelecimento". Com o mesmo nome e cidade do vet, os dois ganhavam o mesmo slug (o gerador só evita colisão dentro da própria tabela) e o caso 13 falhava num banco em que vet e clinic não têm linha de perfil. Não muda nada da migration.
+  - **Ensaio de 28/10 (PGlite 0.5.13, Postgres 18.6, sobre um esboço do Supabase + `montar-vetria-e2e` + `0004` + `0005` + seed):** select final **27/27 `true`**, rodada de novo **27/27**; sonda 1 **7/7**; sonda 2 **68/68 OK** com 4 contas e com 29 contas; sonda 3 tudo zero; sonda 4 2 OK; nada sobra depois. **Controle negativo:** com a conferência de formato tirada e o teto em 1000, a sonda deu FALHA exatamente nos casos 26, 27, 28, 83 e 84. ⚠️ A concorrência do freio (vários pedidos ao mesmo tempo) não se prova no PGlite, que tem uma conexão só.
+  - **Hashes de `gerar_slug_do_perfil` e `slug_ao_ativar`: inalterados** (a emenda só mexe em `registrar_contato` e nos índices).
+
+  **Segunda emenda de 28/10/2026 (auditoria `docs/relatorios/SEC-2026-10-28-0006-emenda.md`, APROVADA COM RESSALVAS, 🟡 1 · 🟢 2), NÃO aplicada em banco nenhum:**
+  - **SEC-135:** a trava global do freio passou a `pg_advisory_xact_lock(1447383122, 1)`, a forma de duas chaves int4 (1447383122 = "VETR" em ASCII; 1 = freio de contato). O Postgres guarda trava de duas chaves num espaço separado do das travas de uma chave, então nenhum `anon_id` escolhido no cookie colide com ela. As travas por visitante e por usuário (em `registrar_contato` e `vincular_contatos_do_visitante`) passaram a `hashtextextended(..., 0)`, 64 bits. **A trava de slug ficou como estava** (`hashtext`, 32 bits): ela mora em `gerar_slug_do_perfil`, e trocá-la mudaria o hash conferido na sonda 1 linha 6, no select final linha 13 e no README; com a do visitante em 64 bits, colidir com a de slug exige cerca de 2^64 tentativas. Sonda 1 ganhou a **linha 8**, que confere as chaves fixas e a ausência de `hashtext(` de 32 bits nas duas funções.
+  - **SEC-137:** sonda 2 ganhou o caso de **9 dígitos** (`629000000`, esperando `sem_whatsapp`): agora é o caso 28, e a conferência de "zero linhas" virou o caso 29 (cobre 26, 27 e 28).
+  - **SEC-136:** só texto, no DL-075: o excesso máximo sobre 30 por minuto é de cerca do tamanho do pool de conexões do PostgREST.
+  - **Contagens:** select final **27 `true`** (sem mudança); sonda 1 **8 `true`** (7 + a linha das travas); sonda 2 **69 OK** (68 + o caso de 9 dígitos).
+  - **Ensaio (PGlite 0.5.13, Postgres 18.6, mesmo esboço):** select final **27/27 `true`**, de novo **27/27**; sonda 1 **8/8**; sonda 2 **69/69 OK** com 4 contas e com 29 contas; sonda 3 tudo zero; sonda 4 2 OK; nada sobra depois. **Controles negativos:** formato afrouxado para `{9,11}` dá FALHA só nos casos 28 e 29; trava global de volta a `hashtext` dá `false` só na sonda 1 linha 8; formato tirado e teto em 1000 dá FALHA exatamente em 26, 27, 28, 29, 83 e 84. Hashes de `gerar_slug_do_perfil` e `slug_ao_ativar` **inalterados** (sonda 1 linha 6 `true`).
+
+  **⚠️ Critério de aceite herdado pela T-040 e pela T-041 (SEC-120 da auditoria), antes de `CONTATO_PELO_SITE_ABERTO = true`:** (a) **Turnstile obrigatório no clique**, conferido no servidor (D4 deixa de ser "se a T-031 atrasar"); (b) o limite de borda da Vercel em `/api/contato` conta **IPv6 por /64** (um /64 é um assinante só) e, se o plano permitir, por **JA4**; (c) ~~considerar um freio global no banco~~ ✅ **decidido e escrito na `0006` em 28/10** (DL-075: 30 por minuto no sistema inteiro).
 
   **HANDOFF — vetria-backend — T-039 — 25/09/2026**
 
@@ -674,6 +707,7 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
   - [ ] Turnstile conferido no servidor, se D4 = sim
   - [ ] **Gesto do Elber, guiado por este card:** regra do firewall da Vercel em `/api/contato` (D3), escrita aqui
   - [ ] Teste de API no CI: sem `Sec-Fetch-Site` recusa; slug inválido recusa; o número só vem no corpo da resposta do POST
+  - [ ] **SEC-129 (auditoria de 28/10, a qualquer momento):** a trava do modo de teste em `lib/contato/porta.ts` vira lista **positiva** (só o ref do `vetria-e2e`), em vez de "qualquer projeto que não seja o de produção". `CONTATO_ABERTO_PARA_TESTE` nunca no escopo Production nem no Preview geral da Vercel; para a demo de 31/10, variável restrita à branch
 - **Não fazer:** o botão (T-041). Server Action no lugar da rota (a regra de firewall precisa de caminho fixo).
 - **Resultado:** _(a preencher)_
 
@@ -688,6 +722,12 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
   - [ ] A linha de transparência sob o botão (D2)
   - [ ] `CONTATO_PELO_SITE_ABERTO = true` **no mesmo commit que liga a rota em produção, e só então**
   - [ ] O HTML inicial continua **sem** número (o teste de hoje continua verde). Toque com teclado e leitor de tela; 360 px; sem travessão
+  - [ ] **Aceites da auditoria de 28/10 (`docs/relatorios/SEC-2026-10-28-T040-api-contato.md`), antes de ligar a constante:**
+    - [ ] **SEC-127:** a regra `contato-por-ip` do firewall da Vercel (10/min por IP, IPv6 agrupado por /64) **aplicada e escrita neste card** antes de `CONTATO_PELO_SITE_ABERTO = true`. O freio global do banco (DL-075) já está na `0006`; o alarme de volume e a limpeza de rajadas ficam anotados como próximo passo
+    - [ ] **SEC-131:** o siteverify do Turnstile (`lib/contato/turnstile.ts`) exige `hostname` igual ao domínio canônico e `action` igual a `contato`
+    - [ ] **SEC-132:** a linha sob o botão leva à Política de Privacidade **publicada** (cookie `vetria_visitante`, 180 dias, D2). Sem a Política no ar, o botão não liga
+    - [ ] **SEC-133:** medir no Safari anterior ao 16.4 (não manda `Sec-Fetch-Site` e hoje recebe 403); se recusar gente real, aceitar cabeçalho ausente quando `Origin` for o domínio canônico
+    - [ ] O texto de `muitas_tentativas` serve também para o freio global (DL-075): não acusar a pessoa de "tentar demais", pedir para tentar de novo em um minuto
 - **Não fazer:** botão no cartão da busca (D8). Abrir o WhatsApp sozinho depois do `await`. Pedir nome ou conta antes do número.
 - **Resultado:** _(a preencher)_
 
@@ -715,6 +755,7 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
   - [ ] `rpc/registrar_contato` com a chave anon é recusado; o profissional pedindo `anon_id` pelo PostgREST recebe `42501`
   - [ ] O profissional vê a contagem 1; o responsável logado vê o contato em "Seus contatos"; o anônimo que cria conta vê o contato vinculado
   - [ ] Verde no CI, com o número de testes executados (não pulados) escrito aqui
+  - [ ] **SEC-130 (auditoria de 28/10):** prova automática da trava de produção: passo de CI com `next start`, URL de produção, chave de serviço falsa e `CONTATO_ABERTO_PARA_TESTE=1`, exigindo **503**. E a parte B do `contato-rota.spec.ts` declarada (pulada com aviso) quando a variável não chega ao CI. Cobrir também: caminho logado, Turnstile, `muitas_tentativas` pela rota
 - **Resultado:** _(a preencher)_
 
 ### T-044 — O `vetria-e2e` não pode dormir: CI agendado a cada 3 dias
