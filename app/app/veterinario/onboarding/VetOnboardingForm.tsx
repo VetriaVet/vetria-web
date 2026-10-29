@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { TriangleAlert } from "lucide-react";
 import Image from "next/image";
 import { Input } from "@/components/ui/Input";
@@ -16,14 +16,23 @@ import {
   MAX_ESPECIALIDADES,
   STEPS,
   TITULOS,
+  type PassoDoRascunho,
   type ResultadoOnboarding,
+  type ResultadoPasso,
   type VetOnboardingInicial,
   type VetOnboardingPayload,
 } from "./campos";
 
-// Onboarding vet multi-step. Os 4 passos guardam estado no cliente e o
-// "Concluir" manda tudo pra Server Action, que valida de novo, grava em
-// `vet_profiles` e `perfil_privado` e chama a RPC da fila de validação (T-006).
+// Onboarding vet multi-step. Cada "Continuar" grava o passo no servidor
+// (`salvarPasso`, T-051), e o "Concluir" do passo 4 manda tudo pra Server
+// Action, que valida de novo, grava em `vet_profiles` e `perfil_privado` e
+// chama a RPC da fila de validação (T-006).
+//
+// T-051 / QA-001 — antes, os passos 1 a 3 viviam só em `useState`: fechar a
+// aba, recarregar, voltar do navegador ou a sessão expirar apagava tudo,
+// enquanto a barra lateral prometia "pausar e voltar". Agora o passo só avança
+// depois que o servidor responde que gravou, e a página reabre no primeiro
+// passo incompleto (`passoInicial`, decidido no Server Component).
 //
 // As listas de valores mudaram de lugar: vivem em `campos.ts`, porque o
 // servidor valida contra as mesmas listas. Duas cópias divergem, e a que
@@ -32,14 +41,26 @@ import {
 // DL-016: nenhum try/catch em volta da Action. O caminho de sucesso termina em
 // redirect() do servidor, e o caminho de falha volta como VALOR de retorno.
 
+// Verdadeiro só depois da hidratação, sem `setState` em efeito. O atributo
+// `data-hidratado` que sai daqui é o que o E2E espera antes de clicar: o
+// clique que chega antes do React não faz nada.
+const semAssinatura = () => () => {};
+function useHidratado() {
+  return useSyncExternalStore(semAssinatura, () => true, () => false);
+}
+
 export default function VetOnboardingForm({
   inicial,
+  passoInicial,
   modo,
   documentoEnviadoEm,
   motivoReprova,
   action,
+  salvarPasso,
 }: {
   inicial: VetOnboardingInicial;
+  /** T-051 — o primeiro passo incompleto, lido do banco pela página. */
+  passoInicial: 1 | 2 | 3 | 4;
   modo: "novo" | "revisao";
   /** `perfil_privado.documento_enviado_em`, lido pelo Server Component. É o
    *  sinal de que existe documento no bucket, e vem do BANCO: o cliente nunca
@@ -53,8 +74,14 @@ export default function VetOnboardingForm({
   action: (
     payload: VetOnboardingPayload
   ) => Promise<ResultadoOnboarding | void>;
+  /** T-051 — o rascunho de cada "Continuar". Nunca conclui, nunca muda status. */
+  salvarPasso: (
+    payload: VetOnboardingPayload,
+    passo: PassoDoRascunho
+  ) => Promise<ResultadoPasso>;
 }) {
-  const [step, setStep] = useState(1);
+  const hidratado = useHidratado();
+  const [step, setStep] = useState<number>(passoInicial);
   const [isPending, startTransition] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
   const [docEnviadoEm, setDocEnviadoEm] = useState<string | null>(
@@ -91,20 +118,32 @@ export default function VetOnboardingForm({
   // embaixo do próprio campo. Mesma lógica: conveniência, não autorização.
   // R-060 — mais especialidades que o limite (só acontece com dado antigo,
   // porque o chip não deixa marcar a quinta) também segura o passo 1.
-  const motivoParado =
-    step === 1
-      ? erroDoCampo("crmv", crmv)
-        ? "Confira o número do CRMV para continuar."
-        : especialidades.length > MAX_ESPECIALIDADES
-          ? `Deixe no máximo ${MAX_ESPECIALIDADES} especialidades para continuar.`
-          : null
-      : step === 2
-        ? algumModo
-          ? null
-          : "Marque pelo menos uma forma de atendimento para continuar."
-        : step === 3 && erroDoCampo("telefone", whatsapp)
-          ? "Confira o WhatsApp para continuar."
-          : null;
+  //
+  // T-051 / QA-013 — o campo OBRIGATÓRIO vazio também segura o passo, com o
+  // motivo no rodapé. Antes, cidade em branco só era recusada no passo 4
+  // ("Passo 2: informe a cidade"), e a pessoa voltava dois passos. São os
+  // mesmos campos que `validarPasso1` e `validarPasso2` exigem no servidor.
+  function motivoDoPasso(): string | null {
+    if (step === 1) {
+      if (!nome.trim()) return "Informe seu nome completo para continuar.";
+      if (!crmv.trim()) return "Informe o número do CRMV para continuar.";
+      if (erroDoCampo("crmv", crmv)) return "Confira o número do CRMV para continuar.";
+      if (!uf) return "Escolha o estado de registro do CRMV para continuar.";
+      if (especialidades.length > MAX_ESPECIALIDADES)
+        return `Deixe no máximo ${MAX_ESPECIALIDADES} especialidades para continuar.`;
+      return null;
+    }
+    if (step === 2) {
+      if (!cidade.trim()) return "Informe a cidade em que você atende para continuar.";
+      if (!estado) return "Escolha o estado em que você atende para continuar.";
+      if (!algumModo) return "Marque pelo menos uma forma de atendimento para continuar.";
+      return null;
+    }
+    if (step === 3 && erroDoCampo("telefone", whatsapp))
+      return "Confira o WhatsApp para continuar.";
+    return null;
+  }
+  const motivoParado = motivoDoPasso();
   const podeAvancar = motivoParado === null;
 
   // T-008 — SEM DOCUMENTO NÃO HÁ CONCLUSÃO, e isso é o critério do card:
@@ -141,10 +180,45 @@ export default function VetOnboardingForm({
     setModos((p) => ({ ...p, [k]: !p[k] }));
   }
 
+  function payload(): VetOnboardingPayload {
+    return {
+      nome,
+      titulo,
+      crmv,
+      crmvUf: uf,
+      especialidades,
+      experiencia,
+      cidade,
+      estado,
+      bairro,
+      atendePresencial: modos.presencial,
+      atendeDomiciliar: modos.domiciliar,
+      atendeTeleorientacao: modos.tele,
+      bio,
+      whatsapp,
+    };
+  }
+
+  // T-051 — "Continuar" grava o passo e SÓ DEPOIS avança. Se o servidor
+  // recusar, a pessoa fica no mesmo passo, com o motivo na tela e o que
+  // digitou intacto. DL-016: sem try/catch (esta Action não redireciona no
+  // sucesso; só redireciona para `/login` sem sessão, e esse redirect tem que
+  // borbulhar).
   function next() {
-    setStep((s) => Math.min(4, s + 1));
+    if (step >= 4 || motivoParado !== null || isPending) return;
+    const passo = step as PassoDoRascunho;
+    setErro(null);
+    startTransition(async () => {
+      const r = await salvarPasso(payload(), passo);
+      if (!r.ok) {
+        setErro(r.mensagem);
+        return;
+      }
+      setStep(Math.min(4, passo + 1));
+    });
   }
   function back() {
+    setErro(null);
     setStep((s) => Math.max(1, s - 1));
   }
 
@@ -154,28 +228,16 @@ export default function VetOnboardingForm({
     // devolve como valor; no sucesso ela redireciona e esta linha nunca
     // resolve com objeto.
     startTransition(async () => {
-      const r = await action({
-        nome,
-        titulo,
-        crmv,
-        crmvUf: uf,
-        especialidades,
-        experiencia,
-        cidade,
-        estado,
-        bairro,
-        atendePresencial: modos.presencial,
-        atendeDomiciliar: modos.domiciliar,
-        atendeTeleorientacao: modos.tele,
-        bio,
-        whatsapp,
-      });
+      const r = await action(payload());
       if (r && r.ok === false) setErro(r.mensagem);
     });
   }
 
   return (
-    <div className="grid lg:grid-cols-[320px_1fr] min-h-screen">
+    <div
+      className="grid lg:grid-cols-[320px_1fr] min-h-screen"
+      data-hidratado={hidratado ? "sim" : "nao"}
+    >
       {/* Sidebar de progresso */}
       <aside className="bg-principal text-white p-8 flex flex-col">
         <div className="flex items-center gap-2.5 mb-10">
@@ -189,8 +251,8 @@ export default function VetOnboardingForm({
         </h1>
         <p className="text-[13px] text-white/70 leading-relaxed mb-8">
           {emRevisao
-            ? "Você pode corrigir e completar os dados enquanto nossa equipe confere seu CRMV. As alterações são salvas quando você chega ao fim."
-            : "Em poucos minutos seu perfil fica pronto pra validação. Você pode pausar e voltar quando quiser."}
+            ? "Você pode corrigir e completar os dados enquanto nossa equipe confere seu CRMV. Cada passo é salvo quando você toca em Continuar."
+            : "Em poucos minutos seu perfil fica pronto pra validação. Cada passo é salvo quando você toca em Continuar: dá pra pausar e voltar quando quiser."}
         </p>
 
         <ol className="flex flex-col gap-1">
@@ -441,9 +503,11 @@ export default function VetOnboardingForm({
           {/* Ações */}
           <div className="flex items-center justify-between gap-3 mt-10 pt-6 border-t border-gray-100">
             <span className="text-[12px] text-corpo-texto/70">
-              {step === 4 && !temDocumento
-                ? "Falta enviar o documento do CRMV."
-                : (motivoParado ?? `${step * 25}% concluído`)}
+              {isPending
+                ? "Salvando..."
+                : step === 4 && !temDocumento
+                  ? "Falta enviar o documento do CRMV."
+                  : (motivoParado ?? `${step * 25}% concluído`)}
             </span>
             <div className="flex gap-3">
               {step > 1 && (
@@ -459,7 +523,8 @@ export default function VetOnboardingForm({
                 <button
                   type="button"
                   onClick={next}
-                  disabled={!podeAvancar}
+                  disabled={!podeAvancar || isPending}
+                  aria-busy={isPending}
                   title={motivoParado ?? undefined}
                   className="inline-flex items-center gap-2 rounded-pill bg-principal text-white px-6 py-2.5 font-semibold text-sm hover:bg-[#142E33] transition disabled:opacity-50"
                 >

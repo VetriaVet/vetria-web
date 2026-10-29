@@ -155,3 +155,35 @@ export const VAZIO: VetOnboardingInicial = {
 // precisa mostrar a mensagem na tela, e envolver a chamada em try/catch
 // engoliria o NEXT_REDIRECT do caminho de sucesso (DL-016).
 export type ResultadoOnboarding = { ok: false; mensagem: string };
+
+// T-051 / QA-001 — o rascunho salvo a cada "Continuar".
+//
+// `salvarPassoVet` grava só as colunas do passo e NUNCA conclui: o status
+// continua `incomplete` (ou `pending_validation`, para quem corrige) até o
+// "Concluir cadastro" do passo 4. Ela devolve `ok: true` em vez de
+// redirecionar, porque quem decide para onde ir é a tela (o passo seguinte).
+export type PassoDoRascunho = 1 | 2 | 3;
+export type ResultadoPasso = { ok: true } | ResultadoOnboarding;
+
+/**
+ * Em qual passo o formulário abre, a partir do que o SERVIDOR leu do banco.
+ *
+ * O passo é "incompleto" quando falta um campo obrigatório dele: são os
+ * mesmos que o "Continuar" e a Server Action exigem. O passo 3 não tem campo
+ * obrigatório (WhatsApp é opcional até a T-046), então ele conta como feito
+ * quando tem bio ou WhatsApp, ou quando o documento do passo 4 já foi
+ * enviado. Sem coluna de "último passo visto" no banco (e sem migration nesta
+ * task), essa é a leitura honesta: no pior caso a pessoa revê o passo 3, que
+ * é opcional, e toca em Continuar.
+ */
+export function primeiroPassoIncompleto(
+  d: VetOnboardingInicial,
+  temDocumento: boolean
+): 1 | 2 | 3 | 4 {
+  if (!d.nome.trim() || !d.crmv.trim() || !d.crmvUf.trim()) return 1;
+  const algumModo =
+    d.atendePresencial || d.atendeDomiciliar || d.atendeTeleorientacao;
+  if (!d.cidade.trim() || !d.estado.trim() || !algumModo) return 2;
+  if (!temDocumento && !d.bio.trim() && !d.whatsapp.trim()) return 3;
+  return 4;
+}

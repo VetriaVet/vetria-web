@@ -13,7 +13,9 @@ import {
   adulterarProximaAction,
   botaoContinuar,
   contarServerActions,
+  esperarHidratacao,
   irParaPasso,
+  passo,
 } from "../apoio/formulario";
 import { EXIGIR, falharSeExigir, pularOuFalhar } from "../apoio/pulo";
 import { alvoEhTeste, SEM_ALVO_DE_TESTE } from "../apoio/alvo";
@@ -65,6 +67,19 @@ import { clienteDeServico, garantirVetFixoNaFila, idPorEmail } from "../apoio/se
 //   · O que o banco NÃO guarda por CHECK (WhatsApp em `perfil_privado`, cidade
 //     em branco) só é provado contornando a tela no projeto de TESTE: em
 //     produção, uma regressão da Action gravaria o lixo na conta real.
+//
+// ---------------------------------------------------------------------------
+// ⚠️ 29/10/2026 — T-051: O "CONTINUAR" PASSOU A GRAVAR
+// ---------------------------------------------------------------------------
+// Cada "Continuar" chama `salvarPassoVet`, que grava SÓ aquele passo e nunca
+// conclui. Para este arquivo isso muda três coisas:
+//   · `irParaPasso` escreve: regrava, na conta fixa, os mesmos valores que já
+//     estavam lá (nenhum teste muda campo antes de avançar, exceto os que
+//     restauram o original no fim)
+//   · quem conta Server Actions começa a contar DEPOIS de chegar ao passo
+//   · os testes que contornam a tela adulteram o rascunho DO PRÓPRIO PASSO
+//     (o "Continuar"), e não mais o "Salvar alterações" do passo 4. É o
+//     caminho mais curto até o servidor, e prova a validação por passo
 //
 // ---------------------------------------------------------------------------
 // A INTERTRAVA, E ELA É A PARTE MAIS IMPORTANTE DESTE ARQUIVO
@@ -301,9 +316,10 @@ test.describe("persistencia do onboarding do veterinario (R-033)", () => {
   test("whatsapp com letra nao entra, e 0800 segura o Continuar com o motivo", async ({
     page,
   }) => {
-    const actions = contarServerActions(page);
     await abrirOnboarding(page);
     await irParaPasso(page, 3);
+    // T-051: conta só daqui em diante. Os "Continuar" acima gravam o rascunho.
+    const actions = contarServerActions(page);
 
     const wpp = page.locator("#wpp");
 
@@ -328,9 +344,9 @@ test.describe("persistencia do onboarding do veterinario (R-033)", () => {
   });
 
   test("DDD que nao existe tambem segura o Continuar", async ({ page }) => {
-    const actions = contarServerActions(page);
     await abrirOnboarding(page);
     await irParaPasso(page, 3);
+    const actions = contarServerActions(page);
 
     const wpp = page.locator("#wpp");
     await wpp.fill("(20) 99999-9999");
@@ -393,7 +409,7 @@ test.describe("persistencia do onboarding do veterinario (R-033)", () => {
     await expect(page.getByText(/^4 de 4$/).first()).toBeVisible();
 
     // Nada foi salvo: a troca de especialidade é só estado de tela até o
-    // passo 4, e este teste não chega lá.
+    // "Continuar" (T-051), e este teste não toca nele.
     expect(actions()).toBe(0);
   });
 
@@ -401,8 +417,18 @@ test.describe("persistencia do onboarding do veterinario (R-033)", () => {
   // CONTORNANDO A TELA — o servidor continua sendo a regra que vale
   // -------------------------------------------------------------------------
   // ⚠️ Só com valor que o BANCO TAMBÉM recusa por CHECK (0004). Se a Action
-  // regredir, o CHECK recusa o upsert de `vet_profiles` inteiro, e a Action
-  // nunca chega ao upsert de `perfil_privado`. Nada é gravado, nem em produção.
+  // regredir, o CHECK recusa o upsert de `vet_profiles` inteiro. Nada é
+  // gravado, nem em produção.
+  //
+  // T-051: o pedido adulterado é o rascunho do PASSO (o "Continuar"), que
+  // valida e grava só aquele passo. Recusado, a tela fica no mesmo passo.
+
+  /** Clica UMA vez no "Continuar" (sem a repetição do `avancar`): o pedido
+   *  adulterado tem que ser este, e só este. */
+  async function continuarUmaVez(page: Page) {
+    await expect(botaoContinuar(page)).toBeEnabled();
+    await botaoContinuar(page).click();
+  }
 
   test("contornando a mascara, o servidor recusa CRMV com letra e nada muda", async ({
     page,
@@ -415,13 +441,14 @@ test.describe("persistencia do onboarding do veterinario (R-033)", () => {
     const adulteracao = await adulterarProximaAction(page, ROTA_ONBOARDING, (p) => {
       p.crmv = "GO-0155";
     });
-    await salvar(page);
+    await continuarUmaVez(page);
 
     await expect(alertaDeErro(page)).toContainText(/algarismos/i);
     expect(
       adulteracao.adulterou(),
       `o pedido nao foi adulterado: ${adulteracao.motivoDeFalha() ?? "nenhuma Server Action saiu"}`
     ).toBe(true);
+    await expect(passo(page, 1), "o servidor recusou e a tela avancou mesmo assim").toBeVisible();
     await expect(page).toHaveURL(rotaExata(ROTA_ONBOARDING));
 
     // A prova do "não gravou", numa visita nova.
@@ -444,14 +471,14 @@ test.describe("persistencia do onboarding do veterinario (R-033)", () => {
     const adulteracao = await adulterarProximaAction(page, ROTA_ONBOARDING, (p) => {
       p.especialidades = ESPECIALIDADES_EM_TELA.slice(0, 5);
     });
-    await salvar(page);
+    await continuarUmaVez(page);
 
     await expect(alertaDeErro(page)).toContainText(/no máximo 4 especialidades/i);
     expect(
       adulteracao.adulterou(),
       `o pedido nao foi adulterado: ${adulteracao.motivoDeFalha() ?? "nenhuma Server Action saiu"}`
     ).toBe(true);
-    await expect(page).toHaveURL(rotaExata(ROTA_ONBOARDING));
+    await expect(passo(page, 1)).toBeVisible();
 
     await page.unrouteAll({ behavior: "ignoreErrors" });
     await abrirOnboarding(page);
@@ -467,35 +494,89 @@ test.describe("persistencia do onboarding do veterinario (R-033)", () => {
     test.setTimeout(120_000);
     await abrirOnboarding(page);
     await exigirModoRevisao(page);
+    await irParaPasso(page, 3);
 
     const adulteracao = await adulterarProximaAction(page, ROTA_ONBOARDING, (p) => {
       p.whatsapp = "0800 123 4567";
     });
-    await salvar(page);
+    await continuarUmaVez(page);
 
     // A mensagem explica o PORQUÊ: 0800 não recebe mensagem no WhatsApp.
     await expect(alertaDeErro(page)).toContainText(/0800/);
     expect(adulteracao.adulterou(), adulteracao.motivoDeFalha() ?? "").toBe(true);
-    await expect(page).toHaveURL(rotaExata(ROTA_ONBOARDING));
+    await expect(passo(page, 3)).toBeVisible();
   });
 
-  test("o servidor recusa cadastro sem cidade (so no projeto de teste)", async ({
+  test("cidade em branco: a tela segura o passo 2, e o servidor tambem (so no projeto de teste)", async ({
     page,
   }) => {
     // `cidade` é faceta da busca da F4/S6: perfil aprovado sem cidade é perfil
-    // que nenhum filtro encontra. A tela não segura cidade em branco (o
-    // "Continuar" do passo 2 só olha a forma de atendimento), então isto chega
-    // ao servidor pela tela mesmo. Não há CHECK de cidade vazia: se a Action
-    // regredir, a cidade em branco seria gravada. Por isso só no teste.
+    // que nenhum filtro encontra. Desde a T-051 (QA-013) a TELA segura o
+    // passo 2 com a cidade em branco. O servidor é provado contornando a
+    // tela. Não há CHECK de cidade vazia: se a Action regredir, a cidade em
+    // branco seria gravada. Por isso só no teste.
     pularOuFalhar(!alvoEhTeste(), SO_NO_PROJETO_DE_TESTE);
+    test.setTimeout(120_000);
     await abrirOnboarding(page);
     await exigirModoRevisao(page);
     await irParaPasso(page, 2);
+    const cidadeOriginal = await page.locator("#cidade").inputValue();
+
+    // 1. A tela: o "Continuar" desabilita e o rodapé diz por quê.
+    const actions = contarServerActions(page);
     await page.locator("#cidade").fill("   ");
-    await salvar(page);
+    await expect(botaoContinuar(page)).toBeDisabled();
+    await expect(page.getByText(/informe a cidade em que você atende para continuar/i)).toBeVisible();
+    expect(actions(), "a tela disparou Server Action com a cidade em branco").toBe(0);
+
+    // 2. O servidor: a tela volta a ter a cidade, o pedido sai sem ela.
+    await page.locator("#cidade").fill(cidadeOriginal);
+    const adulteracao = await adulterarProximaAction(page, ROTA_ONBOARDING, (p) => {
+      p.cidade = "   ";
+    });
+    await continuarUmaVez(page);
 
     await expect(alertaDeErro(page)).toContainText(/informe a cidade/i);
-    await expect(page).toHaveURL(rotaExata(ROTA_ONBOARDING));
+    expect(adulteracao.adulterou(), adulteracao.motivoDeFalha() ?? "").toBe(true);
+    await expect(passo(page, 2)).toBeVisible();
+  });
+
+  // -------------------------------------------------------------------------
+  // T-051 / QA-001 — O RASCUNHO SOBREVIVE AO F5, NA CONTA FIXA
+  // -------------------------------------------------------------------------
+  // A conta fixa está em revisão (`pending_validation`). O que se prova aqui:
+  // o "Continuar" do passo 2 grava SEM o passo 4, e o F5 traz o valor de
+  // volta. A conta NOVA, em `incomplete`, é o `fluxos-conta-nova.spec.ts`.
+  test("o passo 2 salvo no Continuar volta depois de recarregar, sem chegar ao passo 4 (so no projeto de teste)", async ({
+    page,
+  }) => {
+    pularOuFalhar(!alvoEhTeste(), SO_NO_PROJETO_DE_TESTE);
+    test.setTimeout(180_000);
+    await abrirOnboarding(page);
+    await exigirModoRevisao(page);
+    await irParaPasso(page, 2);
+    const original = await page.locator("#bairro").inputValue();
+    const marcador = `QA E2E rascunho ${Date.now()}`;
+
+    try {
+      await page.locator("#bairro").fill(marcador);
+      await irParaPasso(page, 3);
+
+      await page.reload();
+      await esperarHidratacao(page);
+      await irParaPasso(page, 2);
+      await expect(
+        page.locator("#bairro"),
+        "o passo 2 salvo no Continuar nao voltou depois do F5 (QA-001)"
+      ).toHaveValue(marcador);
+    } finally {
+      // Restaura pelo mesmo caminho, e confere.
+      await abrirOnboarding(page);
+      await irParaPasso(page, 2);
+      await page.locator("#bairro").fill(original);
+      await irParaPasso(page, 3);
+      expect(await lerBairro(page)).toBe(original);
+    }
   });
 
   // -------------------------------------------------------------------------
