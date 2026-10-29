@@ -3,16 +3,22 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normalizarWhatsapp } from "@/lib/contato/whatsapp";
+import { ONBOARDING } from "@/lib/auth/status";
 import {
   LIMITES,
   MAX_SERVICOS,
   SERVICOS,
   UFS,
   type ClinicOnboardingPayload,
+  type PassoDoRascunho,
   type ResultadoOnboarding,
+  type ResultadoPasso,
 } from "./campos";
 
 // T-007 — o onboarding do estabelecimento passa a persistir.
+// T-051 — e passa a persistir A CADA PASSO: `salvarPassoClinic` grava o
+// rascunho em cada "Continuar"; `salvarOnboardingClinic` continua sendo a
+// conclusão.
 //
 // Padrão da casa (DL-012): Server Component busca → Server Action muta →
 // Client Form interage.
@@ -153,13 +159,24 @@ function normalizarCnpj(
   return { ok: true, valor: c };
 }
 
-export async function salvarOnboardingClinic(
-  entrada: ClinicOnboardingPayload
-): Promise<ResultadoOnboarding | void> {
+// -------------------------------------------------------------------------
+// 1. QUEM GRAVA (sessão, role e status, no SERVIDOR)
+// -------------------------------------------------------------------------
+// Serve às duas Actions deste arquivo. A lista de status muda entre elas, e é
+// a única coisa que muda.
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+type QuemGrava =
+  | { ok: true; supabase: Supabase; userId: string; perfil: PerfilAtual }
+  | ResultadoOnboarding;
+
+async function conferirQuemGrava(
+  podemGravar: readonly string[]
+): Promise<QuemGrava> {
   const supabase = await createClient();
 
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
+  // DL-016: redirect() fora de try/catch, aqui e em todo o caminho até a Action.
   if (!user) redirect("/login");
 
   const { data: perfil, error: erroPerfil } = await supabase
@@ -186,16 +203,7 @@ export async function salvarOnboardingClinic(
   // ⚠️ SEC-054 — o portão de ESCRITA é tão apertado quanto o de página, e pelo
   // mesmo padrão de LISTA DE PERMITIDOS da SEC-052: valor novo no enum entra
   // barrado até alguém decidir o contrário.
-  //
-  // `active` é aceito de propósito, e é a única diferença em relação ao guard
-  // da página: a Action continua alcançável por aba velha, e é o passo 6 (a
-  // releitura de status) que conta a verdade pra quem acabou de se derrubar da
-  // busca sozinho. Aqui isso é mais provável que no veterinário: desde a
-  // `0003`, `revalidar_ao_mudar_dado_sensivel()` vigia `cnpj`, `razao_social` e
-  // `responsavel_tecnico` dentro de `perfil_privado`, então trocar qualquer um
-  // dos três devolve um estabelecimento `active` para `pending_validation`.
-  const PODEM_GRAVAR = ["incomplete", "pending_validation", "active"];
-  if (!PODEM_GRAVAR.includes(perfil.status)) {
+  if (!podemGravar.includes(perfil.status)) {
     console.warn("[clinic/onboarding] escrita recusada por status", {
       userId: user.id,
       status: perfil.status,
@@ -205,22 +213,125 @@ export async function salvarOnboardingClinic(
         "A conta do estabelecimento está suspensa e não aceita alterações no cadastro. Fale com a gente para entender o motivo."
       );
     }
+    if (perfil.status === "active") {
+      return erro(
+        "O estabelecimento já foi aprovado, e esta tela é a do primeiro cadastro. Recarregue a página para ir ao painel."
+      );
+    }
     return erro(
       "A conta está num estado que não permite editar o cadastro agora. Fale com a gente."
     );
   }
 
-  // -------------------------------------------------------------------------
-  // 2. VALIDAÇÃO E NORMALIZAÇÃO
-  // -------------------------------------------------------------------------
+  return { ok: true, supabase, userId: user.id, perfil };
+}
+
+// -------------------------------------------------------------------------
+// 2. VALIDAÇÃO E NORMALIZAÇÃO, UM PASSO POR VEZ
+// -------------------------------------------------------------------------
+// T-051 — gêmeo do vet: a validação virou uma função por passo, chamada pelas
+// DUAS Actions (o rascunho de cada "Continuar" e a conclusão). Cada função
+// devolve só as colunas do SEU passo, separadas entre o que é público
+// (`clinic_profiles`) e o que é privado (`perfil_privado`).
+
+type Validado<T> = { ok: true; valor: T } | ResultadoOnboarding;
+
+type ColunasPublicas = {
+  nome_fantasia?: string;
+  endereco?: string | null;
+  cep?: string | null;
+  cidade?: string;
+  estado?: string;
+  sobre?: string | null;
+  servicos?: string[];
+};
+
+// ⚠️ Os três dados de identificação moram em `perfil_privado` desde a `0003`
+// (SEC-020 / DL-053). Escrevê-los em `clinic_profiles` falha com 42703.
+type ColunasPrivadas = {
+  whatsapp?: string | null;
+  razao_social?: string | null;
+  cnpj?: string;
+  responsavel_tecnico?: string | null;
+};
+
+type ColunasDoPasso = { publico: ColunasPublicas; privado: ColunasPrivadas };
+
+function validarPasso1(entrada: ClinicOnboardingPayload): Validado<ColunasDoPasso> {
   const nomeFantasia = limpar(entrada?.nomeFantasia);
   const razaoSocial = limpar(entrada?.razaoSocial);
   const cnpjBruto = limpar(entrada?.cnpj);
   const responsavelTecnico = limpar(entrada?.responsavelTecnico);
+
+  if (!nomeFantasia)
+    return erro("Passo 1: informe o nome fantasia do estabelecimento.");
+  if (nomeFantasia.length > LIMITES.nomeFantasia)
+    return erro(
+      `Passo 1: o nome fantasia passa de ${LIMITES.nomeFantasia} caracteres.`
+    );
+
+  if (razaoSocial.length > LIMITES.razaoSocial)
+    return erro(
+      `Passo 1: a razão social passa de ${LIMITES.razaoSocial} caracteres.`
+    );
+
+  if (!cnpjBruto) return erro("Passo 1: informe o CNPJ do estabelecimento.");
+  if (cnpjBruto.length > LIMITES.cnpj)
+    return erro(`Passo 1: o CNPJ passa de ${LIMITES.cnpj} caracteres.`);
+  const cnpjNormalizado = normalizarCnpj(cnpjBruto);
+  if (!cnpjNormalizado.ok) return erro(cnpjNormalizado.motivo);
+
+  if (responsavelTecnico.length > LIMITES.responsavelTecnico)
+    return erro(
+      `Passo 1: o nome do responsável técnico passa de ${LIMITES.responsavelTecnico} caracteres.`
+    );
+
+  return {
+    ok: true,
+    valor: {
+      publico: { nome_fantasia: nomeFantasia },
+      privado: {
+        razao_social: razaoSocial || null,
+        cnpj: cnpjNormalizado.valor,
+        responsavel_tecnico: responsavelTecnico || null,
+      },
+    },
+  };
+}
+
+function validarPasso2(entrada: ClinicOnboardingPayload): Validado<ColunasDoPasso> {
   const endereco = limpar(entrada?.endereco);
   const cepBruto = limpar(entrada?.cep);
   const cidade = limpar(entrada?.cidade);
   const estado = limpar(entrada?.estado).toUpperCase();
+
+  if (endereco.length > LIMITES.endereco)
+    return erro(`Passo 2: o endereço passa de ${LIMITES.endereco} caracteres.`);
+
+  if (cepBruto.length > LIMITES.cep)
+    return erro(`Passo 2: o CEP passa de ${LIMITES.cep} caracteres.`);
+  const cep = cepBruto.replace(/\D+/g, "");
+  if (cepBruto && cep.length !== 8)
+    return erro("Passo 2: o CEP precisa ter 8 dígitos, no formato 00000-000.");
+
+  if (!cidade) return erro("Passo 2: informe a cidade do estabelecimento.");
+  if (cidade.length > LIMITES.cidade)
+    return erro(`Passo 2: o nome da cidade passa de ${LIMITES.cidade} caracteres.`);
+
+  if (!estado) return erro("Passo 2: escolha o estado do estabelecimento.");
+  if (!(UFS as readonly string[]).includes(estado))
+    return erro("Passo 2: o estado do estabelecimento não é uma UF válida.");
+
+  return {
+    ok: true,
+    valor: {
+      publico: { endereco: endereco || null, cep: cep || null, cidade, estado },
+      privado: {},
+    },
+  };
+}
+
+function validarPasso3(entrada: ClinicOnboardingPayload): Validado<ColunasDoPasso> {
   const sobre =
     typeof entrada?.sobre === "string" ? entrada.sobre.trim() : "";
   const whatsappBruto = limpar(entrada?.whatsapp);
@@ -248,46 +359,6 @@ export async function salvarOnboardingClinic(
   if (foraDaLista.length > 0)
     return erro(`Passo 3: serviço não reconhecido: ${foraDaLista[0]}.`);
 
-  if (!nomeFantasia)
-    return erro("Passo 1: informe o nome fantasia do estabelecimento.");
-  if (nomeFantasia.length > LIMITES.nomeFantasia)
-    return erro(
-      `Passo 1: o nome fantasia passa de ${LIMITES.nomeFantasia} caracteres.`
-    );
-
-  if (razaoSocial.length > LIMITES.razaoSocial)
-    return erro(
-      `Passo 1: a razão social passa de ${LIMITES.razaoSocial} caracteres.`
-    );
-
-  if (!cnpjBruto) return erro("Passo 1: informe o CNPJ do estabelecimento.");
-  if (cnpjBruto.length > LIMITES.cnpj)
-    return erro(`Passo 1: o CNPJ passa de ${LIMITES.cnpj} caracteres.`);
-  const cnpjNormalizado = normalizarCnpj(cnpjBruto);
-  if (!cnpjNormalizado.ok) return erro(cnpjNormalizado.motivo);
-
-  if (responsavelTecnico.length > LIMITES.responsavelTecnico)
-    return erro(
-      `Passo 1: o nome do responsável técnico passa de ${LIMITES.responsavelTecnico} caracteres.`
-    );
-
-  if (endereco.length > LIMITES.endereco)
-    return erro(`Passo 2: o endereço passa de ${LIMITES.endereco} caracteres.`);
-
-  if (cepBruto.length > LIMITES.cep)
-    return erro(`Passo 2: o CEP passa de ${LIMITES.cep} caracteres.`);
-  const cep = cepBruto.replace(/\D+/g, "");
-  if (cepBruto && cep.length !== 8)
-    return erro("Passo 2: o CEP precisa ter 8 dígitos, no formato 00000-000.");
-
-  if (!cidade) return erro("Passo 2: informe a cidade do estabelecimento.");
-  if (cidade.length > LIMITES.cidade)
-    return erro(`Passo 2: o nome da cidade passa de ${LIMITES.cidade} caracteres.`);
-
-  if (!estado) return erro("Passo 2: escolha o estado do estabelecimento.");
-  if (!(UFS as readonly string[]).includes(estado))
-    return erro("Passo 2: o estado do estabelecimento não é uma UF válida.");
-
   if (sobre.length > LIMITES.sobre)
     return erro(`Passo 3: o texto sobre o estabelecimento passa de ${LIMITES.sobre} caracteres.`);
 
@@ -301,84 +372,135 @@ export async function salvarOnboardingClinic(
     whatsapp = normalizado.valor;
   }
 
-  // -------------------------------------------------------------------------
-  // 3. O QUE É PÚBLICO → clinic_profiles
-  // -------------------------------------------------------------------------
-  // upsert por `id`: a primeira conclusão insere, a correção depois atualiza.
-  // `slug` fica FORA do payload nos dois caminhos, de propósito, e a RLS ainda
-  // pina por cima (`slug is null` no INSERT, `is not distinct from` no UPDATE).
-  //
-  // ⚠️ NENHUM dos três dados de identificação aparece aqui, nem como nulo
-  // explícito: depois da `0003` as colunas não existem mais nesta tabela.
-  //
-  // O `.select().single()` no fim não é enfeite: é o DL-011. Sem ele, uma
-  // gravação que não alcança linha nenhuma volta sem erro e a tela manda o
-  // estabelecimento pra fila de validação como se tivesse dado certo.
-  const { data: linhaClinic, error: erroClinic } = await supabase
-    .from("clinic_profiles")
-    .upsert(
-      {
-        id: user.id,
-        nome_fantasia: nomeFantasia,
-        endereco: endereco || null,
-        cep: cep || null,
-        cidade,
-        estado,
-        sobre: sobre || null,
-        servicos,
-      },
-      { onConflict: "id" }
-    )
-    .select("id")
-    .single<{ id: string }>();
+  return {
+    ok: true,
+    valor: {
+      publico: { sobre: sobre || null, servicos },
+      privado: { whatsapp: whatsapp || null },
+    },
+  };
+}
 
-  if (erroClinic)
-    return mensagemDoBanco("os dados do estabelecimento", erroClinic);
-  if (!linhaClinic) {
-    return erro(
-      "Os dados do estabelecimento não chegaram ao banco. Tente de novo; se continuar, fale com a gente antes de sair desta tela."
-    );
+// -------------------------------------------------------------------------
+// 3 e 4. A GRAVAÇÃO
+// -------------------------------------------------------------------------
+// upsert por `id`: a primeira gravação insere, as seguintes atualizam. O
+// upsert do PostgREST só escreve as colunas ENVIADAS, então gravar um passo
+// não apaga outro, e nenhum deles apaga o documento da T-008 nem `telefone` e
+// `email_contato`. `slug` e `site` ficam FORA do payload, de propósito (ver o
+// cabeçalho deste arquivo). Passo sem coluna numa das tabelas não toca nela.
+//
+// O `.select().single()` no fim não é enfeite: é o DL-011.
+async function gravar(
+  supabase: Supabase,
+  userId: string,
+  colunas: ColunasDoPasso
+): Promise<ResultadoOnboarding | null> {
+  if (Object.keys(colunas.publico).length > 0) {
+    const { data: linhaClinic, error: erroClinic } = await supabase
+      .from("clinic_profiles")
+      .upsert({ id: userId, ...colunas.publico }, { onConflict: "id" })
+      .select("id")
+      .single<{ id: string }>();
+
+    if (erroClinic)
+      return mensagemDoBanco("os dados do estabelecimento", erroClinic);
+    if (!linhaClinic) {
+      return erro(
+        "Os dados do estabelecimento não chegaram ao banco. Tente de novo; se continuar, fale com a gente antes de sair desta tela."
+      );
+    }
   }
 
-  // -------------------------------------------------------------------------
-  // 4. O QUE É PRIVADO → perfil_privado
-  // -------------------------------------------------------------------------
-  // ⚠️ Quatro colunas, e as três de identificação são o motivo da `0003`.
-  // `razao_social`, `cnpj` e `responsavel_tecnico` saíram de `clinic_profiles`
-  // porque aquela tabela é lida por `anon`: um único
-  // `GET /rest/v1/clinic_profiles?select=cnpj,razao_social` entregava a base
-  // inteira (SEC-020 / R-018 / DL-053). Aqui só o dono e o admin leem.
-  //
-  // A guarda `trg_perfil_privado_dado_de_estabelecimento` (SEC-044) confere que
-  // o dono desta linha é mesmo `clinic` antes de aceitar os três. A conferência
-  // de role lá em cima já garante isso; a guarda é a segunda porta.
-  //
-  // `telefone`, `email_contato` e as três colunas de documento ficam FORA do
-  // payload em vez de irem como nulo: o upsert do PostgREST só escreve as
-  // colunas enviadas, então o editor de perfil da S3 e o upload da T-008 não
-  // são apagados por quem revisita esta tela.
-  const { data: linhaPrivada, error: erroPrivado } = await supabase
-    .from("perfil_privado")
-    .upsert(
-      {
-        id: user.id,
-        whatsapp: whatsapp || null,
-        razao_social: razaoSocial || null,
-        cnpj: cnpjNormalizado.valor,
-        responsavel_tecnico: responsavelTecnico || null,
-      },
-      { onConflict: "id" }
-    )
-    .select("id")
-    .single<{ id: string }>();
+  // A guarda `trg_perfil_privado_dado_de_estabelecimento` (SEC-044) confere
+  // que o dono desta linha é mesmo `clinic` antes de aceitar CNPJ, razão social
+  // e responsável técnico. A conferência de role em `conferirQuemGrava` já
+  // garante isso; a guarda é a segunda porta.
+  if (Object.keys(colunas.privado).length > 0) {
+    const { data: linhaPrivada, error: erroPrivado } = await supabase
+      .from("perfil_privado")
+      .upsert({ id: userId, ...colunas.privado }, { onConflict: "id" })
+      .select("id")
+      .single<{ id: string }>();
 
-  if (erroPrivado)
-    return mensagemDoBanco("os dados de identificação e contato", erroPrivado);
-  if (!linhaPrivada) {
-    return erro(
-      "Os dados de identificação não chegaram ao banco. Tente de novo; se continuar, fale com a gente antes de sair desta tela."
-    );
+    if (erroPrivado)
+      return mensagemDoBanco("os dados de identificação e contato", erroPrivado);
+    if (!linhaPrivada) {
+      return erro(
+        "Os dados de identificação não chegaram ao banco. Tente de novo; se continuar, fale com a gente antes de sair desta tela."
+      );
+    }
   }
+
+  return null;
+}
+
+// -------------------------------------------------------------------------
+// O RASCUNHO DE CADA "CONTINUAR" (T-051 / QA-001, causa do R-072)
+// -------------------------------------------------------------------------
+// Mesmo contrato do `salvarPassoVet`: valida e grava SÓ o passo pedido, NUNCA
+// chama `concluir_onboarding_profissional()`, nunca escreve status, e devolve
+// `{ ok: true }` em vez de redirecionar. O portão é `ONBOARDING`
+// (`incomplete` e `pending_validation`, os mesmos da página). `active` fica de
+// fora: mexer em CNPJ, razão social, responsável técnico ou nome fantasia de um
+// estabelecimento aprovado o devolveria à fila a cada clique.
+//
+// ⚠️ Sem migration: as colunas tocadas são anuláveis e os CHECKs da `0004`
+// aceitam nulo.
+export async function salvarPassoClinic(
+  entrada: ClinicOnboardingPayload,
+  passo: PassoDoRascunho
+): Promise<ResultadoPasso> {
+  if (passo !== 1 && passo !== 2 && passo !== 3) {
+    return erro("Não entendemos qual passo salvar. Recarregue a página e tente de novo.");
+  }
+
+  const quem = await conferirQuemGrava(ONBOARDING);
+  if (!quem.ok) return quem;
+
+  const v =
+    passo === 1
+      ? validarPasso1(entrada)
+      : passo === 2
+        ? validarPasso2(entrada)
+        : validarPasso3(entrada);
+  if (!v.ok) return v;
+
+  const falha = await gravar(quem.supabase, quem.userId, v.valor);
+  if (falha) return falha;
+
+  console.log("[clinic/onboarding] rascunho salvo", { userId: quem.userId, passo });
+  return { ok: true };
+}
+
+// -------------------------------------------------------------------------
+// A CONCLUSÃO (passo 4)
+// -------------------------------------------------------------------------
+export async function salvarOnboardingClinic(
+  entrada: ClinicOnboardingPayload
+): Promise<ResultadoOnboarding | void> {
+  // `active` é aceito de propósito, e é a única diferença em relação ao guard
+  // da página: a Action continua alcançável por aba velha, e é o passo 6 (a
+  // releitura de status) que conta a verdade pra quem acabou de se derrubar da
+  // busca sozinho. Desde a `0003`, `revalidar_ao_mudar_dado_sensivel()` vigia
+  // `cnpj`, `razao_social` e `responsavel_tecnico` dentro de `perfil_privado`.
+  const quem = await conferirQuemGrava(["incomplete", "pending_validation", "active"]);
+  if (!quem.ok) return quem;
+  const { supabase, perfil } = quem;
+  const user = { id: quem.userId };
+
+  const p1 = validarPasso1(entrada);
+  if (!p1.ok) return p1;
+  const p2 = validarPasso2(entrada);
+  if (!p2.ok) return p2;
+  const p3 = validarPasso3(entrada);
+  if (!p3.ok) return p3;
+
+  const falha = await gravar(supabase, user.id, {
+    publico: { ...p1.valor.publico, ...p2.valor.publico, ...p3.valor.publico },
+    privado: { ...p1.valor.privado, ...p2.valor.privado, ...p3.valor.privado },
+  });
+  if (falha) return falha;
 
   // -------------------------------------------------------------------------
   // 5. A FILA DE VALIDAÇÃO

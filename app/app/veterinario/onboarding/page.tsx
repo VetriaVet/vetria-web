@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import VetOnboardingForm from "./VetOnboardingForm";
-import { salvarOnboardingVet } from "./actions";
-import { VAZIO, type VetOnboardingInicial } from "./campos";
+import { salvarOnboardingVet, salvarPassoVet } from "./actions";
+import { VAZIO, primeiroPassoIncompleto, type VetOnboardingInicial } from "./campos";
 
 export const metadata = {
   title: "Configurar perfil profissional",
@@ -130,19 +130,32 @@ export default async function VetOnboardingPage() {
     whatsapp: privado?.whatsapp ?? "",
   };
 
+  const motivoReprova =
+    profile.status === "incomplete" ? profile.status_motivo?.trim() || null : null;
+  const documentoEnviadoEm = privado?.documento_enviado_em ?? null;
+
+  // T-051 / QA-001 — reabrir no primeiro passo incompleto, lido do que o
+  // rascunho de cada "Continuar" gravou. Quem está em revisão (na fila) ou foi
+  // devolvido pela equipe abre no passo 1: veio corrigir, e o motivo da
+  // devolução pode ser de qualquer passo.
+  const passoInicial =
+    profile.status === "pending_validation" || motivoReprova
+      ? 1
+      : primeiroPassoIncompleto(inicial, Boolean(documentoEnviadoEm));
+
   return (
     <VetOnboardingForm
       inicial={inicial}
+      passoInicial={passoInicial}
       modo={profile.status === "pending_validation" ? "revisao" : "novo"}
-      documentoEnviadoEm={privado?.documento_enviado_em ?? null}
+      documentoEnviadoEm={documentoEnviadoEm}
       // Só em `incomplete`: é o estado em que a reprova devolve a pessoa.
       // Em `pending_validation` o motivo antigo pode continuar gravado (a RPC
       // de conclusão não o limpa), e mostrá-lo ali diria que a pessoa está
       // reprovada quando ela já está de volta na fila.
-      motivoReprova={
-        profile.status === "incomplete" ? profile.status_motivo?.trim() || null : null
-      }
+      motivoReprova={motivoReprova}
       action={salvarOnboardingVet}
+      salvarPasso={salvarPassoVet}
     />
   );
 }
