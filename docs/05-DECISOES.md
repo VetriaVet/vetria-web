@@ -1033,7 +1033,12 @@ dispara: cada número raspado vira uma linha falsa em `contatos`, e a métrica q
 **Decisão:** `registrar_contato` recusa com `muitas_tentativas` (sem número, sem linha) quando o sistema inteiro já
 gravou **30 contatos no último minuto**. O clique repetido do D5 não é afetado (não grava). Concorrência: contagem
 sem trava no caminho normal; a partir de 20 no minuto, trava global e recontagem (excesso possível: alguns pedidos
-simultâneos). Índice `idx_contatos_created_at`.
+simultâneos). Índice `idx_contatos_created_at`. **Excesso máximo (SEC-136):** abaixo de 20 no minuto ninguém trava,
+então uma rajada simultânea passa inteira; o excesso sobre 30 por minuto é limitado pelo número de transações ao mesmo
+tempo, ou seja, **aproximadamente o tamanho do pool de conexões do PostgREST**, e não pelos 10 de folga. Não provado em
+concorrência real (o ensaio em PGlite tem uma conexão só); se der, provar no `vetria-e2e` com duas sessões e 29
+linhas plantadas. A trava global usa duas chaves fixas, `(1447383122, 1)`, fora do espaço das travas por visitante
+(SEC-135).
 **Por que 30:** no lançamento o volume real esperado fica abaixo de 1 contato por minuto (poucas dezenas de perfis,
 tráfego local); um pico de divulgação talvez chegue a 10 por minuto. 30 dá folga de 3 vezes sobre esse pico e limita
 o estrago de uma rajada a 30 linhas por minuto, fáceis de achar e expurgar.

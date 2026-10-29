@@ -61,6 +61,10 @@
 -- Escrita em: 25/09/2026 · vetria-backend · NÃO APLICADA em lugar nenhum.
 -- Emenda de 28/10/2026, antes da sessão A (SEC-2026-10-28-T040): SEC-128
 -- (número fora do formato não grava) e SEC-120 (c) (freio global, DL-075).
+-- Segunda emenda de 28/10/2026 (SEC-2026-10-28-0006-emenda, SEC-135): a trava
+-- global usa duas chaves int4 fixas, num espaço que nenhuma trava de uma
+-- chave alcança; as travas por visitante e por usuário passam a
+-- `hashtextextended(..., 0)` (64 bits).
 -- Auditoria obrigatória antes de aplicar: vetria-seguranca.
 -- ============================================================================
 
@@ -454,9 +458,15 @@ begin
   end if;
 
   -- 2) um pedido por visitante de cada vez, até o fim da transação
-  perform pg_advisory_xact_lock(hashtext('vetria.contato.anon.' || p_anon_id::text));
+  -- SEC-135: chave de 64 bits (`hashtextextended`). O `anon_id` vem do
+  -- cookie, então o cliente escolhe a chave; com 32 bits ele acharia por força
+  -- bruta um UUID que colide com outra trava. A trava de slug
+  -- (`gerar_slug_do_perfil`) segue com `hashtext` de 32 bits para não mudar
+  -- o hash conferido na sonda 1; com a do visitante em 64 bits, colidir com
+  -- ela exige ~2^64 tentativas.
+  perform pg_advisory_xact_lock(hashtextextended('vetria.contato.anon.' || p_anon_id::text, 0));
   if p_user_id is not null then
-    perform pg_advisory_xact_lock(hashtext('vetria.contato.user.' || p_user_id::text));
+    perform pg_advisory_xact_lock(hashtextextended('vetria.contato.user.' || p_user_id::text, 0));
   end if;
 
   -- 3) o número
@@ -503,14 +513,21 @@ begin
   -- que já foi commitado; a trava só solta no fim da transação de quem a tem,
   -- então a linha dele já conta). Pedidos que contaram abaixo de
   -- `teto_global - folga_global` sem trava podem passar juntos: o excesso
-  -- possível é de alguns pedidos simultâneos, não de um minuto inteiro. Ordem
+  -- possível é de alguns pedidos simultâneos (no máximo cerca do tamanho do
+  -- pool de conexões do PostgREST, SEC-136), não de um minuto inteiro. Ordem
   -- das travas: visitante antes, global por último, sempre (sem deadlock).
+  --
+  -- SEC-135: a trava global é a forma de DUAS chaves int4, (1447383122, 1):
+  -- 1447383122 = 0x56455452, "VETR" em ASCII; 1 = freio global de contato.
+  -- O Postgres guarda trava de duas chaves num espaço separado do das travas
+  -- de uma chave (bigint), então nenhum `anon_id` escolhido pelo cliente
+  -- colide com ela. A sonda 1 linha 8 confere estas chaves.
   select count(*) into v_no_minuto
   from public.contatos c
   where c.created_at > now() - janela_global;
 
   if v_no_minuto >= teto_global - folga_global then
-    perform pg_advisory_xact_lock(hashtext('vetria.contato.global'));
+    perform pg_advisory_xact_lock(1447383122, 1);
     select count(*) into v_no_minuto
     from public.contatos c
     where c.created_at > now() - janela_global;
@@ -587,7 +604,7 @@ begin
     return 0;
   end if;
 
-  perform pg_advisory_xact_lock(hashtext('vetria.contato.anon.' || p_anon_id::text));
+  perform pg_advisory_xact_lock(hashtextextended('vetria.contato.anon.' || p_anon_id::text, 0));
 
   update public.contatos c
   set user_id = p_user_id

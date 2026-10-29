@@ -24,12 +24,17 @@
 -- do freio global); sonda 2 ganhou os casos 26-28 (SEC-128, número fora do
 -- formato) e 80-85 (SEC-120 c, freio global de 30/min, DL-075). Contagens
 -- novas: sonda 1 com 7 `true`, sonda 2 com 68 OK.
+-- Segunda emenda de 28/10/2026 (SEC-2026-10-28-0006-emenda): sonda 1 ganhou a
+-- linha 8 (chaves fixas da trava global, SEC-135); sonda 2 ganhou o caso de 9
+-- dígitos (SEC-137): o 28 agora é ele e a conferência de "zero linhas" virou
+-- o 29. Contagens: sonda 1 com 8 `true`, sonda 2 com 69 OK.
 -- ============================================================================
 
 
 -- ####### SONDA 1 — o catálogo ##############################################
--- Esperado: 7 linhas, TODAS com `ok` = true. (É o mesmo que o select final da
--- migration mostrou; rodar de novo aqui prova que nada mudou depois.)
+-- Esperado: 8 linhas, TODAS com `ok` = true. (As 7 primeiras são o mesmo que o
+-- select final da migration mostrou; rodar de novo aqui prova que nada mudou
+-- depois. A 8 confere as chaves das travas, SEC-135.)
 select * from (
   select 1 as ordem, 'registrar_contato: EXECUTE so service_role' as item,
          not has_function_privilege('anon', 'public.registrar_contato(text, text, uuid, uuid, text, text)', 'EXECUTE')
@@ -76,13 +81,23 @@ select * from (
          exists (select 1 from pg_indexes where schemaname = 'public' and tablename = 'contatos'
                   and indexname = 'idx_contatos_created_at'),
          'se false: o freio global le a tabela inteira a cada clique'
+  union all
+  select 8, 'travas: global com as 2 chaves fixas (1447383122, 1); visitante e usuario em 64 bits',
+         (select count(*) = 2 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'public'
+             and p.proname in ('registrar_contato', 'vincular_contatos_do_visitante')
+             and position('hashtext(' in regexp_replace(p.prosrc, '[[:space:]]+', '', 'g')) = 0
+             and position('hashtextextended(' in regexp_replace(p.prosrc, '[[:space:]]+', '', 'g')) > 0
+             and (p.proname <> 'registrar_contato'
+                  or position('pg_advisory_xact_lock(1447383122,1);' in regexp_replace(p.prosrc, '[[:space:]]+', '', 'g')) > 0)),
+         'se false: a trava global voltou a dividir espaco com a do visitante (SEC-135)'
 ) s
 order by ordem;
 
 
 -- ####### SONDA 2 — cada regra nova, com controle positivo ##################
--- Esperado: TODAS as linhas com `veredito` = OK (68 linhas; eram 59 até a
--- emenda de 28/10).
+-- Esperado: TODAS as linhas com `veredito` = OK (69 linhas; eram 59 até a
+-- emenda de 28/10 e 68 até a segunda emenda, que trouxe o caso de 9 dígitos).
 -- Os limites (21 a 25) contam profissionais DISTINTOS: a sonda planta
 -- contatos antigos apontando para outras contas (4 para o limite curto, 5
 -- para a janela, 20 para o limite de 24 h). Se o banco não tiver 20 outras
@@ -106,7 +121,8 @@ order by ordem;
 --    4-20   registrar_contato: grava e devolve; D5; origem; nao_encontrado;
 --           sem_whatsapp; logado; consigo mesmo; anon_id obrigatório
 --   21-25   D3: os limites, e a janela de 10 min
---   26-28   SEC-128: WhatsApp fora do formato devolve sem_whatsapp e NAO grava
+--   26-29   SEC-128: WhatsApp fora do formato devolve sem_whatsapp e NAO grava
+--           (28 = 9 digitos, o limite de baixo, SEC-137)
 --   30-38   R-074: quem lê quais colunas de contatos
 --   40-45   D10: o vínculo na criação de conta (a data vem de auth.users)
 --   50-55   R-076 / D11: a linha anonimizada
@@ -246,9 +262,13 @@ declare
            'service', '',
            $c$update public.perfil_privado set whatsapp = '556230000001' where id = '%CLINIC%'$c$,
            $c$select count(*) from (select public.registrar_contato('clinic', '%SLUGCLI%', null, 'a0000000-0000-4000-8000-000000000027', null, null) r) x where r ->> 'ok' = 'false' and r ->> 'motivo' = 'sem_whatsapp' and r -> 'whatsapp' is null$c$, 'linhas=1', '0'],
-    ['28', 'SEC-128: e o numero fora do formato NAO grava linha (zero linhas novas)',
+    ['28', 'SEC-137: WhatsApp com 9 digitos (sem o DDD): sem_whatsapp, sem numero',
+           'service', '',
+           $c$update public.perfil_privado set whatsapp = '629000000' where id = '%CLINIC%'$c$,
+           $c$select count(*) from (select public.registrar_contato('clinic', '%SLUGCLI%', null, 'a0000000-0000-4000-8000-000000000028', null, null) r) x where r ->> 'ok' = 'false' and r ->> 'motivo' = 'sem_whatsapp' and r -> 'whatsapp' is null$c$, 'linhas=1', '0'],
+    ['29', 'SEC-128: e o numero fora do formato NAO grava linha (zero linhas novas)',
            'dono', '', '',
-           $c$select count(*) from public.contatos where anon_id in ('a0000000-0000-4000-8000-000000000026', 'a0000000-0000-4000-8000-000000000027')$c$, 'linhas=0', '0'],
+           $c$select count(*) from public.contatos where anon_id in ('a0000000-0000-4000-8000-000000000026', 'a0000000-0000-4000-8000-000000000027', 'a0000000-0000-4000-8000-000000000028')$c$, 'linhas=0', '0'],
 
     -- ------------------------------------------------ R-074: colunas
     ['30', 'controle positivo: o vet le as colunas das telas dos proprios contatos',
