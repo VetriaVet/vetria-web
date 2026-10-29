@@ -51,6 +51,11 @@ jobs:
       E2E_EXIGIR_FILA: "1"
       # 0005 e seed de cidades aplicados no vetria-e2e em 25/09: liga o grupo B da busca
       E2E_BUSCA_LIGADA: "1"
+      # 0006 aplicada no vetria-e2e em 29/10 (sessao A, sondas 8/8, 69/69, 0, 2/2):
+      # abre a porta do contato SO neste servidor de teste e liga a parte B de
+      # contato-rota.spec.ts e contato-botao.spec.ts. A porta ainda exige
+      # VERCEL_ENV != production e URL que nao seja a de producao (lib/contato/porta.ts).
+      CONTATO_ABERTO_PARA_TESTE: "1"
 
     steps:
       - uses: actions/checkout@v4
