@@ -741,33 +741,71 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
   **Commits:** branch `t-039-migration-0006` (hash na resposta ao maestro).
 
 ### T-040 — A rota `POST /api/contato` e o cookie do visitante
-- **Estado:** ⬜ **fila de 28/10, item 2**, depois da T-039 no `vetria-e2e` (sessão A, 29/10). Pode ser escrita antes, contra o desenho
+- **Estado:** 🔵 **escrita em 28/10, NÃO commitada na `main`, aguardando aprovação do diff (🟡) e auditoria do `vetria-seguranca`.** Branch `t-040-api-contato` (a partir da `t-039-migration-0006`). A parte que depende da `0006` só roda depois da sessão A (29/10)
 - **Fase / Semana:** F4 / S6-S7 · **Capacidade:** **E5** · **Nível:** 🟡 — `/api/*` e `lib/` · **Dono:** vetria-backend · **Auditoria:** vetria-seguranca
 - **Depende de:** **T-039** aplicada no `vetria-e2e`; **T-031** se D4 = sim
 - **Por quê:** é a única porta pela qual o número sai. Tem que estar certa antes de o botão existir
 - **Feito quando:**
-  - [ ] Só POST; `Sec-Fetch-Site` diferente de `same-origin` é recusado; corpo validado contra listas fechadas; resposta no formato `RespostaDoContato`; `Cache-Control: no-store`
-  - [ ] Cookie `vetria_visitante` criado no primeiro clique (D2), com os atributos do desenho §4
-  - [ ] Chama `registrar_contato` pelo `lib/supabase/admin.ts` (`server-only`) e nada mais com esse cliente
-  - [ ] Número e `anon_id` **nunca** em log (só o `code` do erro, como no resto do projeto)
-  - [ ] Turnstile conferido no servidor, se D4 = sim
-  - [ ] **Gesto do Elber, guiado por este card:** regra do firewall da Vercel em `/api/contato` (D3), escrita aqui
-  - [ ] Teste de API no CI: sem `Sec-Fetch-Site` recusa; slug inválido recusa; o número só vem no corpo da resposta do POST
+  - [x] Só POST; `Sec-Fetch-Site` diferente de `same-origin` é recusado; corpo validado contra listas fechadas; resposta no formato `RespostaDoContato`; `Cache-Control: no-store`
+  - [x] Cookie `vetria_visitante` criado no primeiro clique (D2), com os atributos do desenho §4 _(escrito; a prova com banco é a parte B do teste, depois da 0006)_
+  - [x] Chama `registrar_contato` pelo `lib/supabase/admin.ts` (`server-only`) e nada mais com esse cliente
+  - [x] Número e `anon_id` **nunca** em log (só o `code` do erro, como no resto do projeto)
+  - [x] Turnstile conferido no servidor, se D4 = sim _(ponto de verificação pronto e **desligado** por `TURNSTILE_NO_CONTATO = false`: a chave não existe; ver Resultado)_
+  - [ ] **Gesto do Elber, guiado por este card:** regra do firewall da Vercel em `/api/contato` (D3), escrita aqui _(roteiro no Resultado)_
+  - [ ] Teste de API no CI: sem `Sec-Fetch-Site` recusa; slug inválido recusa; o número só vem no corpo da resposta do POST _(parte A verde local; parte B escrita, liga com `CONTATO_ABERTO_PARA_TESTE: "1"` no CI depois da 0006)_
   - [ ] **SEC-129 (auditoria de 28/10, a qualquer momento):** a trava do modo de teste em `lib/contato/porta.ts` vira lista **positiva** (só o ref do `vetria-e2e`), em vez de "qualquer projeto que não seja o de produção". `CONTATO_ABERTO_PARA_TESTE` nunca no escopo Production nem no Preview geral da Vercel; para a demo de 31/10, variável restrita à branch
 - **Não fazer:** o botão (T-041). Server Action no lugar da rota (a regra de firewall precisa de caminho fixo).
-- **Resultado:** _(a preencher)_
+- **Resultado:** 🔵 **28/10/2026, escrita e testada no que dá para testar sem a `0006`. Nada em produção, nada em banco.**
+  Arquivos: `app/api/contato/route.ts` (novo), `lib/contato/porta.ts` (novo, `server-only`), `lib/contato/turnstile.ts`
+  (novo, `server-only`), `lib/perfil-publico/contato.ts` (comentário e um motivo novo, `verificacao_recusada`),
+  `tests/e2e/contato-rota.spec.ts` (novo).
+
+  **O que passou a funcionar:** existe a rota `POST /api/contato`. **Em produção ela fica fechada**: enquanto
+  `CONTATO_PELO_SITE_ABERTO = false`, um pedido válido recebe `503 {"ok":false,"motivo":"indisponivel"}`, sem cookie,
+  sem ler sessão e sem tocar no banco. Pedido de fora do site (sem `Sec-Fetch-Site: same-origin`) recebe 403; corpo que
+  não é JSON, 415; corpo acima de 4 KB, 413; tipo fora de `vet`/`clinic` ou slug fora do formato do DL-067, 400
+  `nao_encontrado`. Toda resposta tem `Cache-Control: no-store`.
+
+  **Como a porta abre (`lib/contato/porta.ts`):** (1) produção: `CONTATO_PELO_SITE_ABERTO = true` **e**
+  `TURNSTILE_NO_CONTATO = true`. A SEC-120 (a) está em código: ligar o botão sem o captcha deixa a rota fechada.
+  (2) teste: `CONTATO_ABERTO_PARA_TESTE=1` no servidor, `VERCEL_ENV` diferente de `production` e a URL do Supabase
+  **não** sendo a de produção (ref `gdqnnrozbxrtaaquarnd`). Medido em 28/10: build com a URL de produção e a variável
+  ligada respondeu 503 sem chamar o banco; build com uma URL de teste e a variável ligada chamou o banco.
+
+  **Prova local (28/10):** `npm run lint` limpo; `npm run build` verde (`ƒ /api/contato`); parte A do teste, **6 de 6
+  verdes** contra `next start` local: recusa sem/`cross-site`/`same-site`/`none` em `Sec-Fetch-Site`, o `fetch` de
+  dentro da página passa da conferência de origem (o navegador manda `same-origin`), GET dá 405, 415/400/413, 10
+  corpos ruins com `nao_encontrado` e 5 com `indisponivel`, e o teste "porta" exige 503 com a variável desligada.
+
+  **A parte B (só depois da 0006 no `vetria-e2e`):** com `CONTATO_ABERTO_PARA_TESTE: "1"` no `env:` do job do
+  `ci.yml`, 3 testes: o número só vem no corpo do POST e nunca no HTML (antes e depois do clique), a linha nasce em
+  `contatos` com `anon_id` igual ao cookie e a origem certa, o cookie tem `HttpOnly`, `Secure`, `SameSite=Lax`,
+  `Path=/`, `Max-Age=15552000`; o 2º clique em 24 h não duplica (D5); cookie que não é UUID vira cookie novo; origem
+  fora da lista vira nula; perfil sem WhatsApp dá 422 `sem_whatsapp` sem gravar; conta suspensa dá 404 sem gravar.
+  **Não ligar a variável antes da 0006:** o teste "porta" fica vermelho dizendo por quê.
+
+  **Gesto do Elber, regra do firewall da Vercel** (Firewall > Custom Rules, sessão do firewall junto com a T-020):
+  nome `contato-por-ip`; **se** o caminho for igual a `/api/contato` **e** o método for `POST`; **então** Rate Limit,
+  janela fixa de 60 s, **10 pedidos**, chave **IP** (no plano que permitir, acrescentar **JA4**), ação **429** por
+  60 s. Para o IPv6 contar por /64 (SEC-120 b): conferir no painel se a chave por IP já agrupa por /64; se não
+  agrupar, anotar aqui o que o plano oferece. Escrever aqui a regra aplicada e a data.
+
+  **Ficou de fora, de propósito:** limite em memória na rota (função serverless não guarda estado; o limite é da
+  borda e do banco); o freio global no banco da SEC-120 (c) (seria migration nova, sem decisão); o widget do
+  Turnstile e a chave (T-031, T-041); o vínculo na criação de conta (T-042); o teste do `muitas_tentativas` pela
+  rota (precisa de 6 profissionais ativos; já está provado na sonda 2 da `0006` e é item da T-043).
 
 ### T-041 — O botão "Chamar no WhatsApp", a revelação do número e o convite, no perfil público
-- **Estado:** ⬜ **fila de 28/10, item 3** (construída contra o `vetria-e2e`; **liga em produção só com a T-039 em produção e o Turnstile no clique**, meta ter 04/11)
+- **Estado:** 🔵 **escrita em 28/10 na branch `t-041-botao-whatsapp` (a partir da `t-040-api-contato`), sem push, aguardando aprovação do diff (🟡).** Produção continua "abre em breve". **Liga em produção só com a T-039 em produção e o Turnstile no clique**, meta ter 04/11
 - **Fase / Semana:** F4 / S7 · **Capacidade:** **E5** · **Nível:** 🟡 — `components/` · **Dono:** vetria-ui
 - **Depende de:** **T-040**
 - **Por quê:** é o que o responsável toca. DoD da F4 item 4, primeira metade
 - **Feito quando:**
-  - [ ] `BlocoDeContato` (`components/publico/Perfil.tsx`) com o fluxo do desenho §1: botão → POST → número formatado + "Abrir no WhatsApp" (`wa.me/55…?text=` com D7) + "Copiar número" → convite com "Agora não"
-  - [ ] Os quatro estados de erro com texto honesto; `sem_whatsapp` não desenha botão (D9)
-  - [ ] A linha de transparência sob o botão (D2)
-  - [ ] `CONTATO_PELO_SITE_ABERTO = true` **no mesmo commit que liga a rota em produção, e só então**
-  - [ ] O HTML inicial continua **sem** número (o teste de hoje continua verde). Toque com teclado e leitor de tela; 360 px; sem travessão
+  - [x] `BlocoDeContato` (`components/publico/Perfil.tsx`) com o fluxo do desenho §1: botão → POST → número formatado + "Abrir no WhatsApp" (`wa.me/55…?text=` com D7) + "Copiar número" → convite com "Agora não" _(escrito; a prova em tela é o `contato-botao.spec.ts`, que liga depois da 0006)_
+  - [x] Os quatro estados de erro com texto honesto (mais o `verificacao_recusada` da T-040 e a falta de rede); `sem_whatsapp` não desenha botão (D9) _(o botão sai depois da resposta: a página pública não sabe, sem o clique, se há número, ver Resultado)_
+  - [x] A linha de transparência sob o botão (D2)
+  - [ ] `CONTATO_PELO_SITE_ABERTO = true` **no mesmo commit que liga a rota em produção, e só então** _(de propósito NÃO feito: continua `false`)_
+  - [x] O HTML inicial continua **sem** número (o teste de hoje continua verde). Toque com teclado e leitor de tela; 360 px; sem travessão _(escrito no teste; falta rodar, ver Resultado)_
   - [ ] **Aceites da auditoria de 28/10 (`docs/relatorios/SEC-2026-10-28-T040-api-contato.md`), antes de ligar a constante:**
     - [ ] **SEC-127:** a regra `contato-por-ip` do firewall da Vercel (10/min por IP, IPv6 agrupado por /64) **aplicada e escrita neste card** antes de `CONTATO_PELO_SITE_ABERTO = true`. O freio global do banco (DL-075) já está na `0006`; o alarme de volume e a limpeza de rajadas ficam anotados como próximo passo
     - [ ] **SEC-131:** o siteverify do Turnstile (`lib/contato/turnstile.ts`) exige `hostname` igual ao domínio canônico e `action` igual a `contato`
@@ -775,7 +813,59 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
     - [ ] **SEC-133:** medir no Safari anterior ao 16.4 (não manda `Sec-Fetch-Site` e hoje recebe 403); se recusar gente real, aceitar cabeçalho ausente quando `Origin` for o domínio canônico
     - [ ] O texto de `muitas_tentativas` serve também para o freio global (DL-075): não acusar a pessoa de "tentar demais", pedir para tentar de novo em um minuto
 - **Não fazer:** botão no cartão da busca (D8). Abrir o WhatsApp sozinho depois do `await`. Pedir nome ou conta antes do número.
-- **Resultado:** _(a preencher)_
+- **Resultado:** 🔵 **28/10/2026, escrita; lint e checagem de tipos limpos; `npm run build` NÃO rodou (disco cheio, ver abaixo). Nada em produção, nada em banco.**
+  Arquivos: `components/publico/ContatoPeloWhatsapp.tsx` (novo, cliente), `components/publico/Perfil.tsx` (`BlocoDeContato`
+  e a prop `contato`), `app/veterinario/[slug]/page.tsx` e `app/estabelecimento/[slug]/page.tsx` (passam `contato`, que é
+  só tipo + slug), `tests/e2e/contato-botao.spec.ts` (novo), `tests/e2e/busca-com-dados.spec.ts` (o "abre em breve" vira
+  condicional à porta).
+
+  **Quem decide se o botão existe:** a mesma pergunta da rota, `estadoDaPorta()` de `lib/contato/porta.ts`, lida no
+  servidor a cada pedido (a página já é `force-dynamic`). Porta fechada: o bloco de sempre, *"O contato pelo WhatsApp abre
+  em breve."*, sem botão. **Produção fica igual a hoje**: a porta só abre lá com `CONTATO_PELO_SITE_ABERTO` **e**
+  `TURNSTILE_NO_CONTATO` em `true`. No teste, abre com `CONTATO_ABERTO_PARA_TESTE=1` contra o `vetria-e2e`, e o botão
+  aparece junto com a rota, sem uma segunda chave para esquecer. Botão nunca aparece com a rota fechada.
+
+  **Os estados:** inicial (frase curta, botão verde "Chamar no WhatsApp", linha do D2 embaixo); enviando (botão
+  desabilitado com `aria-busy`, girando, e "Buscando o número." anunciado); revelado (número formatado em destaque, com
+  foco nele; "Abrir no WhatsApp" em outra aba com `rel="noopener noreferrer"` e a mensagem do D7; "Copiar número" com
+  retorno "Número copiado" ou o pedido para copiar à mão; a frase dizendo que a mensagem vai escrita; o convite *"Quer
+  acompanhar seus contatos?"* com "Criar minha conta" (`/cadastro/responsavel`) e "Agora não"); `sem_whatsapp` (o botão
+  sai, *"Este veterinário ainda não informou um WhatsApp para contato."*); `nao_encontrado` (*"Este perfil não está mais
+  disponível."* e link para a busca, sem botão); `muitas_tentativas` (*"Você abriu muitos contatos em pouco tempo. Espere
+  alguns minutos e tente de novo."*, botão volta); `verificacao_recusada` (o botão vira "Recarregar a página");
+  `indisponivel`, resposta fora do formato e falta de rede (*"Não conseguimos mostrar o número agora. A falha foi do nosso
+  lado."*, botão volta). Nada abre sozinho depois do `await`. Uma região `aria-live` fixa anuncia o envio e o número;
+  as falhas saem em `role="alert"`.
+
+  **Decisões pequenas tomadas aqui (para o Elber confirmar ou desfazer):**
+  1. **Prévia do dono no painel:** com a porta aberta, o botão aparece esmaecido (tracejado) e não faz nada, com a frase
+     *"Na prévia ele não funciona, para não contar um contato seu."* Com a porta fechada, o "abre em breve" de hoje.
+  2. **Convite só sem sessão:** quem tem cookie de sessão do Supabase no navegador não vê "Crie sua conta" (seria
+     convidar quem já tem conta). É só a presença do cookie, sem chamada ao Supabase na página.
+  3. **`sem_whatsapp` só depois do toque:** o card pede "não desenha botão" (D9), mas a página pública lê como `anon` e
+     não alcança `perfil_privado`; saber antes do toque exigiria expor um "tem WhatsApp" no perfil público (mudança de
+     banco ou de matriz, fora deste card). Com a T-046 (WhatsApp obrigatório), o caso fica raro.
+  4. **Turnstile:** `pedirTokenDoTurnstile()` em `ContatoPeloWhatsapp.tsx` é o ponto: devolve nulo e não carrega script
+     nenhum. Quando a T-031 existir, o token entra no campo `turnstile` do corpo, que já é montado ali.
+
+  **⚠️ A origem da busca ainda chega nula.** O botão lê `cidade` e `especialidade` do endereço do perfil (só no formato de
+  slug), mas o cartão da busca (`lib/busca/buscar.ts`, `href: /veterinario/<slug>`) não leva esses parâmetros. Para a
+  métrica *"veio de uma busca por Clínica geral em Goiânia"* (desenho §5) é preciso o cartão acrescentar
+  `?cidade=<slug>&especialidade=<slug>` quando a busca tiver esses filtros. É `lib/` (🟡, backend) e tem efeito de
+  indexação (o perfil ganha endereços com parâmetro; pedir `canonical` junto na T-045). **Fica para a T-042 ou T-043.**
+
+  **Teste (`tests/e2e/contato-botao.spec.ts`), registrado só com `CONTATO_ABERTO_PARA_TESTE=1` e rodando só com
+  `E2E_ALVO=teste`** (mesmo padrão da parte B do `contato-rota.spec.ts`), em 360 px: HTML sem o número antes e depois;
+  sem rolagem lateral; toque pelo teclado (Enter) revela o número formatado com foco nele; `href`, `target` e `rel` do
+  "Abrir no WhatsApp" exatos; nenhuma aba abre sozinha; a linha nasce em `contatos`; convite e "Agora não"; perfil sem
+  WhatsApp tira o botão e não grava; 429, 403, 503, resposta fora do formato, 404 e falta de rede pela rota interceptada;
+  botão desabilitado durante o envio e um toque a mais não manda segundo pedido. **Não rodou:** depende da 0006 no
+  `vetria-e2e` (sessão A, 29/10).
+
+  **Prova local (28/10):** `npm run lint` limpo (eslint no repositório inteiro); `tsc --noEmit` limpo. **`npm run build`
+  não rodou:** o disco C: está com ~150 MB livres, a instalação das dependências nesta cópia falhou com `ENOSPC` e um build
+  completo não cabe. **Antes do push, o Elber (ou o próximo agente) roda `npm run build` com espaço livre.** Também não
+  houve conferência visual no navegador pelo mesmo motivo.
 
 ### T-042 — "Contatos recebidos" do profissional, "Seus contatos" do responsável e o vínculo na criação de conta
 - **Estado:** ⬜ **semana 2 (04/11 a 10/11)**, primeira do backend depois do contato no ar. ⚠️ Lembrete da T-039: pedir colunas pelo nome (`select=*` dá 42501) e chamar o vínculo no cadastro, não em login qualquer
