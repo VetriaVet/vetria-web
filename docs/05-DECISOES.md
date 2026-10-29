@@ -1023,3 +1023,30 @@ demonstrar em produção antes de a `0006` estar lá.
 - A T-050 perde a dependência "decisão do R-077".
 - O roadmap público (`app/roadmap/page.tsx`) foi ressincronizado com o calendário de 28/10 no mesmo passo.
 **Status:** ✅ decidida · ⬜ executada (sessões A e B, texto da LP de preço até 14/11, rascunho dos Termos até 10/11)
+
+### DL-075: Freio global de contatos na `registrar_contato`: 30 por minuto no sistema inteiro (SEC-120 c)
+**Data:** 28/10/2026 · **Fase:** F4 · **Card:** T-039 · **Auditoria:** SEC-120 (c), SEC-127
+(`docs/relatorios/SEC-2026-10-28-T040-api-contato.md`) · **Quem decidiu:** o Elber, por delegação (DL-074), sobre a
+recomendação do `vetria-backend`.
+**Contexto:** o limite por visitante (D3) conta por `anon_id`. Um robô que troca de cookie a cada pedido nunca o
+dispara: cada número raspado vira uma linha falsa em `contatos`, e a métrica que o plano pago vende fica envenenada.
+**Decisão:** `registrar_contato` recusa com `muitas_tentativas` (sem número, sem linha) quando o sistema inteiro já
+gravou **30 contatos no último minuto**. O clique repetido do D5 não é afetado (não grava). Concorrência: contagem
+sem trava no caminho normal; a partir de 20 no minuto, trava global e recontagem (excesso possível: alguns pedidos
+simultâneos). Índice `idx_contatos_created_at`. **Excesso máximo (SEC-136):** abaixo de 20 no minuto ninguém trava,
+então uma rajada simultânea passa inteira; o excesso sobre 30 por minuto é limitado pelo número de transações ao mesmo
+tempo, ou seja, **aproximadamente o tamanho do pool de conexões do PostgREST**, e não pelos 10 de folga. Não provado em
+concorrência real (o ensaio em PGlite tem uma conexão só); se der, provar no `vetria-e2e` com duas sessões e 29
+linhas plantadas. A trava global usa duas chaves fixas, `(1447383122, 1)`, fora do espaço das travas por visitante
+(SEC-135).
+**Por que 30:** no lançamento o volume real esperado fica abaixo de 1 contato por minuto (poucas dezenas de perfis,
+tráfego local); um pico de divulgação talvez chegue a 10 por minuto. 30 dá folga de 3 vezes sobre esse pico e limita
+o estrago de uma rajada a 30 linhas por minuto, fáceis de achar e expurgar.
+**Custo aceito:** quem tiver 3 ou mais IPs e tokens do Turnstile consegue manter o contato fechado para todos por
+alguns minutos (o firewall de borda corta 10/min por IP). Prefere-se contato indisponível por um minuto a base raspada e
+métrica falsa.
+**Alternativas descartadas:** sem freio (o limite por visitante não vê o robô); 60/min (dobra o estrago de uma rajada
+sem ganho real de folga no lançamento); trava global em todo pedido (fila desnecessária com volume baixo).
+**Implicações:** mudar o teto é **migration nova + DL novo + a sonda 2** (casos 80 a 85). Revisar o número quando o
+volume real passar de 10 por minuto. O texto de `muitas_tentativas` na T-041 serve aos dois casos.
+**Status:** ✅ decidida · ⬜ aplicada (entra com a `0006`, sessão A)
