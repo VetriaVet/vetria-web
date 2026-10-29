@@ -16,10 +16,12 @@
 --       passa a aceitar linha anonimizada (R-076)
 --   §3  `contatos`: privilégio POR COLUNA. `authenticated` lê só as colunas
 --       das telas; `anon_id` e `user_id` ficam fora do PostgREST (R-074, D6)
---   §4  índices dos limites por visitante (D3)
---   §5  `registrar_contato(...)`: resolve o slug, exige `active`, deduplica
---       (D5), aplica os limites (D3), lê o WhatsApp de `perfil_privado`, grava
---       a linha e SÓ ENTÃO devolve o número. EXECUTE só para `service_role` (D1)
+--   §4  índices dos limites por visitante (D3) e do freio global (DL-075)
+--   §5  `registrar_contato(...)`: resolve o slug, exige `active`, lê o
+--       WhatsApp de `perfil_privado` e exige o formato (SEC-128), deduplica
+--       (D5), aplica os limites (D3) e o freio global (SEC-120 c, DL-075),
+--       grava a linha e SÓ ENTÃO devolve o número. EXECUTE só para
+--       `service_role` (D1)
 --   §6  `vincular_contatos_do_visitante(...)`: na criação de conta de
 --       responsável, os contatos anônimos dos últimos 30 dias daquele
 --       navegador passam para a conta (D10). EXECUTE só para `service_role`
@@ -57,6 +59,12 @@
 --     sem dígito. Marcador com número quebra no editor.
 --
 -- Escrita em: 25/09/2026 · vetria-backend · NÃO APLICADA em lugar nenhum.
+-- Emenda de 28/10/2026, antes da sessão A (SEC-2026-10-28-T040): SEC-128
+-- (número fora do formato não grava) e SEC-120 (c) (freio global, DL-075).
+-- Segunda emenda de 28/10/2026 (SEC-2026-10-28-0006-emenda, SEC-135): a trava
+-- global usa duas chaves int4 fixas, num espaço que nenhuma trava de uma
+-- chave alcança; as travas por visitante e por usuário passam a
+-- `hashtextextended(..., 0)` (64 bits).
 -- Auditoria obrigatória antes de aplicar: vetria-seguranca.
 -- ============================================================================
 
@@ -314,7 +322,7 @@ grant select (id, profissional_id, canal, origem_cidade, origem_especialidade, c
 
 
 -- ============================================================================
--- 4. ÍNDICES DOS LIMITES POR VISITANTE (D3)
+-- 4. ÍNDICES DOS LIMITES POR VISITANTE (D3) E DO FREIO GLOBAL (DL-075)
 -- ============================================================================
 -- A §5 conta "quantos profissionais este visitante contatou nos últimos 10
 -- minutos / 24 horas", por `anon_id` e por `user_id`. Os índices da 0002
@@ -324,6 +332,14 @@ create index if not exists idx_contatos_anon_recentes
   on public.contatos (anon_id, created_at desc) where anon_id is not null;
 create index if not exists idx_contatos_user_recentes
   on public.contatos (user_id, created_at desc) where user_id is not null;
+
+-- O freio global (SEC-120 c) conta "quantas linhas o sistema inteiro gravou no
+-- último minuto". Nenhum índice da 0002 começa por `created_at`
+-- (`idx_contatos_profissional` é `(profissional_id, created_at)` e não serve
+-- para um intervalo de tempo sem profissional). Com este, a contagem lê só as
+-- linhas do último minuto, que o próprio freio mantém poucas.
+create index if not exists idx_contatos_created_at
+  on public.contatos (created_at desc);
 
 
 -- ============================================================================
@@ -349,8 +365,10 @@ create index if not exists idx_contatos_user_recentes
 --   {"ok": true,  "whatsapp": "62900000001"}   dígitos, DDD + número, sem 55
 --   {"ok": false, "motivo": "nao_encontrado"}  slug inválido, inexistente,
 --                                              role errado ou conta não active
---   {"ok": false, "motivo": "sem_whatsapp"}    NÃO grava nada
---   {"ok": false, "motivo": "muitas_tentativas"}  NÃO grava nada
+--   {"ok": false, "motivo": "sem_whatsapp"}    sem número, ou número fora do
+--                                              formato (SEC-128). NÃO grava
+--   {"ok": false, "motivo": "muitas_tentativas"}  limite do visitante (D3) ou
+--                                              freio global (DL-075). NÃO grava
 -- Erro de programação (p_anon_id nulo) levanta 22004: a rota responde
 -- `indisponivel`.
 --
@@ -358,11 +376,21 @@ create index if not exists idx_contatos_user_recentes
 --   1. resolve o slug exigindo role certo E `active` (a mesma regra da busca)
 --   2. trava por visitante (dois cliques simultâneos não furam limite nem
 --      duplicam a linha)
---   3. lê o WhatsApp; sem número, `sem_whatsapp` e nada é gravado
+--   3. lê o WhatsApp; sem número, OU fora do formato `^[0-9]{10,11}$` (DDD +
+--      número, só dígitos, o mesmo que a rota exige: `WHATSAPP` em
+--      `app/api/contato/route.ts`), `sem_whatsapp` e nada é gravado (SEC-128:
+--      o dono pode gravar qualquer texto em `whatsapp` por PATCH, e uma linha
+--      gravada com número que a rota não entrega seria lead contado e não
+--      entregue)
 --   4. contato consigo mesmo: devolve o número e NÃO grava
 --   5. D5: o mesmo visitante já contatou este profissional nas últimas 24 h →
 --      devolve o número e NÃO grava de novo (a contagem é honesta)
 --   6. D3: 5 profissionais distintos em 10 min, 20 em 24 h → recusa
+--   6b. freio global (SEC-120 c, DL-075): o sistema inteiro já gravou 30
+--      contatos no último minuto → `muitas_tentativas`, sem número e sem
+--      linha. Segura o robô que troca de cookie a cada pedido (o limite por
+--      visitante não o vê). Não alcança o clique repetido do passo 5: quem
+--      já tem a linha continua recebendo o número
 --   7. grava a linha (anon_id sempre; user_id quando logado; a origem só se
 --      estiver nas listas: lixo não entra na métrica que se vende)
 --   8. SÓ ENTÃO devolve o número. Se o INSERT falhar, a transação inteira
@@ -388,8 +416,15 @@ declare
   limite_longo     constant integer  := 20;
   janela_longa     constant interval := interval '24 hours';
   janela_repetido  constant interval := interval '24 hours';
+  -- DL-075 (SEC-120 c): freio global. A partir de `teto_global - folga_global`
+  -- linhas no minuto, os pedidos passam a contar em fila (trava global);
+  -- abaixo disso, não há trava nenhuma.
+  teto_global      constant integer  := 30;
+  folga_global     constant integer  := 10;
+  janela_global    constant interval := interval '1 minute';
 
   v_profissional   uuid;
+  v_no_minuto      bigint;
   v_whatsapp       text;
   v_cidade         text;
   v_especialidade  text;
@@ -423,9 +458,15 @@ begin
   end if;
 
   -- 2) um pedido por visitante de cada vez, até o fim da transação
-  perform pg_advisory_xact_lock(hashtext('vetria.contato.anon.' || p_anon_id::text));
+  -- SEC-135: chave de 64 bits (`hashtextextended`). O `anon_id` vem do
+  -- cookie, então o cliente escolhe a chave; com 32 bits ele acharia por força
+  -- bruta um UUID que colide com outra trava. A trava de slug
+  -- (`gerar_slug_do_perfil`) segue com `hashtext` de 32 bits para não mudar
+  -- o hash conferido na sonda 1; com a do visitante em 64 bits, colidir com
+  -- ela exige ~2^64 tentativas.
+  perform pg_advisory_xact_lock(hashtextextended('vetria.contato.anon.' || p_anon_id::text, 0));
   if p_user_id is not null then
-    perform pg_advisory_xact_lock(hashtext('vetria.contato.user.' || p_user_id::text));
+    perform pg_advisory_xact_lock(hashtextextended('vetria.contato.user.' || p_user_id::text, 0));
   end if;
 
   -- 3) o número
@@ -433,7 +474,10 @@ begin
   from public.perfil_privado pp
   where pp.id = v_profissional;
 
-  if v_whatsapp is null then
+  -- SEC-128: o formato é conferido AQUI, antes de qualquer gravação. `[0-9]`
+  -- e não a barra-d: no Postgres ela pode aceitar dígito de outro alfabeto,
+  -- conforme o locale; a do JavaScript da rota é só ASCII.
+  if v_whatsapp is null or v_whatsapp !~ '^[0-9]{10,11}$' then
     return jsonb_build_object('ok', false, 'motivo', 'sem_whatsapp');
   end if;
 
@@ -463,6 +507,36 @@ begin
     return jsonb_build_object('ok', false, 'motivo', 'muitas_tentativas');
   end if;
 
+  -- 6b) DL-075 (SEC-120 c): o freio global. A contagem sem trava é o caminho
+  -- normal. Perto do teto, a trava global põe os pedidos em fila e cada um
+  -- reconta depois de pegar a vez (em READ COMMITTED cada comando enxerga o
+  -- que já foi commitado; a trava só solta no fim da transação de quem a tem,
+  -- então a linha dele já conta). Pedidos que contaram abaixo de
+  -- `teto_global - folga_global` sem trava podem passar juntos: o excesso
+  -- possível é de alguns pedidos simultâneos (no máximo cerca do tamanho do
+  -- pool de conexões do PostgREST, SEC-136), não de um minuto inteiro. Ordem
+  -- das travas: visitante antes, global por último, sempre (sem deadlock).
+  --
+  -- SEC-135: a trava global é a forma de DUAS chaves int4, (1447383122, 1):
+  -- 1447383122 = 0x56455452, "VETR" em ASCII; 1 = freio global de contato.
+  -- O Postgres guarda trava de duas chaves num espaço separado do das travas
+  -- de uma chave (bigint), então nenhum `anon_id` escolhido pelo cliente
+  -- colide com ela. A sonda 1 linha 8 confere estas chaves.
+  select count(*) into v_no_minuto
+  from public.contatos c
+  where c.created_at > now() - janela_global;
+
+  if v_no_minuto >= teto_global - folga_global then
+    perform pg_advisory_xact_lock(1447383122, 1);
+    select count(*) into v_no_minuto
+    from public.contatos c
+    where c.created_at > now() - janela_global;
+  end if;
+
+  if v_no_minuto >= teto_global then
+    return jsonb_build_object('ok', false, 'motivo', 'muitas_tentativas');
+  end if;
+
   -- 7) a origem, só se estiver nas listas
   if p_origem_cidade is not null
      and exists (select 1 from public.cidades ci where ci.slug = p_origem_cidade) then
@@ -484,7 +558,7 @@ end;
 $$;
 
 comment on function public.registrar_contato(text, text, uuid, uuid, text, text) is
-  '0006 / T-039: registra o clique de contato e devolve o WhatsApp na mesma transação (DL-047, D1, D3, D5). EXECUTE só service_role.';
+  '0006 / T-039: registra o clique de contato e devolve o WhatsApp na mesma transação (DL-047, D1, D3, D5). Formato do número conferido antes de gravar (SEC-128); freio global de 30/min (DL-075). EXECUTE só service_role.';
 
 revoke execute on function public.registrar_contato(text, text, uuid, uuid, text, text) from public, anon, authenticated;
 grant  execute on function public.registrar_contato(text, text, uuid, uuid, text, text) to service_role;
@@ -530,7 +604,7 @@ begin
     return 0;
   end if;
 
-  perform pg_advisory_xact_lock(hashtext('vetria.contato.anon.' || p_anon_id::text));
+  perform pg_advisory_xact_lock(hashtextextended('vetria.contato.anon.' || p_anon_id::text, 0));
 
   update public.contatos c
   set user_id = p_user_id
@@ -751,7 +825,8 @@ commit;
 -- ============================================================================
 -- 9. O RESULTADO, NA TELA (SEC-035) — leitura pura, depois do commit
 -- ============================================================================
--- Esperado: TODA linha com `ok_TEM_QUE_SER_true` = true.
+-- Esperado: 27 linhas, TODAS com `ok_TEM_QUE_SER_true` = true (eram 26 até a
+-- emenda de 28/10; a 27a é o índice do freio global).
 select * from (
   select 1 as ordem, 'contatos: RLS ligada' as item,
          (select c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace
@@ -850,11 +925,11 @@ select * from (
   select 22, format('indice %s', i.indexname), true, i.tablename::text
   from pg_indexes i
   where i.schemaname = 'public'
-    and i.indexname in ('idx_contatos_anon_recentes', 'idx_contatos_user_recentes')
+    and i.indexname in ('idx_contatos_anon_recentes', 'idx_contatos_user_recentes', 'idx_contatos_created_at')
   union all
-  select 23, 'os 2 indices dos limites existem',
-         (select count(*) = 2 from pg_indexes where schemaname = 'public'
-           and indexname in ('idx_contatos_anon_recentes', 'idx_contatos_user_recentes')),
+  select 23, 'os 3 indices dos limites e do freio global existem',
+         (select count(*) = 3 from pg_indexes where schemaname = 'public'
+           and indexname in ('idx_contatos_anon_recentes', 'idx_contatos_user_recentes', 'idx_contatos_created_at')),
          'se false: falta indice'
 
   union all
@@ -894,6 +969,7 @@ order by ordem, item;
 --
 --   drop index if exists public.idx_contatos_anon_recentes;
 --   drop index if exists public.idx_contatos_user_recentes;
+--   drop index if exists public.idx_contatos_created_at;
 --
 --   -- privilégio: volta ao da 0002 (SELECT na tabela inteira para
 --   -- authenticated). O anon continua sem nada: sem policy, não havia o
