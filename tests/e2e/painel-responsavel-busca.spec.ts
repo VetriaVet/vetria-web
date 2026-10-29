@@ -1,12 +1,15 @@
 import { test, expect, type Cookie } from "@playwright/test";
 import { credencialTutor, SEM_TUTOR } from "../apoio/credenciais";
-import { aplicarSessao, capturarSessao, medirDestinoDeApp } from "../apoio/sessao";
+import { aplicarSessao, capturarSessao } from "../apoio/sessao";
+import { garantirResponsavelNoPainel, PAINEL_RESPONSAVEL } from "../apoio/responsavel";
 import { EXIGIR, falharSeExigir, pularOuFalhar } from "../apoio/pulo";
 import { alvoEhTeste, SEM_ALVO_DE_TESTE } from "../apoio/alvo";
 
 // T-052 (QA-002): o responsável logado chega à busca a partir do painel.
 //
-// Só navega, não escreve nada. Mesmo assim roda SÓ com `E2E_ALVO=teste`: faz
+// Só navega. A única escrita é preparação: se a conta fixa ainda não concluiu
+// o onboarding do responsável, `garantirResponsavelNoPainel` conclui pela tela
+// (uma vez na vida da conta). Roda SÓ com `E2E_ALVO=teste`: faz
 // login, e o `.env.local` das máquinas de desenvolvimento aponta para
 // produção. Login de teste em produção não entra nesta suíte (DL-064).
 
@@ -24,18 +27,18 @@ test.describe("o responsavel logado chega a /buscar pelo painel", () => {
     if (!credencial) return;
     test.setTimeout(120_000);
     sessao = await capturarSessao(browser, credencial, "E2E_TUTOR_EMAIL");
-    destino = await medirDestinoDeApp(browser, sessao);
+    destino = await garantirResponsavelNoPainel(browser, sessao);
   });
 
   test.beforeEach(async ({ page }) => {
-    // A conta fixa do CI concluiu o onboarding. Se não concluiu, o painel
-    // não abre e não há o que provar aqui: dizer por quê, não passar calado.
+    // O `beforeAll` já concluiu o onboarding se faltava. Se mesmo assim o
+    // painel não abre, dizer por quê, não passar calado.
     pularOuFalhar(
-      destino !== "/app/responsavel",
-      `a conta E2E_TUTOR_* foi para ${destino || "(nada)"}, nao para /app/responsavel: conclua o onboarding dela no vetria-e2e`
+      destino !== PAINEL_RESPONSAVEL,
+      `a conta E2E_TUTOR_* foi para ${destino || "(nada)"}, nao para ${PAINEL_RESPONSAVEL}, mesmo depois de tentar concluir o onboarding`
     );
     await aplicarSessao(page, sessao);
-    await page.goto("/app/responsavel");
+    await page.goto(PAINEL_RESPONSAVEL);
   });
 
   test("o campo de busca do painel envia o termo e a cidade para /buscar", async ({ page }) => {
