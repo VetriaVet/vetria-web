@@ -518,7 +518,7 @@ begin
   -- das travas: visitante antes, global por último, sempre (sem deadlock).
   --
   -- SEC-135: a trava global é a forma de DUAS chaves int4, (1447383122, 1):
-  -- 1447383122 = 0x56455452, "VETR" em ASCII; 1 = freio global de contato.
+  -- 1447383122 = 0x56455052, "VEPR" em ASCII (constante fixa do projeto); 1 = freio global de contato.
   -- O Postgres guarda trava de duas chaves num espaço separado do das travas
   -- de uma chave (bigint), então nenhum `anon_id` escolhido pelo cliente
   -- colide com ela. A sonda 1 linha 8 confere estas chaves.
