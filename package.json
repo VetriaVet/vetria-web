@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:teste": "node --env-file=.env.teste.local node_modules/next/dist/bin/next dev -p 3001",
+    "dev:teste": "node scripts/dev-teste.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
