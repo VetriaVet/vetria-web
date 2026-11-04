@@ -26,6 +26,10 @@ on:
 #   ENTRA  TESTE_{VET,TUTOR,ADMIN,CLINIC}_{EMAIL,SENHA}  contas fixas do vetria-e2e
 #   NUNCA  a service_role de PRODUCAO. Nem aqui, nem em secret nenhum do repo.
 #          tests/apoio/alvo.ts e o pre-voo abaixo recusam URL de producao.
+# D-4 (04/11): o GITHUB_TOKEN deste workflow so le o repo.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-vetria-e2e        # um banco de teste para todos os branches
   cancel-in-progress: false
