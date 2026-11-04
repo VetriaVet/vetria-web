@@ -48,13 +48,18 @@ function roleLabel(role: string) {
 }
 export default function AdminPanel() {
   const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
 
-  async function load() {
+  function load() {
     setLoading(true);
     setMsg(null);
+    return carregar();
+  }
 
+  // Sem setState antes do primeiro await: o useEffect de abertura chama esta
+  // direto (react-hooks/set-state-in-effect, Next 16.4).
+  async function carregar() {
     try {
       const res = await fetch("/api/admin/profiles", { cache: "no-store" });
       const json = await res.json().catch(() => ({}));
@@ -128,7 +133,7 @@ export default function AdminPanel() {
   }
 
   useEffect(() => {
-    load();
+    void carregar();
     // T-014 — o `eslint-disable-next-line react-hooks/exhaustive-deps` que
     // estava aqui não silenciava nada: a regra não acusava. Diretiva inútil é
     // pior que nenhuma, porque ensina que este `useEffect` tem uma exceção
