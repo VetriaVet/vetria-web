@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { Search } from "lucide-react";
+import { Suspense, type ReactNode } from "react";
+import { LayoutDashboard, Search } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 
 // A casca das páginas públicas da F4 (/buscar, /veterinario/[slug],
 // /estabelecimento/[slug]). Mesmo cabeçalho da Home em versão curta: a pessoa
@@ -9,7 +10,8 @@ import { Search } from "lucide-react";
 // Fundo creme (nunca branco puro); cards e campos em branco por cima.
 //
 // Nenhum link aqui aponta para rota que não existe: /, /buscar, /login,
-// /cadastro/veterinario e /cadastro/estabelecimento.
+// /cadastro/veterinario e /cadastro/estabelecimento, e /app para quem já
+// entrou (o /app manda cada conta para o próprio painel).
 
 export function CascaPublica({ children }: { children: ReactNode }) {
   return (
@@ -38,12 +40,9 @@ export function CascaPublica({ children }: { children: ReactNode }) {
               <Search size={15} aria-hidden />
               Buscar
             </Link>
-            <Link
-              href="/login"
-              className="rounded-pill border-[1.5px] border-principal px-4 py-2 text-[13px] font-semibold text-principal no-underline transition hover:bg-principal hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-principal/40 focus-visible:ring-offset-2"
-            >
-              Entrar
-            </Link>
+            <Suspense fallback={<span aria-hidden className="inline-block h-[37px] w-[86px]" />}>
+              <EntrarOuPainel />
+            </Suspense>
           </nav>
         </div>
       </header>
@@ -64,6 +63,42 @@ export function CascaPublica({ children }: { children: ReactNode }) {
         </div>
       </footer>
     </div>
+  );
+}
+
+const classeDoBotaoDoCabecalho =
+  "inline-flex items-center gap-1.5 rounded-pill border-[1.5px] border-principal px-4 py-2 text-[13px] font-semibold text-principal no-underline transition hover:bg-principal hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-principal/40 focus-visible:ring-offset-2";
+
+/**
+ * "Entrar" para visitante, "Meu painel" para quem já tem sessão.
+ *
+ * `getSession()` lê o cookie da própria requisição, sem ida ao banco: aqui só
+ * se escolhe o rótulo de um link, não se libera nada. Quem decide o acesso é
+ * o /app (middleware + `getUser()`), que devolve ao /login se a sessão não
+ * valer. Sem configuração ou com cookie ilegível, cai no "Entrar".
+ */
+async function EntrarOuPainel() {
+  let temSessao = false;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getSession();
+    temSessao = Boolean(data.session);
+  } catch {
+    temSessao = false;
+  }
+
+  if (temSessao) {
+    return (
+      <Link href="/app" className={classeDoBotaoDoCabecalho}>
+        <LayoutDashboard size={15} aria-hidden />
+        Meu painel
+      </Link>
+    );
+  }
+  return (
+    <Link href="/login" className={classeDoBotaoDoCabecalho}>
+      Entrar
+    </Link>
   );
 }
 

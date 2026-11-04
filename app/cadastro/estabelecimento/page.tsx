@@ -30,8 +30,8 @@ import { createClient } from "@/lib/supabase/browser";
 
 const FEATURES = [
   "Perfil do estabelecimento na busca pública",
-  "Equipe de veterinários vinculada",
-  "Gestão centralizada de contatos",
+  "Selo de verificado depois da conferência da equipe Vetria",
+  "Contato direto pelo WhatsApp, sem intermediário",
 ];
 
 // Tempo que o check do botão fica visível antes da troca de estado.

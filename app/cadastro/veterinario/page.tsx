@@ -26,7 +26,7 @@ import { createClient } from "@/lib/supabase/browser";
 const FEATURES = [
   "Perfil profissional verificado",
   "Encontrado por responsáveis da sua região",
-  "Reputação validada por avaliações reais",
+  "Contato direto pelo WhatsApp, sem intermediário",
 ];
 
 // Tempo que o check do botão fica visível antes da troca de estado.

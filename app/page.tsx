@@ -3,30 +3,31 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { destinoDoErroDoLink } from "@/lib/auth/erros";
-import { Skeleton } from "@/components/ui/EmptyState";
+import { CartaoDeProfissional } from "@/components/publico/CartaoDeProfissional";
+import { buscarProfissionais } from "@/lib/busca/buscar";
+import type { Cartao } from "@/lib/busca/tipos";
 import {
-  ChevronRight,
   Building2,
   Home as HomeIcon,
   Video,
   Search,
   ArrowRight,
   ShieldCheck,
-  Star,
-  CalendarCheck,
   MessageCircle,
   BarChart3,
+  ClipboardList,
   Dog,
   Stethoscope,
   BadgeCheck,
-  Mail,
   type LucideIcon,
 } from "lucide-react";
 
 // Home pública (landing do consumidor) — fiel ao vetria-visualizador-v2.html.
-// Honesto (DL-020/DL-034): a busca envia para /buscar, que diz "abre em
-// breve" enquanto a 0005 não entra, e "Novos perfis" usa cards GHOST (sem
-// profissional inventado).
+// Honesto (DL-020/DL-034): a home promete só o que existe em 25/11 (buscar,
+// comparar especialidade e forma de atendimento, falar pelo WhatsApp). Agenda,
+// avaliações, valores e disponibilidade estão fora do escopo (T-054).
+// "Perfis na Vetria" lê os perfis ativos pelo mesmo caminho anônimo da
+// /buscar; sem perfil, mostra um vazio honesto, nunca skeleton eterno.
 // Deslogado vê a Home; logado vai direto pro painel (/app).
 
 export default async function Home({
@@ -50,13 +51,27 @@ export default async function Home({
   const { data: userData } = await supabase.auth.getUser();
   if (userData.user) redirect("/app");
 
+  // Mesma leitura anônima da /buscar (o Postgres decide quem é visível).
+  // Falha ou banco sem a 0005 caem no vazio honesto da seção.
+  const vitrine = await buscarProfissionais({
+    termo: null,
+    cidade: null,
+    uf: null,
+    especialidade: null,
+    servico: null,
+    atendimento: null,
+    tipo: null,
+    pagina: 1,
+  });
+  const perfis = vitrine.estado === "ok" ? vitrine.itens.slice(0, 4) : [];
+
   return (
     <div className="bg-white">
       <PublicHeader />
       <Hero />
       <Categories />
       <ComoFunciona />
-      <NovosPerfis />
+      <PerfisNaVetria perfis={perfis} />
       <Confianca />
       <VetCta />
       <Blog />
@@ -134,9 +149,8 @@ function Hero() {
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 py-14 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
         <div>
           <span className="mb-5 inline-flex items-center gap-2 rounded-pill bg-white px-3 py-1.5 text-[12px] text-corpo-texto shadow-sm">
-            <strong className="font-semibold text-principal">News</strong>
+            <strong className="font-semibold text-principal">Novidade</strong>
             Estamos de cara nova
-            <ChevronRight size={14} />
           </span>
 
           <h1 className="text-[34px] font-bold leading-[1.08] tracking-tight text-titulo sm:text-[44px]">
@@ -149,13 +163,13 @@ function Hero() {
             <strong className="font-semibold text-titulo">
               profissionais e estabelecimentos veterinários verificados
             </strong>
-            , compare especialidades, veja disponibilidade e entre em contato
-            com confiança.
+            , compare especialidades e formas de atendimento e fale direto com o
+            profissional pelo WhatsApp.
           </p>
 
           {/* Busca: formulário GET para /buscar, no contrato de lib/busca/pedido.ts.
-              Funciona sem JavaScript. Enquanto a 0005 não entra, a /buscar
-              responde "A busca abre em breve". */}
+              Funciona sem JavaScript. O texto livre procura em nome,
+              especialidade, serviço, cidade e apresentação do perfil. */}
           <form
             action="/buscar"
             method="get"
@@ -193,7 +207,7 @@ function Hero() {
                 name="q"
                 type="search"
                 maxLength={80}
-                placeholder="Especialidade, serviço ou tipo de animal"
+                placeholder="Nome, especialidade ou serviço"
                 className="flex-1 rounded-pill border border-neutro-border bg-neutro-bg-alt/50 px-4 py-3 text-[14px] text-titulo outline-none transition placeholder:text-corpo-texto/60 focus:border-principal focus:bg-white focus:ring-2 focus:ring-principal/20"
               />
               <label htmlFor="home-busca-cidade" className="sr-only">
@@ -228,44 +242,42 @@ function Hero() {
   );
 }
 
-/* ---------------- Categorias (chips visuais) ---------------- */
+/* ---------------- Categorias (atalhos para a busca) ---------------- */
+// Cada chip é um filtro que a /buscar entende: slug de `especialidades` ou de
+// `servicos` (seed da 0005) ou uma forma de atendimento. Item que não é filtro
+// real não entra aqui, para não levar a uma busca que ignora o pedido.
 function Categories() {
-  const rows = [
-    [
-      "Clínica geral",
-      "Emergência 24h",
-      "Cardiologia",
-      "Dermatologia",
-      "Exóticos",
-      "Domiciliar",
-      "Teleorientação",
-    ],
-    [
-      "Castração",
-      "Vacinação",
-      "Exames laboratoriais",
-      "Exames de imagem",
-      "Ultrassom",
-      "Cirurgias",
-      "Raio-X",
-    ],
+  const chips: { label: string; href: string }[] = [
+    { label: "Clínica geral", href: "/buscar?especialidade=clinica-geral" },
+    { label: "Emergência 24h", href: "/buscar?servico=emergencia-24h" },
+    { label: "Cardiologia", href: "/buscar?especialidade=cardiologia" },
+    { label: "Dermatologia", href: "/buscar?especialidade=dermatologia" },
+    { label: "Animais exóticos", href: "/buscar?especialidade=animais-exoticos" },
+    { label: "Felinos", href: "/buscar?especialidade=felinos" },
+    { label: "Domiciliar", href: "/buscar?atendimento=domiciliar" },
+    { label: "Teleorientação", href: "/buscar?atendimento=teleorientacao" },
+    { label: "Cirurgia", href: "/buscar?especialidade=cirurgia" },
+    { label: "Vacinação", href: "/buscar?servico=vacinacao" },
+    { label: "Laboratório", href: "/buscar?servico=laboratorio" },
+    { label: "Diagnóstico por imagem", href: "/buscar?servico=diagnostico-por-imagem" },
+    { label: "Internação", href: "/buscar?servico=internacao" },
   ];
   return (
     <section className="border-b border-neutro-border bg-white">
-      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-6">
-        {rows.map((row, i) => (
-          <div key={i} className="flex flex-wrap gap-2">
-            {row.map((c) => (
-              <span
-                key={c}
-                className="rounded-pill border border-neutro-border bg-neutro-bg-alt/50 px-3.5 py-1.5 text-[13px] text-corpo-texto"
+      <nav aria-label="Atalhos da busca" className="mx-auto max-w-6xl px-5 py-6">
+        <ul className="flex flex-wrap gap-2">
+          {chips.map((c) => (
+            <li key={c.label}>
+              <Link
+                href={c.href}
+                className="inline-block rounded-pill border border-neutro-border bg-neutro-bg-alt/50 px-3.5 py-1.5 text-[13px] text-corpo-texto no-underline transition hover:border-principal hover:text-principal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-principal/40"
               >
-                {c}
-              </span>
-            ))}
-          </div>
-        ))}
-      </div>
+                {c.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
     </section>
   );
 }
@@ -281,17 +293,12 @@ function ComoFunciona() {
     {
       icon: BarChart3,
       title: "Compare",
-      desc: "Veja avaliações, especialidade, valores e disponibilidade.",
+      desc: "Veja especialidades, cidade e forma de atendimento de cada perfil.",
     },
     {
       icon: MessageCircle,
       title: "Entre em contato",
-      desc: "Fale direto com o profissional ou agende online.",
-    },
-    {
-      icon: Star,
-      title: "Avalie",
-      desc: "Compartilhe sua experiência após o atendimento.",
+      desc: "Fale direto com o profissional pelo WhatsApp.",
     },
   ];
   return (
@@ -302,11 +309,10 @@ function ComoFunciona() {
           <span className="text-principal">mais simples.</span>
         </h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-[15px] text-corpo-texto">
-          Em 4 passos você encontra o veterinário certo, agenda e ainda avalia o
-          atendimento.
+          Em 3 passos você encontra o veterinário certo e fala direto com ele.
         </p>
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid gap-5 sm:grid-cols-3">
           {steps.map((s) => (
             <div
               key={s.title}
@@ -327,38 +333,41 @@ function ComoFunciona() {
   );
 }
 
-/* ---------------- Novos perfis (GHOST — sem perfil fake) ---------------- */
-function NovosPerfis() {
+/* ---------------- Perfis na Vetria (dado real ou vazio honesto) ---------------- */
+function PerfisNaVetria({ perfis }: { perfis: Cartao[] }) {
   return (
     <section className="border-y border-neutro-border bg-neutro-bg-alt/40">
       <div className="mx-auto max-w-6xl px-5 py-16">
         <h2 className="text-[24px] font-bold tracking-tight text-titulo sm:text-[28px]">
-          Novos perfis na Vetria
+          Perfis na Vetria
         </h2>
-        <p className="mt-1 text-[14px] text-corpo-texto">
-          Os primeiros veterinários e estabelecimentos verificados aparecem aqui assim
-          que forem validados.
-        </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-2xl border border-neutro-border bg-white p-5"
+        {perfis.length > 0 ? (
+          <>
+            <p className="mt-1 text-[14px] text-corpo-texto">
+              Veterinários e estabelecimentos conferidos pela equipe Vetria.
+            </p>
+            <ul className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {perfis.map((c) => (
+                <li key={`${c.tipo}-${c.slug}`}>
+                  <CartaoDeProfissional cartao={c} />
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/buscar"
+              className="mt-6 inline-flex items-center gap-1.5 text-[14px] font-semibold text-principal no-underline underline-offset-4 hover:underline"
             >
-              <div className="mb-4 flex items-center gap-3">
-                <Skeleton className="h-14 w-14 shrink-0 rounded-full" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-3 w-2/3" />
-                  <Skeleton className="h-2.5 w-1/2" />
-                </div>
-              </div>
-              <Skeleton className="h-2.5 w-full" />
-              <Skeleton className="mt-2 h-2.5 w-4/5" />
-              <Skeleton className="mt-5 h-9 w-full rounded-pill" />
-            </div>
-          ))}
-        </div>
+              Ver todos na busca
+              <ArrowRight size={16} aria-hidden />
+            </Link>
+          </>
+        ) : (
+          <p className="mt-1 max-w-xl text-[14px] leading-relaxed text-corpo-texto">
+            Os primeiros veterinários e estabelecimentos aparecem aqui assim que a
+            equipe Vetria conferir os documentos de cada um.
+          </p>
+        )}
       </div>
     </section>
   );
@@ -373,31 +382,26 @@ function Confianca() {
       desc: "CRMV validado e dados conferidos.",
     },
     {
-      icon: Star,
-      title: "Avaliações reais",
-      desc: "Opiniões de responsáveis após contato ou atendimento.",
-    },
-    {
-      icon: CalendarCheck,
-      title: "Disponibilidade visível",
-      desc: "Veja dias e horários antes de entrar em contato.",
+      icon: ClipboardList,
+      title: "Informação clara",
+      desc: "Especialidades, cidade e forma de atendimento em cada perfil.",
     },
     {
       icon: MessageCircle,
       title: "Contato direto",
-      desc: "WhatsApp, telefone ou agendamento online.",
+      desc: "Você fala com o profissional pelo WhatsApp, sem intermediário.",
     },
   ];
   return (
     <section className="bg-white">
       <div className="mx-auto max-w-6xl px-5 py-16">
-        <p className="text-[13px] text-corpo-texto">Porque confiar na Vetria?</p>
+        <p className="text-[13px] text-corpo-texto">Por que confiar na Vetria?</p>
         <h2 className="mb-8 mt-1 text-[28px] font-bold tracking-tight text-titulo sm:text-[32px]">
           Confiança vem de{" "}
           <span className="text-principal">informação clara.</span>
         </h2>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-3">
           {cards.map((c) => (
             <div
               key={c.title}
@@ -418,7 +422,7 @@ function Confianca() {
   );
 }
 
-/* ---------------- CTA B2B (vet/clínica) ---------------- */
+/* ---------------- CTA para profissionais ---------------- */
 function VetCta() {
   return (
     <section id="vet-cta" className="bg-white pb-16">
@@ -522,29 +526,7 @@ function PublicFooter() {
   return (
     <footer className="bg-principal-deep text-white">
       <div className="mx-auto max-w-6xl px-5 py-14">
-        {/* Newsletter (desabilitado — sem backend) */}
-        <div className="flex flex-col items-start justify-between gap-5 rounded-2xl bg-white/[0.06] p-7 md:flex-row md:items-center">
-          <div className="flex items-center gap-3">
-            <Mail size={24} />
-            <h3 className="text-[18px] font-semibold leading-tight">
-              Receba novidades exclusivas no seu e-mail
-            </h3>
-          </div>
-          <div className="flex w-full max-w-md gap-2">
-            <input
-              disabled
-              type="email"
-              aria-label="Seu e-mail"
-              placeholder="Digite seu e-mail"
-              className="min-w-0 flex-1 rounded-pill border border-white/15 bg-white/5 px-4 py-2.5 text-[14px] text-white outline-none placeholder:text-white/40 disabled:cursor-not-allowed"
-            />
-            <span className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-white/40 px-5 py-2.5 text-[13px] font-semibold text-principal">
-              Cadastrar
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <div className="mb-4 flex items-center gap-2">
               <Image
@@ -564,32 +546,20 @@ function PublicFooter() {
           <FooterCol
             title="Para responsáveis"
             links={[
-              { label: "Entrar / Criar conta", href: "/login" },
+              { label: "Entrar", href: "/login" },
+              { label: "Criar conta", href: "/cadastro/responsavel" },
               { label: "Como funciona", href: "#como-funciona" },
               { label: "Informativos", href: "#blog" },
             ]}
           />
           <FooterCol
-            title="Área B2B"
+            title="Para profissionais"
             links={[
               { label: "Sou veterinário", href: "/cadastro/veterinario" },
               { label: "Tenho um estabelecimento veterinário", href: "/cadastro/estabelecimento" },
               { label: "Como funciona", href: "#vet-cta" },
             ]}
           />
-
-          <div>
-            <h5 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-white/80">
-              Siga-nos
-            </h5>
-            <ul className="flex flex-col gap-2.5">
-              {["Instagram", "Facebook", "YouTube", "LinkedIn"].map((s) => (
-                <li key={s}>
-                  <span className="text-[13px] text-white/70">{s}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
 
         <div className="mt-12 border-t border-white/10 pt-6 text-[12px] text-white/50">
