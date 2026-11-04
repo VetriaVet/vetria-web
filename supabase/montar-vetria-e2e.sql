@@ -85,6 +85,13 @@
 --     e as contas de teste são criadas à mão depois (passo a passo à parte).
 --  8. O pré-voo 1.7 da 0003 foi substituído (ver o PASSO 6). É a única linha
 --     de migration que não é cópia literal.
+--  9. (04/11/2026, SEC-139 / R-079) A FK `profiles_id_fkey` (profiles.id ->
+--     auth.users.id, on delete cascade) FALTAVA aqui até esta data, porque a
+--     0000 não a declarava (a introspecção de 26/08 não lia pg_constraint).
+--     O vetria-e2e montado antes de 04/11 nasceu SEM ela: a 0007 a cria lá.
+--     O PASSO 1 abaixo já traz a FK (cópia da 0000 corrigida); num projeto
+--     montado a partir de agora, a 0007 roda e não mexe em nada.
+--     Para conferir a paridade inteira: `supabase/paridade-schema.sql`.
 -- ============================================================================
 
 begin;
@@ -122,7 +129,12 @@ create table public.profiles (
   updated_at            timestamptz   not null default now(),
   admin_level           admin_level            default 'none'::admin_level,
   admin_team            admin_team             default 'none'::admin_team,
-  constraint profiles_pkey primary key (id)
+  constraint profiles_pkey primary key (id),
+  -- NOTA (04/11/2026, SEC-139 / R-079): esta FK existe em produção desde antes
+  -- da baseline, mas foi OMITIDA NA INTROSPECÇÃO DE 26/08: o `introspect.sql`
+  -- §8 só lia `pg_indexes`, e FK não é índice. Corrigida na 0007, que a cria
+  -- onde falta (vetria-e2e) e não mexe onde já existe (produção).
+  constraint profiles_id_fkey foreign key (id) references auth.users(id) on delete cascade
 );
 
 -- Índices: SOMENTE a primary key. Não há índice em `role` nem em nada mais.
@@ -2463,6 +2475,14 @@ select * from (
   select 4, 'current_user_role() e is_admin_master() NAO existem (0002 §11)',
          not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                       where n.nspname = 'public' and p.proname in ('current_user_role', 'is_admin_master'))
+
+  -- a FK de profiles para auth.users (0000 §2, corrigida em 04/11/2026: R-079)
+  union all
+  select 5, 'profiles_id_fkey: FK de profiles.id para auth.users(id), on delete cascade',
+         coalesce((select k.contype = 'f' and k.convalidated
+                          and k.confrelid = 'auth.users'::regclass and k.confdeltype = 'c'
+                     from pg_constraint k
+                    where k.conrelid = 'public.profiles'::regclass and k.conname = 'profiles_id_fkey'), false)
 
   -- o trigger do cadastro
   union all
