@@ -462,14 +462,19 @@ begin
     update public.profiles set status = 'active' where id in (v_vet, v_clinic);
     update public.profiles set admin_level = 'admin' where id = v_admin;
 
-    -- faltando contas para os limites, a sonda cria contas de mentira em
-    -- `profiles` (sem login: não há linha em auth.users), que somem no fim
-    -- junto com todo o resto
+    -- faltando contas para os limites, a sonda cria contas de mentira, que
+    -- somem no fim junto com todo o resto. Nascem em auth.users porque em
+    -- producao `profiles.id` tem FK para auth.users (profiles_id_fkey): o
+    -- trigger on_auth_user_created cria o profile (tutor, active) sozinho.
+    -- (Emenda de 04/11/2026: a versao antiga inseria direto em profiles e
+    -- quebrava com 23503 em producao; no vetria-e2e a FK faltava, R-077.)
     if coalesce(cardinality(v_outros), 0) < 20 then
       with novas as (
-        insert into public.profiles (id, role, full_name, status)
-        select gen_random_uuid(), 'tutor', 'Conta da sonda seis', 'active'
-        from generate_series(1, 20 - coalesce(cardinality(v_outros), 0))
+        insert into auth.users (id, instance_id, aud, role, email)
+        select g.id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+               'sonda-seis-' || g.id || '@sonda.invalid'
+        from (select gen_random_uuid() as id
+                from generate_series(1, 20 - coalesce(cardinality(v_outros), 0))) g
         returning id
       )
       select v_outros || array_agg(id) into v_outros from novas;
