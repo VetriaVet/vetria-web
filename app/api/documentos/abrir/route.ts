@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { corpoEhJson, pedidoDoProprioSite } from "@/lib/http/origem";
 
 // T-008 — A ROTA DE LEITURA DO DOCUMENTO. Cinco passos, da seção 2.b da
 // `0003`, na mesma pasta da rota de escrita.
@@ -40,6 +41,16 @@ function recusa(status: number, mensagem: string) {
 
 export async function POST(req: Request) {
   try {
+    // -----------------------------------------------------------------------
+    // 0. SÓ DO PRÓPRIO SITE, E SÓ JSON (CSRF em profundidade, 04/11/2026)
+    // -----------------------------------------------------------------------
+    if (!pedidoDoProprioSite(req, "navegador")) {
+      return recusa(403, "Pedido recusado.");
+    }
+    if (!corpoEhJson(req)) {
+      return recusa(415, "Pedido inválido.");
+    }
+
     // -----------------------------------------------------------------------
     // 1. SESSÃO
     // -----------------------------------------------------------------------
@@ -247,13 +258,11 @@ export async function POST(req: Request) {
         caminho,
         message: erroUrl?.message ?? "sem url",
       });
-      return NextResponse.json(
-        {
-          erro: "Documento não encontrado no armazenamento.",
-          caminho,
-        },
-        { status: 409 }
-      );
+      //
+      // ⚠️ Revisão de 04/11/2026: o `caminho` fica SÓ no log acima. Na
+      // resposta ele entregava o ponteiro do documento de identidade colado
+      // no uuid do dono, e nenhuma tela precisa dele.
+      return recusa(409, "Documento não encontrado no armazenamento.");
     }
 
     return NextResponse.json({

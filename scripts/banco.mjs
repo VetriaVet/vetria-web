@@ -1,4 +1,4 @@
-// npm run banco -- <teste|producao> <arquivo.sql> [--so N] [--aplicar-em-producao]
+// npm run banco -- <teste|producao> <arquivo.sql> [--so N] [--aplicar-em-producao] [--sonda-que-escreve]
 //
 // Roda um arquivo SQL do repo direto no banco, sem copiar e colar no SQL
 // Editor. Cada bloco "CONSULTA N", "QUERY N" ou "SONDA N" vira uma execucao
@@ -14,10 +14,13 @@
 //   - a URL de cada alvo tem que conter o ref certo, senao recusa;
 //   - arquivo de supabase/migrations/ em producao exige --aplicar-em-producao
 //     (o semaforo continua: migration em producao so com o Elber presente);
+//   - so arquivos de dentro de supabase/ (caminho real); nada de %TEMP%;
+//   - em producao, o que nao e migration roda SO LEITURA, salvo
+//     --sonda-que-escreve (sondas que desfazem tudo no fim);
 //   - migration roda inteira numa conexao: se quebrar no meio, o begin/commit
 //     do proprio arquivo desfaz tudo.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, resolve, sep } from "node:path";
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { basename, dirname, relative, resolve, sep } from "node:path";
 import pg from "pg";
 
 const REFS = { teste: "uckvgeibxfzmyytqrmae", producao: "gdqnnrozbxrtaaquarnd" };
@@ -33,6 +36,9 @@ const alvo = args[0];
 const arquivo = args[1];
 const so = args.includes("--so") ? args[args.indexOf("--so") + 1] : null;
 const autorizado = args.includes("--aplicar-em-producao");
+// SEC-138 (d): em producao, arquivo que nao e migration roda SO LEITURA. As
+// sondas que escrevem e desfazem no fim (ex.: sonda 2 da 0006) pedem esta flag.
+const sondaQueEscreve = args.includes("--sonda-que-escreve");
 
 if (!REFS[alvo] || !arquivo) {
   parar("uso: npm run banco -- <teste|producao> <arquivo.sql> [--so N] [--aplicar-em-producao]");
@@ -47,9 +53,22 @@ if (!url.includes(REFS[alvo]) || url.includes(outro)) {
   parar(`${VARIAVEL[alvo]} nao aponta para o projeto de ${alvo}.`);
 }
 
-const caminho = resolve(arquivo);
-if (!existsSync(caminho)) parar(`nao achei ${arquivo}.`);
-const ehMigration = caminho.includes(`${sep}supabase${sep}migrations${sep}`);
+if (!existsSync(resolve(arquivo))) parar(`nao achei ${arquivo}.`);
+// SEC-138 (b): so arquivo de dentro de supabase/ deste repo, pelo caminho real
+// (sem atalho nem symlink). SQL de outra pasta (%TEMP%, Downloads) e recusado.
+const raiz = realpathSync(resolve("supabase"));
+const caminho = realpathSync(resolve(arquivo));
+const dentro = relative(raiz, caminho);
+if (dentro.startsWith("..") || resolve(raiz, dentro) !== caminho) {
+  parar("so rodo arquivo .sql de dentro da pasta supabase/ deste repositorio.");
+}
+// Migration: supabase/migrations/NNNN_nome.sql, e nada mais.
+const ehMigration =
+  dirname(caminho) === resolve(raiz, "migrations") && /^\d{4}_.+\.sql$/.test(basename(caminho));
+if (!ehMigration && dentro.split(sep)[0] === "migrations") {
+  parar("arquivo em supabase/migrations/ fora do padrao NNNN_nome.sql.");
+}
+const soLeitura = alvo === "producao" && !ehMigration && !sondaQueEscreve;
 if (ehMigration && alvo === "producao" && !autorizado) {
   parar("isto e uma MIGRATION em PRODUCAO. So roda com --aplicar-em-producao, com o Elber presente.");
 }
@@ -119,8 +138,13 @@ registrar(`# ${alvo.toUpperCase()} · ${arquivo} · ${agora.toISOString()}`);
 let falhou = false;
 try {
   await cliente.connect();
+  if (soLeitura) {
+    // Defesa em profundidade: toda transacao desta conexao nasce read only.
+    await cliente.query("set session characteristics as transaction read only");
+  }
   const quem = await cliente.query("select current_database() as banco, current_user as papel");
-  registrar(`Conectado: banco=${quem.rows[0].banco} papel=${quem.rows[0].papel}\n`);
+  const modo = soLeitura ? " · SO LEITURA" : alvo === "producao" ? " · ESCRITA LIBERADA" : "";
+  registrar(`Conectado: banco=${quem.rows[0].banco} papel=${quem.rows[0].papel}${modo}\n`);
   for (const b of blocos) {
     registrar(`=== ${b.nome} ===`);
     try {
@@ -131,7 +155,10 @@ try {
       for (const x of mostrar) registrar(tabela(x));
     } catch (e) {
       falhou = true;
-      registrar(`ERRO: ${e.message}${e.detail ? `\n  detalhe: ${e.detail}` : ""}${e.hint ? `\n  dica: ${e.hint}` : ""}`);
+      // SEC-141: em producao o `detail` do Postgres pode trazer o valor da
+      // chave violada (email, telefone). Sai so codigo e mensagem.
+      const detalhe = alvo !== "producao" && e.detail ? `\n  detalhe: ${e.detail}` : "";
+      registrar(`ERRO ${e.code ?? ""}: ${e.message}${detalhe}${e.hint ? `\n  dica: ${e.hint}` : ""}`);
       if (ehMigration) registrar("A migration foi DESFEITA inteira (nada ficou aplicado).");
       // bloco que falhou deixa a transacao abortada: limpa antes do proximo
       await cliente.query("rollback").catch(() => {});
