@@ -71,7 +71,9 @@ test.describe("contatos: isolamento por dono e vinculo da conta nova", () => {
         canal: "whatsapp",
         created_at: new Date(Date.now() - 40 * DIA_MS).toISOString(),
       },
-    ]);
+      // Linhas com colunas diferentes no mesmo insert: sem isto o PostgREST
+      // manda null onde a coluna faltou (e `created_at` e NOT NULL).
+    ], { defaultToNull: false });
     if (error) throw new Error(`semear contatos: ${error.code}: ${error.message}`);
   });
 
