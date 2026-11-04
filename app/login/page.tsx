@@ -27,6 +27,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<Mode>("login");
   const [interagiu, setInteragiu] = useState(false);
+  // Email para onde foi o link de confirmacao. Preenchido, a tela troca o
+  // formulario por um aviso grande: a frase pequena embaixo do botao passava
+  // despercebida e parecia que nada tinha acontecido.
+  const [emailEnviado, setEmailEnviado] = useState<string | null>(null);
 
   const query = useSyncExternalStore(semInscricao, lerQuery, queryNoServidor);
   const avisoDoLink = interagiu
@@ -51,17 +55,22 @@ export default function LoginPage() {
     if (isSignup) {
       const siteUrl =
         process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { emailRedirectTo: `${siteUrl}/auth/callback` },
       });
+      if (error) {
+        setLoading(false);
+        return erro(traduzirErroAuth(error));
+      }
+      // Projeto com confirmacao automatica (o de teste): ja volta com sessao.
+      if (data.session) {
+        window.location.href = "/app";
+        return;
+      }
       setLoading(false);
-      if (error) return erro(traduzirErroAuth(error));
-      setMsg({
-        tipo: "ok",
-        texto: "Conta criada. Confirme o email e depois faça login.",
-      });
+      setEmailEnviado(email);
       return;
     }
 
@@ -125,6 +134,17 @@ export default function LoginPage() {
             />
           </Link>
 
+          {emailEnviado ? (
+            <ConfirmeOEmail
+              email={emailEnviado}
+              voltar={() => {
+                setEmailEnviado(null);
+                setMode("login");
+                setPassword("");
+              }}
+            />
+          ) : (
+          <>
           <h1 className="font-bold text-[28px] leading-tight tracking-tight text-titulo mb-2">
             {isSignup ? "Crie sua conta." : "É bom te ver de novo."}
           </h1>
@@ -239,9 +259,42 @@ export default function LoginPage() {
               {isSignup ? "Faça login" : "Cadastre-se"}
             </button>
           </p>
+          </>
+          )}
         </div>
       </section>
     </main>
+  );
+}
+
+function ConfirmeOEmail({
+  email,
+  voltar,
+}: {
+  email: string;
+  voltar: () => void;
+}) {
+  return (
+    <div role="status" className="flex flex-col">
+      <h1 className="font-bold text-[28px] leading-tight tracking-tight text-titulo mb-3">
+        Falta só confirmar o seu email.
+      </h1>
+      <p className="text-[15px] text-corpo-texto mb-2">
+        Sua conta foi criada. Enviamos um link para{" "}
+        <strong className="text-titulo break-all">{email}</strong>.
+      </p>
+      <p className="text-[15px] text-corpo-texto mb-8">
+        Abra o email e toque em <strong>Confirmar</strong>. Se não aparecer em
+        alguns minutos, olhe a caixa de spam ou de promoções.
+      </p>
+      <button
+        type="button"
+        onClick={voltar}
+        className="w-full rounded-pill bg-principal text-white py-3.5 font-semibold text-[15px] hover:bg-[#142E33] transition"
+      >
+        Já confirmei, fazer login
+      </button>
+    </div>
   );
 }
 
