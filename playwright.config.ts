@@ -17,6 +17,19 @@ const BASE_URL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 // start` inútil por cima.
 const ALVO_LOCAL = BASE_URL.includes("127.0.0.1") || BASE_URL.includes("localhost");
 
+// T-043 · SEC-130: um SEGUNDO `next start` do mesmo build, só no CI, com
+// `VERCEL_ENV=production` e a porta de teste do contato ligada. Prova que a
+// variável posta por engano num deploy de produção não abre a porta
+// (`lib/contato/porta.ts`; o teste é `contato-trava-producao.spec.ts`). Local
+// não sobe: seria um segundo build/servidor na máquina do Elber à toa.
+const PORTA_COMO_PRODUCAO = 3007;
+const SERVIDOR_COMO_PRODUCAO =
+  ALVO_LOCAL && !!process.env.CI && process.env.CONTATO_ABERTO_PARA_TESTE === "1";
+if (SERVIDOR_COMO_PRODUCAO) {
+  // Lido pelo spec (os workers herdam o ambiente do processo que carrega isto).
+  process.env.E2E_URL_SERVIDOR_COMO_PRODUCAO = `http://127.0.0.1:${PORTA_COMO_PRODUCAO}`;
+}
+
 export default defineConfig({
   testDir: "./tests/e2e",
 
@@ -63,13 +76,30 @@ export default defineConfig({
   // No CI o build já rodou no passo anterior do workflow, então aqui só sobe.
   // Local, constrói antes, pra ninguém testar um `.next` de três dias atrás.
   webServer: ALVO_LOCAL
-    ? {
-        command: process.env.CI ? "npm run start" : "npm run build && npm run start",
-        url: BASE_URL,
-        reuseExistingServer: !process.env.CI,
-        timeout: 240_000,
-        stdout: "pipe",
-        stderr: "pipe",
-      }
+    ? [
+        {
+          command: process.env.CI ? "npm run start" : "npm run build && npm run start",
+          url: BASE_URL,
+          reuseExistingServer: !process.env.CI,
+          timeout: 240_000,
+          stdout: "pipe" as const,
+          stderr: "pipe" as const,
+        },
+        ...(SERVIDOR_COMO_PRODUCAO
+          ? [
+              {
+                command: `npx next start -p ${PORTA_COMO_PRODUCAO}`,
+                url: `http://127.0.0.1:${PORTA_COMO_PRODUCAO}/buscar`,
+                reuseExistingServer: false,
+                timeout: 120_000,
+                // Somado ao ambiente do job: mesmo banco de teste, mesma
+                // variável ligada, e o deploy dizendo que é produção.
+                env: { VERCEL_ENV: "production", CONTATO_ABERTO_PARA_TESTE: "1" },
+                stdout: "pipe" as const,
+                stderr: "pipe" as const,
+              },
+            ]
+          : []),
+      ]
     : undefined,
 });
