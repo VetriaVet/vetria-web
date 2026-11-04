@@ -156,16 +156,16 @@ export function ContatoPeloWhatsapp({
   }
 
   // O que o leitor de tela anuncia. A região existe desde o primeiro desenho
-  // (região criada junto com o texto não é lida por todos os leitores); as
-  // falhas, além disso, saem em `role="alert"`.
+  // (região criada junto com o texto não é lida por todos os leitores) e só
+  // leva "Buscando o número." e o número revelado. As falhas, inclusive
+  // `sem_whatsapp`, saem SÓ no `role="alert"` delas: cada mensagem existe uma
+  // vez no DOM e é anunciada uma vez.
   const anuncio =
     estado.fase === "enviando"
       ? "Buscando o número."
       : estado.fase === "revelado"
-        ? `WhatsApp ${deQuem}:${formatarWhatsapp(estado.whatsapp)}.`
-        : estado.fase === "falhou" && estado.motivo === "sem_whatsapp"
-          ? `${Quem} ainda não informou um WhatsApp para contato.`
-          : "";
+        ? `WhatsApp ${deQuem}: ${formatarWhatsapp(estado.whatsapp)}.`
+        : "";
 
   return (
     <>
@@ -245,7 +245,7 @@ export function ContatoPeloWhatsapp({
   if (estado.fase === "falhou" && estado.motivo === "sem_whatsapp") {
     // D9: sem número, sem botão. Dizer a verdade, sem culpar ninguém.
     return (
-      <p className="mt-4 rounded-xl bg-neutro-bg-alt px-4 py-3 text-[14px] leading-relaxed text-corpo-texto">
+      <p role="alert" className="mt-4 rounded-xl bg-neutro-bg-alt px-4 py-3 text-[14px] leading-relaxed text-corpo-texto">
         {Quem} ainda não informou um WhatsApp para contato.
       </p>
     );
