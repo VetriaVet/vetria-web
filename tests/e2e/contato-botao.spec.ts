@@ -175,8 +175,7 @@ if (CONTATO_LIGADO) {
       const { conta, slug } = await vetAtivo(admin!, "SemZap", null);
       await page.goto(`/veterinario/${slug}`);
       await page.getByRole("button", { name: BOTAO }).click();
-      // Duas vezes no DOM de propósito: o texto visível e a região que o
-      // leitor de tela anuncia. Confere o visível.
+      // Uma vez só no DOM: a falha sai no role="alert", não na região aria-live.
       await expect(
         page
           .getByText("Este veterinário ainda não informou um WhatsApp para contato.", { exact: true })
