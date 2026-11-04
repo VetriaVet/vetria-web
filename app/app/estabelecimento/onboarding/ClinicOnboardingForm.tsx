@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { TriangleAlert } from "lucide-react";
 import Image from "next/image";
 import { Input } from "@/components/ui/Input";
@@ -16,13 +16,20 @@ import {
   STEPS,
   type ClinicOnboardingInicial,
   type ClinicOnboardingPayload,
+  type PassoDoRascunho,
   type ResultadoOnboarding,
+  type ResultadoPasso,
 } from "./campos";
 
-// Onboarding do estabelecimento, 4 passos. O estado vive no cliente e o
-// "Concluir" manda tudo pra Server Action, que valida de novo, grava o que é
-// público em `clinic_profiles`, o que é privado em `perfil_privado` e chama a
-// RPC da fila de validação (T-007).
+// Onboarding do estabelecimento, 4 passos. Cada "Continuar" grava o passo no
+// servidor (`salvarPasso`, T-051), e o "Concluir" manda tudo pra Server
+// Action, que valida de novo, grava o que é público em `clinic_profiles`, o
+// que é privado em `perfil_privado` e chama a RPC da fila de validação (T-007).
+//
+// T-051 / QA-001 — antes, os passos 1 a 3 viviam só em `useState` e se
+// perdiam ao fechar a aba ou recarregar, enquanto a barra lateral prometia
+// "pausar e voltar". Agora o passo só avança depois que o servidor responde
+// que gravou, e a página reabre no primeiro passo incompleto.
 //
 // As listas de valores vivem em `campos.ts`, porque o servidor valida contra as
 // mesmas listas. Duas cópias divergem, e a que diverge é sempre a do servidor.
@@ -30,14 +37,25 @@ import {
 // DL-016: nenhum try/catch em volta da Action. O caminho de sucesso termina em
 // redirect() do servidor, e o caminho de falha volta como VALOR de retorno.
 
+// Verdadeiro só depois da hidratação, sem `setState` em efeito. O atributo
+// `data-hidratado` que sai daqui é o que o E2E espera antes de clicar.
+const semAssinatura = () => () => {};
+function useHidratado() {
+  return useSyncExternalStore(semAssinatura, () => true, () => false);
+}
+
 export default function ClinicOnboardingForm({
   inicial,
+  passoInicial,
   modo,
   documentoEnviadoEm,
   motivoReprova,
   action,
+  salvarPasso,
 }: {
   inicial: ClinicOnboardingInicial;
+  /** T-051 — o primeiro passo incompleto, lido do banco pela página. */
+  passoInicial: 1 | 2 | 3 | 4;
   modo: "novo" | "revisao";
   /** `perfil_privado.documento_enviado_em`, lido pelo Server Component. É o
    *  sinal de que existe documento no bucket, e vem do BANCO: o cliente nunca
@@ -51,8 +69,14 @@ export default function ClinicOnboardingForm({
   action: (
     payload: ClinicOnboardingPayload
   ) => Promise<ResultadoOnboarding | void>;
+  /** T-051 — o rascunho de cada "Continuar". Nunca conclui, nunca muda status. */
+  salvarPasso: (
+    payload: ClinicOnboardingPayload,
+    passo: PassoDoRascunho
+  ) => Promise<ResultadoPasso>;
 }) {
-  const [step, setStep] = useState(1);
+  const hidratado = useHidratado();
+  const [step, setStep] = useState<number>(passoInicial);
   const [isPending, startTransition] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
   const [docEnviadoEm, setDocEnviadoEm] = useState<string | null>(
@@ -94,22 +118,67 @@ export default function ClinicOnboardingForm({
   //
   // R-060 conferido aqui também: serviços NÃO têm o mesmo defeito, porque o
   // teto (`MAX_SERVICOS`) é o tamanho da lista inteira. Marcar todos é válido.
-  const motivoParado =
-    step === 1 && erroDoCampo("cnpj", cnpj)
-      ? "Confira o CNPJ para continuar."
-      : step === 2 && erroDoCampo("cep", cep)
-        ? "Confira o CEP para continuar."
-        : step === 3 && erroDoCampo("telefone", whatsapp)
-          ? "Confira o WhatsApp para continuar."
-          : null;
+  //
+  // T-051 / QA-013 — o campo OBRIGATÓRIO vazio também segura o passo, com o
+  // motivo no rodapé, em vez de o erro aparecer só no passo 4. São os mesmos
+  // campos que `validarPasso1` e `validarPasso2` exigem no servidor.
+  function motivoDoPasso(): string | null {
+    if (step === 1) {
+      if (!nomeFantasia.trim()) return "Informe o nome fantasia para continuar.";
+      if (!cnpj.trim()) return "Informe o CNPJ para continuar.";
+      if (erroDoCampo("cnpj", cnpj)) return "Confira o CNPJ para continuar.";
+      return null;
+    }
+    if (step === 2) {
+      if (erroDoCampo("cep", cep)) return "Confira o CEP para continuar.";
+      if (!cidade.trim()) return "Informe a cidade do estabelecimento para continuar.";
+      if (!estado) return "Escolha o estado do estabelecimento para continuar.";
+      return null;
+    }
+    if (step === 3 && erroDoCampo("telefone", whatsapp))
+      return "Confira o WhatsApp para continuar.";
+    return null;
+  }
+  const motivoParado = motivoDoPasso();
 
   function toggleServico(s: string) {
     setServicos((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
   }
+
+  function payload(): ClinicOnboardingPayload {
+    return {
+      nomeFantasia,
+      razaoSocial,
+      cnpj,
+      responsavelTecnico: responsavel,
+      endereco,
+      cep,
+      cidade,
+      estado,
+      sobre,
+      servicos,
+      whatsapp,
+    };
+  }
+
+  // T-051 — "Continuar" grava o passo e SÓ DEPOIS avança. Se o servidor
+  // recusar, a pessoa fica no mesmo passo, com o motivo na tela e o que
+  // digitou intacto. DL-016: sem try/catch.
   function next() {
-    setStep((s) => Math.min(4, s + 1));
+    if (step >= 4 || motivoParado !== null || isPending) return;
+    const passo = step as PassoDoRascunho;
+    setErro(null);
+    startTransition(async () => {
+      const r = await salvarPasso(payload(), passo);
+      if (!r.ok) {
+        setErro(r.mensagem);
+        return;
+      }
+      setStep(Math.min(4, passo + 1));
+    });
   }
   function back() {
+    setErro(null);
     setStep((s) => Math.max(1, s - 1));
   }
 
@@ -119,25 +188,16 @@ export default function ClinicOnboardingForm({
     // devolve como valor; no sucesso ela redireciona e esta linha nunca resolve
     // com objeto.
     startTransition(async () => {
-      const r = await action({
-        nomeFantasia,
-        razaoSocial,
-        cnpj,
-        responsavelTecnico: responsavel,
-        endereco,
-        cep,
-        cidade,
-        estado,
-        sobre,
-        servicos,
-        whatsapp,
-      });
+      const r = await action(payload());
       if (r && r.ok === false) setErro(r.mensagem);
     });
   }
 
   return (
-    <div className="grid lg:grid-cols-[320px_1fr] min-h-screen">
+    <div
+      className="grid lg:grid-cols-[320px_1fr] min-h-screen"
+      data-hidratado={hidratado ? "sim" : "nao"}
+    >
       <aside className="bg-principal text-white p-8 flex flex-col">
         <div className="flex items-center gap-2.5 mb-10">
           <Image src="/vetria/logo-vetria-fundo-escuro.svg" alt="Vetria" width={178} height={29} className="h-7 w-auto" />
@@ -150,8 +210,8 @@ export default function ClinicOnboardingForm({
         </h1>
         <p className="text-[13px] text-white/70 leading-relaxed mb-8">
           {emRevisao
-            ? "Você pode corrigir e completar os dados enquanto nossa equipe confere o cadastro. As alterações são salvas quando você chega ao fim."
-            : "Em poucos minutos o cadastro fica pronto pra validação. Você pode pausar e voltar quando quiser."}
+            ? "Você pode corrigir e completar os dados enquanto nossa equipe confere o cadastro. Cada passo é salvo quando você toca em Continuar."
+            : "Em poucos minutos o cadastro fica pronto pra validação. Cada passo é salvo quando você toca em Continuar: dá pra pausar e voltar quando quiser."}
         </p>
 
         <ol className="flex flex-col gap-1">
@@ -391,9 +451,11 @@ export default function ClinicOnboardingForm({
 
           <div className="flex items-center justify-between gap-3 mt-10 pt-6 border-t border-gray-100">
             <span className="text-[12px] text-corpo-texto/70">
-              {step === 4 && !temDocumento
-                ? "Falta enviar o documento do estabelecimento."
-                : (motivoParado ?? `${step * 25}% concluído`)}
+              {isPending
+                ? "Salvando..."
+                : step === 4 && !temDocumento
+                  ? "Falta enviar o documento do estabelecimento."
+                  : (motivoParado ?? `${step * 25}% concluído`)}
             </span>
             <div className="flex gap-3">
               {step > 1 && (
@@ -409,7 +471,8 @@ export default function ClinicOnboardingForm({
                 <button
                   type="button"
                   onClick={next}
-                  disabled={motivoParado !== null}
+                  disabled={motivoParado !== null || isPending}
+                  aria-busy={isPending}
                   title={motivoParado ?? undefined}
                   className="inline-flex items-center gap-2 rounded-pill bg-principal text-white px-6 py-2.5 font-semibold text-sm hover:bg-[#142E33] transition disabled:opacity-50"
                 >

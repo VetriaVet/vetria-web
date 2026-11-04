@@ -39,6 +39,11 @@ const credencial = credencialVet();
 
 // Nomes das rotas do painel do vet que a matriz §4 bloqueia para quem está na
 // fila de validação. `""` é o dashboard.
+//
+// T-055: agenda e avaliações saíram do menu (fora da entrega de 25/11) e a
+// página delas só devolve para o painel. Elas continuam nesta lista de
+// propósito: a rota existe, e quem espera validação tem que ser barrado nela
+// do mesmo jeito, pelo portão, antes de qualquer redirect da página.
 const BLOQUEADAS_PARA_QUEM_ESPERA = [
   { rota: BASE_VET, nome: "dashboard" },
   { rota: `${BASE_VET}/contatos`, nome: "contatos" },

@@ -215,7 +215,15 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
   quando a ordenação por relevância entrar (DL-070 D).
 - **Task:** **T-020** (a mesma sessão de firewall, item acrescentado em 25/09). 🟡
 
-### R-072 — Possível bug: "pausar e voltar" no onboarding (relato do `vetria-qa`, NÃO reproduzido)
+### R-072 — "Pausar e voltar" no onboarding: causa encontrada (QA-001), corrigido na T-051 aguardando prova no `vetria-e2e`
+- **Estado em 29/10/2026:** **causa encontrada (QA-001)**, no relatório `docs/relatorios/QA-2026-10-28.md`
+  (branch `t-039-migration-0006`): os passos 1 a 3 do onboarding viviam só em `useState` e só eram
+  gravados no "Concluir" do passo 4; o documento, ao contrário, ia ao banco na hora. Era a "meia coisa"
+  do relato: documento sim, dados não. **Corrigido na T-051** (branch `t-051-onboarding-salva-cada-passo`):
+  cada "Continuar" grava o passo no servidor, sem migration e sem mudar status, e a página reabre no
+  primeiro passo incompleto. **Aguardando prova no `vetria-e2e`**: os testes novos
+  (`fluxos-conta-nova.spec.ts`, bloco "T-051", vet e estabelecimento) rodam só com `E2E_ALVO=teste`.
+  Fecha quando a suíte passar lá.
 - **Descoberto:** 23-24/09/2026, relato do `vetria-qa` nas sessões de teste; **sem passo a passo escrito**
 - **O quê:** a pessoa sai do onboarding no meio (fecha a aba ou toca em sair) e, ao voltar, **algo não
   volta como estava** (o relato não diz se é passo, campo ou documento). O DoD da F3 item 1 é

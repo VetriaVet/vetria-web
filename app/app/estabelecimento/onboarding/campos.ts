@@ -116,3 +116,31 @@ export const VAZIO: ClinicOnboardingInicial = {
 // precisa mostrar a mensagem na tela, e envolver a chamada em try/catch
 // engoliria o NEXT_REDIRECT do caminho de sucesso (DL-016).
 export type ResultadoOnboarding = { ok: false; mensagem: string };
+
+// T-051 / QA-001 — o rascunho salvo a cada "Continuar". Gêmeo do vet:
+// `salvarPassoClinic` grava só as colunas do passo e NUNCA conclui. O status
+// continua `incomplete` (ou `pending_validation`) até o passo 4.
+export type PassoDoRascunho = 1 | 2 | 3;
+export type ResultadoPasso = { ok: true } | ResultadoOnboarding;
+
+/**
+ * Em qual passo o formulário abre, a partir do que o SERVIDOR leu do banco.
+ * Mesma regra do vet: passo incompleto é passo com campo obrigatório vazio; o
+ * passo 3 (todo opcional) conta como feito quando tem algum conteúdo ou quando
+ * o documento do passo 4 já foi enviado.
+ */
+export function primeiroPassoIncompleto(
+  d: ClinicOnboardingInicial,
+  temDocumento: boolean
+): 1 | 2 | 3 | 4 {
+  if (!d.nomeFantasia.trim() || !d.cnpj.trim()) return 1;
+  if (!d.cidade.trim() || !d.estado.trim()) return 2;
+  if (
+    !temDocumento &&
+    !d.sobre.trim() &&
+    d.servicos.length === 0 &&
+    !d.whatsapp.trim()
+  )
+    return 3;
+  return 4;
+}

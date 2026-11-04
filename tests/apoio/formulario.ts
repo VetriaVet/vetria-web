@@ -6,6 +6,7 @@
 // "Voltar", então um helper serve aos dois.
 
 import { expect, type Page, type Request } from "@playwright/test";
+import { alertaDeErro } from "./sessao";
 
 export function passo(page: Page, n: number) {
   // A flag `i`: o rótulo é escrito em caixa mista no JSX e sobe em caixa alta
@@ -40,18 +41,35 @@ export function botaoContinuar(page: Page) {
  * fora da regra (CRMV, WhatsApp) e por especialidade acima do limite, e o
  * rodapé diz o motivo. A mensagem de falha leva esse motivo junto.
  */
+//
+// ⚠️ T-051 — desde 29/10 o "Continuar" GRAVA o passo no servidor (Server
+// Action `salvarPasso*`) e só avança quando o servidor responde. Duas
+// consequências para quem usa isto:
+//   · cada `avancar` dispara UMA Server Action. Teste que conta Server Actions
+//     (`contarServerActions`) começa a contar DEPOIS de chegar ao passo
+//   · com a Action em voo o botão fica desabilitado (`aria-busy`); a espera
+//     abaixo tolera isso. Se o servidor RECUSAR, o alerta aparece e o passo
+//     não muda: a falha leva a mensagem do alerta junto
 export async function avancar(page: Page, de: number) {
   await expect(async () => {
     if (await passo(page, de).isVisible()) {
-      const botao = botaoContinuar(page);
-      if (await botao.isDisabled()) {
-        const motivo = (await botao.getAttribute("title")) ?? "(sem motivo no title)";
-        throw new Error(`o botao Continuar do passo ${de} esta desabilitado. Motivo na tela: ${motivo}`);
+      // O anunciador de rota do Next também é `role="alert"` (vazio): por isso
+      // `alertaDeErro`, que filtra por conteúdo.
+      const alerta = alertaDeErro(page).first();
+      if (await alerta.isVisible()) {
+        throw new Error(`o servidor recusou o passo ${de}: ${(await alerta.innerText()).trim()}`);
       }
-      await botao.click();
+      const botao = botaoContinuar(page);
+      if ((await botao.getAttribute("aria-busy")) !== "true") {
+        if (await botao.isDisabled()) {
+          const motivo = (await botao.getAttribute("title")) ?? "(sem motivo no title)";
+          throw new Error(`o botao Continuar do passo ${de} esta desabilitado. Motivo na tela: ${motivo}`);
+        }
+        await botao.click();
+      }
     }
-    await expect(passo(page, de + 1)).toBeVisible({ timeout: 2_000 });
-  }).toPass({ timeout: 25_000 });
+    await expect(passo(page, de + 1)).toBeVisible({ timeout: 10_000 });
+  }).toPass({ timeout: 45_000 });
 }
 
 /** Avança do passo em que a tela ESTÁ até o alvo. */
@@ -72,16 +90,32 @@ export async function voltarParaPasso(page: Page, alvo: number) {
   }
 }
 
+/** Espera o React hidratar o formulário (`data-hidratado="sim"`, T-051). */
+export async function esperarHidratacao(page: Page) {
+  await expect(page.locator('[data-hidratado="sim"]')).toBeVisible({ timeout: 25_000 });
+}
+
 /**
- * Abre o formulário já hidratado e no passo 1. A ida ao passo 2 e a volta
- * provam que o React está vivo antes de qualquer clique do teste.
+ * Abre o formulário já hidratado, no passo esperado (1, por padrão).
+ *
+ * ⚠️ T-051 — a prova de hidratação era "ir ao passo 2 e voltar". Desde que o
+ * "Continuar" grava no servidor, isso escreveria a cada abertura, e com conta
+ * nova o passo 1 vazio nem deixa avançar. A prova agora é o atributo
+ * `data-hidratado`, que só vira "sim" depois que o React assumiu a tela.
+ *
+ * `passoEsperado` existe porque a página reabre no PRIMEIRO PASSO INCOMPLETO:
+ * conta em modo "novo" com os passos 1 e 2 salvos abre no 3.
  */
-export async function abrirFormulario(page: Page, rota: string, rotaFinal: RegExp) {
+export async function abrirFormulario(
+  page: Page,
+  rota: string,
+  rotaFinal: RegExp,
+  passoEsperado = 1
+) {
   await page.goto(rota);
   await expect(page).toHaveURL(rotaFinal);
-  await expect(passo(page, 1)).toBeVisible();
-  await avancar(page, 1);
-  await voltarParaPasso(page, 1);
+  await esperarHidratacao(page);
+  await expect(passo(page, passoEsperado)).toBeVisible();
 }
 
 // ---------------------------------------------------------------------------

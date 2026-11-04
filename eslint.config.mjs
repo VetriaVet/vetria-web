@@ -17,6 +17,7 @@ const eslintConfig = defineConfig([
     // ("Maximum call stack size exceeded"). O erro só aparecia na máquina do
     // Elber, e escondia os erros reais no meio do ruído.
     "vetria-proto/**",
+    ".claude/**", // agentes e worktrees do Claude Code: não é código do app
   ]),
 ]);
 

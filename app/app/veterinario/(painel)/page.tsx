@@ -2,22 +2,15 @@ import Link from "next/link";
 import { requirePainel } from "@/lib/auth/painel";
 import { SO_ATIVO } from "@/lib/auth/status";
 import { Card } from "@/components/ui/Card";
-import { EmptyState, Skeleton } from "@/components/ui/EmptyState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   ArrowRight,
-  Eye,
   MessageCircle,
-  Star,
-  Bookmark,
-  Search,
-  Inbox,
-  CalendarDays,
   Check,
-  type LucideIcon,
 } from "lucide-react";
 
 // Dashboard vet — casca fiel ao produto. Os blocos que dependem de backend
-// (atividade, agenda, métricas) usam estados GHOST (DL-034): mostram o
+// (contatos recebidos) usam estados GHOST (DL-034): mostram o
 // esqueleto do conteúdo + texto honesto do que vai aparecer, sem inventar
 // número (DL-020). Pontos de integração marcados com // TODO.
 
@@ -86,68 +79,35 @@ export default async function VetPage() {
         </Link>
       </section>
 
-      {/* Busca — preparada (// TODO: busca real na fase pesada) */}
-      <div className="flex max-w-xl items-center gap-3 rounded-pill border border-neutro-border bg-white py-2.5 pl-5 pr-3">
-        <Search size={18} className="shrink-0 text-corpo-texto/60" />
-        <input
-          type="text"
-          disabled
-          placeholder="Buscar contatos e avaliações..."
-          className="flex-1 bg-transparent text-[14px] text-titulo outline-none placeholder:text-corpo-texto/60 disabled:cursor-not-allowed"
-        />
-        <span className="shrink-0 text-[11px] uppercase tracking-wider text-corpo-texto/50">
-          em breve
-        </span>
-      </div>
-
-      {/* Stats — valor fantasma até a busca pública (Sprint 3) */}
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {/* TODO: ligar a métricas reais quando o perfil público existir */}
-        <StatCard icon={Eye} label="Visualizações" />
-        <StatCard icon={MessageCircle} label="Contatos recebidos" />
-        <StatCard icon={Star} label="Avaliações" />
-        <StatCard icon={Bookmark} label="Salvos por responsáveis" />
-      </section>
-
       {/* Grid principal */}
       <section className="grid gap-6 lg:grid-cols-3">
-        {/* Coluna esquerda (2/3): atividade + agenda */}
+        {/* Coluna esquerda (2/3): contatos recebidos. T-055 tirou daqui a
+            agenda, as avaliações, os salvos e as visualizações: nada disso
+            entra na entrega de 25/11. A contagem real chega na T-042. */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           <Card className="border-neutro-border p-6">
             <h2 className="mb-1 text-lg font-bold text-titulo">
-              Atividade recente
+              Contatos recebidos
             </h2>
             <p className="mb-5 text-[13px] text-corpo-texto">
-              Movimentações no seu perfil
+              Responsáveis que chamaram você pelo seu perfil
             </p>
 
-            {/* TODO: feed real (contatos, avaliações, visualizações) — Sprint 3+ */}
+            {/* TODO (T-042): contagem e lista reais dos contatos */}
             <EmptyState
-              icon={Inbox}
+              icon={MessageCircle}
               ghost={3}
-              title="Nenhuma atividade ainda"
-              description="Quando responsáveis visualizarem ou entrarem em contato com seu perfil, as movimentações aparecem aqui, cada uma com nome, tipo e data."
+              title="Nenhum contato ainda"
+              description="Seus contatos aparecem aqui quando um responsável chamar você pelo seu perfil na Vetria, com a data e o canal usado."
             />
-          </Card>
 
-          <Card className="border-neutro-border p-6">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-titulo">
-                  Próximos atendimentos
-                </h2>
-                <p className="text-[13px] text-corpo-texto">Agenda da semana</p>
-              </div>
-              <span className="rounded-pill bg-fundo-destaque px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-principal">
-                Em breve
-              </span>
-            </div>
-
-            <EmptyState
-              icon={CalendarDays}
-              title="A agenda chega em breve"
-              description="Você poderá organizar horários e receber agendamentos diretos pela Vetria. Por enquanto, responsáveis entram em contato pelo WhatsApp."
-            />
+            <Link
+              href="/app/veterinario/contatos"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutro-border py-3 text-sm font-medium text-corpo-texto no-underline transition hover:border-principal hover:text-principal"
+            >
+              Ver contatos recebidos
+              <ArrowRight size={14} aria-hidden />
+            </Link>
           </Card>
         </div>
 
@@ -196,19 +156,6 @@ export default async function VetPage() {
           </Card>
         </div>
       </section>
-    </div>
-  );
-}
-
-function StatCard({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
-  return (
-    <div className="rounded-2xl border border-neutro-border bg-white p-5">
-      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-fundo-destaque text-principal">
-        <Icon size={18} />
-      </div>
-      <div className="mb-2 text-[13px] text-corpo-texto">{label}</div>
-      <Skeleton className="h-7 w-12" />
-      <div className="mt-2 text-xs text-corpo-texto/70">Em breve</div>
     </div>
   );
 }

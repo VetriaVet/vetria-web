@@ -2,22 +2,15 @@ import Link from "next/link";
 import { requirePainel } from "@/lib/auth/painel";
 import { SO_ATIVO } from "@/lib/auth/status";
 import { Card } from "@/components/ui/Card";
-import { EmptyState, Skeleton } from "@/components/ui/EmptyState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   ArrowRight,
-  Eye,
   MessageCircle,
-  Users,
-  Star,
-  Search,
-  Inbox,
-  Plus,
   Check,
-  type LucideIcon,
 } from "lucide-react";
 
 // Dashboard clínica — casca, mesma linguagem do painel vet. Blocos sem backend
-// (equipe, atividade, métricas) usam estado GHOST (DL-034): esqueleto + texto
+// (contatos recebidos) usam estado GHOST (DL-034): esqueleto + texto
 // honesto, sem mock (DL-020). Card de plano/cobrança fica de fora de propósito
 // (Sprint 6). Pontos de integração marcados com // TODO.
 
@@ -78,73 +71,35 @@ export default async function ClinicPage() {
         </Link>
       </section>
 
-      {/* Busca — preparada (// TODO: busca real na fase pesada) */}
-      <div className="flex max-w-xl items-center gap-3 rounded-pill border border-neutro-border bg-white py-2.5 pl-5 pr-3">
-        <Search size={18} className="shrink-0 text-corpo-texto/60" />
-        <input
-          type="text"
-          disabled
-          placeholder="Buscar contatos e equipe..."
-          className="flex-1 bg-transparent text-[14px] text-titulo outline-none placeholder:text-corpo-texto/60 disabled:cursor-not-allowed"
-        />
-        <span className="shrink-0 text-[11px] uppercase tracking-wider text-corpo-texto/50">
-          em breve
-        </span>
-      </div>
-
-      {/* Stats — valor fantasma até a busca pública (Sprint 3) */}
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {/* TODO: ligar a métricas reais quando o perfil público existir */}
-        <StatCard icon={Eye} label="Visualizações" />
-        <StatCard icon={MessageCircle} label="Contatos" />
-        <StatCard icon={Users} label="Equipe ativa" />
-        <StatCard icon={Star} label="Avaliações" />
-      </section>
-
       {/* Grid principal */}
       <section className="grid gap-6 lg:grid-cols-3">
-        {/* Coluna esquerda (2/3): equipe + atividade */}
+        {/* Coluna esquerda (2/3): contatos recebidos. T-055 tirou daqui a
+            equipe, as avaliações e as visualizações: nada disso entra na
+            entrega de 25/11. A contagem real chega na T-042. */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           <Card className="border-neutro-border p-6">
             <h2 className="mb-1 text-lg font-bold text-titulo">
-              Equipe profissional
+              Contatos recebidos
             </h2>
             <p className="mb-5 text-[13px] text-corpo-texto">
-              Os veterinários vinculados ao estabelecimento.
+              Responsáveis que chamaram o estabelecimento pelo perfil
             </p>
 
-            {/* TODO: lista real da equipe (clinic_profiles + vínculos) — migration 029 */}
+            {/* TODO (T-042): contagem e lista reais dos contatos */}
             <EmptyState
-              icon={Users}
-              ghost={2}
-              title="Monte sua equipe"
-              description="Você poderá convidar e validar os veterinários do estabelecimento, cada um com seu CRMV e especialidade. Eles aparecem aqui com foto, nome e status."
+              icon={MessageCircle}
+              ghost={3}
+              title="Nenhum contato ainda"
+              description="Os contatos aparecem aqui quando um responsável chamar o estabelecimento pelo perfil na Vetria, com a data e o canal usado."
             />
 
             <Link
-              href="/app/estabelecimento/equipe"
+              href="/app/estabelecimento/contatos"
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutro-border py-3 text-sm font-medium text-corpo-texto no-underline transition hover:border-principal hover:text-principal"
             >
-              <Plus size={14} />
-              Gerenciar equipe
+              Ver contatos recebidos
+              <ArrowRight size={14} aria-hidden />
             </Link>
-          </Card>
-
-          <Card className="border-neutro-border p-6">
-            <h2 className="mb-1 text-lg font-bold text-titulo">
-              Atividade recente
-            </h2>
-            <p className="mb-5 text-[13px] text-corpo-texto">
-              Movimentações no perfil do estabelecimento
-            </p>
-
-            {/* TODO: feed real (contatos, avaliações, equipe) — Sprint 3+ */}
-            <EmptyState
-              icon={Inbox}
-              ghost={3}
-              title="Nenhuma atividade ainda"
-              description="Assim que responsáveis interagirem com o perfil do estabelecimento, as movimentações aparecem aqui, cada uma com tipo, origem e data."
-            />
           </Card>
         </div>
 
@@ -192,19 +147,6 @@ export default async function ClinicPage() {
           </Card>
         </div>
       </section>
-    </div>
-  );
-}
-
-function StatCard({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
-  return (
-    <div className="rounded-2xl border border-neutro-border bg-white p-5">
-      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-fundo-destaque text-principal">
-        <Icon size={18} />
-      </div>
-      <div className="mb-2 text-[13px] text-corpo-texto">{label}</div>
-      <Skeleton className="h-7 w-12" />
-      <div className="mt-2 text-xs text-corpo-texto/70">Em breve</div>
     </div>
   );
 }

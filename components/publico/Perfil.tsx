@@ -13,20 +13,23 @@ import {
   RotateCw,
   SearchX,
 } from "lucide-react";
-import { CONTATO_PELO_SITE_ABERTO } from "@/lib/perfil-publico/contato";
+import { cookies } from "next/headers";
+import { estadoDaPorta } from "@/lib/contato/porta";
+import type { AlvoDoContato } from "@/lib/perfil-publico/contato";
 import type { ConteudoDoEstabelecimento, ConteudoDoVeterinario } from "@/lib/perfil-publico/tipos";
 import type { ModoDeAtendimento } from "@/lib/busca/tipos";
 import { ATENDIMENTO, juntarLocal, modosLigados } from "./atendimento";
 import { Avatar } from "./CartaoDeProfissional";
 import { CascaPublica, classeDoLinkPrincipal, classeDoLinkSecundario } from "./CascaPublica";
+import { ContatoPeloWhatsapp } from "./ContatoPeloWhatsapp";
 
 // As peças do perfil público (/veterinario/[slug] e /estabelecimento/[slug]).
 // As duas páginas usam a MESMA moldura: o que muda é o conteúdo, e um
 // conserto aqui vale para as duas (R-017, clone herda defeito).
 //
 // ⚠️ Nada de telefone nem WhatsApp em lugar nenhum daqui (DL-047). O bloco de
-// contato só conhece o texto; o número, quando existir, vem do servidor no
-// clique (S8).
+// contato só conhece o endereço público (tipo + slug); o número vem do
+// servidor no clique, pelo `POST /api/contato` (T-040, T-041).
 
 // Selo "Verificado pela Vetria" (DL-070). Vale para TODO perfil que aparece:
 // a RLS só devolve conta `active`, e só chega a `active` quem passou pela
@@ -198,12 +201,80 @@ export function Etiquetas({ itens, rotulo }: { itens: string[]; rotulo: string }
   );
 }
 
+/** Cookie de sessão do Supabase (`sb-<ref>-auth-token`, às vezes em pedaços `.0`, `.1`). */
+const COOKIE_DE_SESSAO = /^sb-[a-z0-9]+-auth-token(\.\d+)?$/;
+
 /**
- * O contato, enquanto a S8 não existe: diz que abre em breve e NÃO desenha
- * botão. Botão que não faz nada é promessa falsa com cara de função.
+ * O contato do perfil (T-041). Quem decide se o botão existe é a MESMA
+ * pergunta que a rota faz, `estadoDaPorta()` (lib/contato/porta.ts): porta
+ * fechada, a tela diz que abre em breve e NÃO desenha botão (botão que não faz
+ * nada é promessa falsa com cara de função). Em produção ela fica fechada
+ * enquanto `CONTATO_PELO_SITE_ABERTO` ou `TURNSTILE_NO_CONTATO` for `false`;
+ * no teste, abre com `CONTATO_ABERTO_PARA_TESTE=1` contra o `vetria-e2e`.
+ *
+ * Na prévia do dono (sem `alvo`), o botão aparece esmaecido e não faz nada: o
+ * dono vê onde ele fica, e não gera contato consigo mesmo.
+ *
+ * O convite para criar conta só aparece para quem não tem sessão no navegador
+ * (o cookie do Supabase basta: é só para não convidar quem já tem conta).
  */
-export function BlocoDeContato({ tipo }: { tipo: "vet" | "clinic" }) {
+export async function BlocoDeContato({
+  tipo,
+  alvo,
+}: {
+  tipo: "vet" | "clinic";
+  /** O endereço público. Ausente na prévia do painel. */
+  alvo?: AlvoDoContato;
+}) {
   const quem = tipo === "vet" ? "este veterinário" : "este estabelecimento";
+  const aberta = estadoDaPorta().aberta;
+
+  let corpo: ReactNode;
+  if (!aberta) {
+    corpo = (
+      <div className="mt-3 flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-fundo-destaque text-principal">
+          <MessageCircle size={19} aria-hidden />
+        </span>
+        <div>
+          <p className="text-[15px] font-semibold text-titulo">
+            O contato pelo WhatsApp abre em breve.
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-corpo-texto">
+            Quando abrir, você vai poder chamar {quem} direto desta página.
+          </p>
+        </div>
+      </div>
+    );
+  } else if (!alvo) {
+    corpo = (
+      <div className="mt-3">
+        <div
+          aria-hidden
+          className="flex min-h-[51px] w-full items-center justify-center gap-2 rounded-pill border border-dashed border-principal/50 bg-fundo-destaque text-[15px] font-semibold text-principal/70"
+        >
+          <MessageCircle size={18} />
+          Chamar no WhatsApp
+        </div>
+        <p className="mt-3 text-[12px] leading-relaxed text-corpo-texto">
+          Quem visita o seu perfil vê aqui o botão Chamar no WhatsApp. Na prévia ele não funciona,
+          para não contar um contato seu.
+        </p>
+      </div>
+    );
+  } else {
+    const temSessao = (await cookies()).getAll().some((c) => COOKIE_DE_SESSAO.test(c.name));
+    corpo = (
+      <>
+        <p className="mt-2 text-[14px] leading-relaxed text-corpo-texto">
+          Toque no botão para ver o WhatsApp {tipo === "vet" ? "deste veterinário" : "deste estabelecimento"}.
+          Não precisa de conta.
+        </p>
+        <ContatoPeloWhatsapp alvo={alvo} convidarParaConta={!temSessao} />
+      </>
+    );
+  }
+
   return (
     <section
       aria-labelledby="titulo-contato"
@@ -212,27 +283,7 @@ export function BlocoDeContato({ tipo }: { tipo: "vet" | "clinic" }) {
       <h2 id="titulo-contato" className="text-[17px] font-bold text-titulo">
         Contato
       </h2>
-      <div className="mt-3 flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-fundo-destaque text-principal">
-          <MessageCircle size={19} aria-hidden />
-        </span>
-        {CONTATO_PELO_SITE_ABERTO ? (
-          // S8: o botão entra aqui, com a rota que registra o contato e só
-          // então devolve o número (DL-047). Até lá esta ponta não é usada.
-          <p className="text-[14px] leading-relaxed text-corpo-texto">
-            Fale com {quem} pelo WhatsApp.
-          </p>
-        ) : (
-          <div>
-            <p className="text-[15px] font-semibold text-titulo">
-              O contato pelo WhatsApp abre em breve.
-            </p>
-            <p className="mt-1 text-[13px] leading-relaxed text-corpo-texto">
-              Quando abrir, você vai poder chamar {quem} direto desta página.
-            </p>
-          </div>
-        )}
-      </div>
+      {corpo}
     </section>
   );
 }
@@ -310,9 +361,12 @@ const O_QUE_E: Record<ModoDeAtendimento, string> = {
 export function PerfilDoVeterinario({
   perfil: p,
   modo,
+  contato,
 }: {
   perfil: ConteudoDoVeterinario;
   modo?: ModoDaMoldura;
+  /** Só na página pública. Na prévia fica de fora: o botão vira desenho. */
+  contato?: AlvoDoContato;
 }) {
   const local = juntarLocal(p.bairro, p.cidade, p.uf);
   const modos = modosLigados(p.atendimento);
@@ -378,7 +432,7 @@ export function PerfilDoVeterinario({
           )}
         </>
       }
-      lateral={<BlocoDeContato tipo="vet" />}
+      lateral={<BlocoDeContato tipo="vet" alvo={modo?.tipo === "previa" ? undefined : contato} />}
     />
   );
 }
@@ -396,9 +450,12 @@ function siteParaLer(site: string): string {
 export function PerfilDoEstabelecimento({
   perfil: p,
   modo,
+  contato,
 }: {
   perfil: ConteudoDoEstabelecimento;
   modo?: ModoDaMoldura;
+  /** Só na página pública. Na prévia fica de fora: o botão vira desenho. */
+  contato?: AlvoDoContato;
 }) {
   const local = juntarLocal(p.cidade, p.uf);
 
@@ -445,7 +502,7 @@ export function PerfilDoEstabelecimento({
           )}
         </>
       }
-      lateral={<BlocoDeContato tipo="clinic" />}
+      lateral={<BlocoDeContato tipo="clinic" alvo={modo?.tipo === "previa" ? undefined : contato} />}
     />
   );
 }

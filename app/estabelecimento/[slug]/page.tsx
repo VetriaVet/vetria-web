@@ -52,5 +52,6 @@ export default async function PerfilDoEstabelecimentoPage({ params }: Props) {
   if (r.estado !== "ok") return <PerfilComErro tentarDeNovo={`/estabelecimento/${slug}`} />;
 
   // O mesmo componente da prévia do dono no painel (`/app/estabelecimento/perfil`).
-  return <PerfilDoEstabelecimento perfil={r.perfil} />;
+  // `contato` é só tipo + slug (DL-047): o número vem no clique (T-041).
+  return <PerfilDoEstabelecimento perfil={r.perfil} contato={r.perfil.contato} />;
 }

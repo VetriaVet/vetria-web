@@ -2,8 +2,9 @@ import { requirePainel } from "@/lib/auth/painel";
 import { ESPERANDO_OU_ATIVO } from "@/lib/auth/status";
 import AppShell, { type ShellSection } from "@/components/app/AppShell";
 
-// Shell premium do painel da clínica (DL-032). Mesmo padrão do vet, com nav
-// própria (Equipe). Route group `(painel)` mantém o onboarding fora da sidebar
+// Shell premium do painel do estabelecimento (DL-032). Mesmo padrão do vet.
+// T-055: Equipe, Agenda e Avaliações saíram do menu (fora da entrega de 25/11);
+// as rotas ficam atrás do mesmo portão e só devolvem para o painel. Route group `(painel)` mantém o onboarding fora da sidebar
 // (DL-025). URL inalterada (`/app/estabelecimento`...).
 
 const SECTIONS: ShellSection[] = [
@@ -12,10 +13,7 @@ const SECTIONS: ShellSection[] = [
     items: [
       { label: "Dashboard", href: "/app/estabelecimento", icon: "dashboard" },
       { label: "Perfil do estabelecimento", href: "/app/estabelecimento/perfil", icon: "building" },
-      { label: "Equipe", href: "/app/estabelecimento/equipe", icon: "users" },
       { label: "Contatos recebidos", href: "/app/estabelecimento/contatos", icon: "message" },
-      { label: "Agenda", href: "/app/estabelecimento/agenda", icon: "calendar" },
-      { label: "Avaliações", href: "/app/estabelecimento/avaliacoes", icon: "star" },
     ],
   },
   {

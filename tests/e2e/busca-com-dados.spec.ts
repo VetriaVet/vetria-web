@@ -220,8 +220,14 @@ if (BUSCA_LIGADA) {
       await expect(page.getByText("Verificado pela Vetria", { exact: true })).toBeVisible();
       await expect(page.getByText(`CRMV-TO ${v.crmv}`, { exact: true })).toBeVisible();
       await expect(page.getByRole("list", { name: "Especialidades" })).toContainText("Cardiologia");
-      // Sem botão de contato falso enquanto a S8 não existe.
-      await expect(page.getByText("O contato pelo WhatsApp abre em breve.")).toBeVisible();
+      // Porta fechada: sem botão de contato falso. Porta aberta para teste
+      // (T-041, depois da 0006): o botão existe, e o número ainda não.
+      if (process.env.CONTATO_ABERTO_PARA_TESTE === "1") {
+        await expect(page.getByRole("button", { name: "Chamar no WhatsApp" })).toBeVisible();
+      } else {
+        await expect(page.getByText("O contato pelo WhatsApp abre em breve.")).toBeVisible();
+        await expect(page.getByRole("button", { name: "Chamar no WhatsApp" })).toHaveCount(0);
+      }
       await conferirNoindex(page, `/veterinario/${slug}`);
 
       const direto = await page.goto(`/veterinario/${slug}`);

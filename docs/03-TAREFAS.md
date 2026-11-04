@@ -82,6 +82,52 @@
 
 **Nada em execução em 28/10.** A primeira da fila é a **T-044**.
 
+# ✅ FEITA EM 29/10, aguardando prova no `vetria-e2e`
+
+### T-051 — O onboarding salva cada passo no "Continuar" e reabre onde a pessoa parou
+- **Estado:** ✅ código pronto e commitado na branch `t-051-onboarding-salva-cada-passo` (sem push) · ⏳ **prova no `vetria-e2e` pendente** (os testes novos só rodam com `E2E_ALVO=teste`)
+- **Fase / Semana:** F6 / semana 1 (achado da varredura de QA de 28/10, antes da T-048)
+- **Capacidade:** **E2** — *"o que o profissional digita no onboarding persiste e reaparece"*
+- **Nível:** 🟡 — Server Actions do onboarding, `components/` de formulário e helpers de teste. **Sem migration**
+- **Agente dono:** vetria-backend · **conferência:** vetria-qa (prova em tela) e vetria-seguranca (as duas Actions novas)
+- **Depende de:** nada
+- **Por quê:** QA-001 (🔴, causa do R-072). A tela dizia "Você pode pausar e voltar quando quiser" e nada era salvo antes do passo 4; só o documento ia ao banco na hora. F5, fechar a aba, "Voltar" do navegador ou sessão expirada apagavam os passos 1 a 3. Junto, QA-013: "Continuar" deixava passar campo obrigatório vazio e o erro só aparecia no fim
+- **Feito quando:**
+  - [x] Cada "Continuar" grava o passo atual no servidor, só as colunas daquele passo, nas tabelas que já existem (`vet_profiles`, `clinic_profiles`, `perfil_privado`), respeitando os CHECKs da `0004` e a matriz
+  - [x] Ao reabrir, o formulário vem com o que foi salvo e abre no primeiro passo incompleto (revisão e reprovado abrem no passo 1)
+  - [x] O status continua `incomplete` até o "Concluir cadastro"; só ele chama a RPC que leva a `pending_validation` (`lib/auth/status.ts` e matriz sem mudança)
+  - [x] "Continuar" não passa campo obrigatório vazio do passo, com o motivo em português no rodapé; o servidor valida o mesmo passo de novo
+  - [x] E2E: "preencher passo 1 e 2, recarregar, os dados continuam lá", nas duas personas, com conta nova (`E2E_ALVO=teste`)
+  - [ ] Suíte verde no `vetria-e2e` (pendente: não roda contra produção, e o `.env.local` desta máquina aponta para produção)
+- **Não fazer:** migration (coluna de "último passo" ou tabela de rascunho); WhatsApp obrigatório (é a T-046); aviso ao sair da página; mudar a matriz ou o portão de status
+- **Resultado:**
+
+  **HANDOFF — vetria-backend — T-051 — 29/10/2026**
+
+  **Fiz:**
+  - `app/app/veterinario/onboarding/actions.ts`: a validação virou uma função por passo (`validarPasso1/2/3`), usada pelas duas Actions. Nova `salvarPassoVet(entrada, passo)`: confere sessão, role `vet` e status pela lista `ONBOARDING` de `lib/auth/status.ts` (`incomplete`, `pending_validation`), valida só o passo, grava só as colunas dele, nunca chama `concluir_onboarding_profissional()`, nunca redireciona no sucesso. `salvarOnboardingVet` (conclusão) igual em comportamento, agora montada com as mesmas funções
+  - `app/app/estabelecimento/onboarding/actions.ts`: o mesmo, com `salvarPassoClinic`. Passo 1 grava `nome_fantasia` em `clinic_profiles` e CNPJ, razão social e responsável técnico em `perfil_privado`; passo 2 só `clinic_profiles`; passo 3 `sobre` e `servicos` em `clinic_profiles` e WhatsApp em `perfil_privado`. Tabela sem coluna no passo não é tocada
+  - `campos.ts` (os dois): tipos `PassoDoRascunho` e `ResultadoPasso`, e `primeiroPassoIncompleto()`
+  - `page.tsx` (os dois): calcula `passoInicial` e passa `salvarPasso` ao formulário
+  - `VetOnboardingForm.tsx` e `ClinicOnboardingForm.tsx`: "Continuar" chama o rascunho e só avança com resposta ok (erro fica na tela, no mesmo passo); botão desabilitado e rodapé "Salvando..." enquanto grava; campos obrigatórios seguram o passo com o motivo; texto da barra lateral trocado para "Cada passo é salvo quando você toca em Continuar"; atributo `data-hidratado` para o E2E
+  - `tests/apoio/formulario.ts`: `abrirFormulario` não clica mais em "Continuar" para provar hidratação (escreveria) e aceita o passo esperado; `avancar` tolera a Action em voo e falha com a mensagem do servidor
+  - `tests/e2e/onboarding-vet.spec.ts`: contadores de Server Action começam depois de chegar ao passo; os testes que contornam a tela adulteram o rascunho do passo; o de cidade em branco prova a tela e o servidor; novo teste de F5 na conta fixa (só teste)
+  - `tests/e2e/fluxos-conta-nova.spec.ts`: bloco "T-051" com vet e estabelecimento em conta nova: preenche passos 1 e 2, confere o banco (status `incomplete`), F5 reabre no passo 3 com tudo lá, aba nova idem
+  
+  **Não fiz:** rodar a suíte E2E (o `.env.local` desta máquina aponta para produção; só rodei `tsc`, `eslint`, `playwright --list` e `next build` com `NEXT_PUBLIC_SUPABASE_*` fictícios, todos verdes). Aviso ao sair da página com campo não salvo (o que foi digitado no passo atual e não passou por "Continuar" ainda se perde no F5; "Voltar" dentro do formulário não grava)
+  
+  **Estado agora:** quem preenche os passos 1 a 3 e fecha a aba, recarrega ou perde a sessão volta com tudo lá, no primeiro passo que falta. O status só muda no "Concluir cadastro". Continua casca: nada novo
+  
+  **Descobri:** (1) o status do enum é `incomplete`, não "onboarding". (2) Nenhuma migration foi necessária: todas as colunas tocadas são anuláveis e todo CHECK da `0004` é `col is null or ...`. (3) O passo 3 não tem campo obrigatório e o banco não guarda "último passo visto": a reabertura trata o passo 3 como feito quando tem bio/sobre/serviços/WhatsApp ou documento; no pior caso a pessoa revê um passo opcional. (4) Em produção, o CI que roda `onboarding-vet.spec.ts` na conta fixa passa a regravar os mesmos valores a cada "Continuar" (antes, só o teste de persistência gravava)
+  
+  **Bloqueios:** a prova no `vetria-e2e` (URL e chaves do projeto de teste não estão nesta máquina)
+  
+  **Próximo passo óbvio:** rodar `E2E_ALVO=teste` com `fluxos-conta-nova.spec.ts` e `onboarding-vet.spec.ts` no CI do `vetria-e2e`; passando, fechar o R-072
+  
+  **Docs que atualizei:** `docs/03-TAREFAS.md` (este card), `docs/04-RISCOS.md` (R-072)
+  
+  **Commits:** `fix(T-051): ...` na branch `t-051-onboarding-salva-cada-passo`
+
 # ✅ ENTREGUE EM 25/09, registrado em 28/10
 
 ### T-038 — A prévia do perfil público para o próprio profissional, em `/app/*/perfil`
@@ -695,33 +741,71 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
   **Commits:** branch `t-039-migration-0006` (hash na resposta ao maestro).
 
 ### T-040 — A rota `POST /api/contato` e o cookie do visitante
-- **Estado:** ⬜ **fila de 28/10, item 2**, depois da T-039 no `vetria-e2e` (sessão A, 29/10). Pode ser escrita antes, contra o desenho
+- **Estado:** 🔵 **escrita em 28/10, NÃO commitada na `main`, aguardando aprovação do diff (🟡) e auditoria do `vetria-seguranca`.** Branch `t-040-api-contato` (a partir da `t-039-migration-0006`). A parte que depende da `0006` só roda depois da sessão A (29/10)
 - **Fase / Semana:** F4 / S6-S7 · **Capacidade:** **E5** · **Nível:** 🟡 — `/api/*` e `lib/` · **Dono:** vetria-backend · **Auditoria:** vetria-seguranca
 - **Depende de:** **T-039** aplicada no `vetria-e2e`; **T-031** se D4 = sim
 - **Por quê:** é a única porta pela qual o número sai. Tem que estar certa antes de o botão existir
 - **Feito quando:**
-  - [ ] Só POST; `Sec-Fetch-Site` diferente de `same-origin` é recusado; corpo validado contra listas fechadas; resposta no formato `RespostaDoContato`; `Cache-Control: no-store`
-  - [ ] Cookie `vetria_visitante` criado no primeiro clique (D2), com os atributos do desenho §4
-  - [ ] Chama `registrar_contato` pelo `lib/supabase/admin.ts` (`server-only`) e nada mais com esse cliente
-  - [ ] Número e `anon_id` **nunca** em log (só o `code` do erro, como no resto do projeto)
-  - [ ] Turnstile conferido no servidor, se D4 = sim
-  - [ ] **Gesto do Elber, guiado por este card:** regra do firewall da Vercel em `/api/contato` (D3), escrita aqui
-  - [ ] Teste de API no CI: sem `Sec-Fetch-Site` recusa; slug inválido recusa; o número só vem no corpo da resposta do POST
+  - [x] Só POST; `Sec-Fetch-Site` diferente de `same-origin` é recusado; corpo validado contra listas fechadas; resposta no formato `RespostaDoContato`; `Cache-Control: no-store`
+  - [x] Cookie `vetria_visitante` criado no primeiro clique (D2), com os atributos do desenho §4 _(escrito; a prova com banco é a parte B do teste, depois da 0006)_
+  - [x] Chama `registrar_contato` pelo `lib/supabase/admin.ts` (`server-only`) e nada mais com esse cliente
+  - [x] Número e `anon_id` **nunca** em log (só o `code` do erro, como no resto do projeto)
+  - [x] Turnstile conferido no servidor, se D4 = sim _(ponto de verificação pronto e **desligado** por `TURNSTILE_NO_CONTATO = false`: a chave não existe; ver Resultado)_
+  - [ ] **Gesto do Elber, guiado por este card:** regra do firewall da Vercel em `/api/contato` (D3), escrita aqui _(roteiro no Resultado)_
+  - [ ] Teste de API no CI: sem `Sec-Fetch-Site` recusa; slug inválido recusa; o número só vem no corpo da resposta do POST _(parte A verde local; parte B escrita, liga com `CONTATO_ABERTO_PARA_TESTE: "1"` no CI depois da 0006)_
   - [ ] **SEC-129 (auditoria de 28/10, a qualquer momento):** a trava do modo de teste em `lib/contato/porta.ts` vira lista **positiva** (só o ref do `vetria-e2e`), em vez de "qualquer projeto que não seja o de produção". `CONTATO_ABERTO_PARA_TESTE` nunca no escopo Production nem no Preview geral da Vercel; para a demo de 31/10, variável restrita à branch
 - **Não fazer:** o botão (T-041). Server Action no lugar da rota (a regra de firewall precisa de caminho fixo).
-- **Resultado:** _(a preencher)_
+- **Resultado:** 🔵 **28/10/2026, escrita e testada no que dá para testar sem a `0006`. Nada em produção, nada em banco.**
+  Arquivos: `app/api/contato/route.ts` (novo), `lib/contato/porta.ts` (novo, `server-only`), `lib/contato/turnstile.ts`
+  (novo, `server-only`), `lib/perfil-publico/contato.ts` (comentário e um motivo novo, `verificacao_recusada`),
+  `tests/e2e/contato-rota.spec.ts` (novo).
+
+  **O que passou a funcionar:** existe a rota `POST /api/contato`. **Em produção ela fica fechada**: enquanto
+  `CONTATO_PELO_SITE_ABERTO = false`, um pedido válido recebe `503 {"ok":false,"motivo":"indisponivel"}`, sem cookie,
+  sem ler sessão e sem tocar no banco. Pedido de fora do site (sem `Sec-Fetch-Site: same-origin`) recebe 403; corpo que
+  não é JSON, 415; corpo acima de 4 KB, 413; tipo fora de `vet`/`clinic` ou slug fora do formato do DL-067, 400
+  `nao_encontrado`. Toda resposta tem `Cache-Control: no-store`.
+
+  **Como a porta abre (`lib/contato/porta.ts`):** (1) produção: `CONTATO_PELO_SITE_ABERTO = true` **e**
+  `TURNSTILE_NO_CONTATO = true`. A SEC-120 (a) está em código: ligar o botão sem o captcha deixa a rota fechada.
+  (2) teste: `CONTATO_ABERTO_PARA_TESTE=1` no servidor, `VERCEL_ENV` diferente de `production` e a URL do Supabase
+  **não** sendo a de produção (ref `gdqnnrozbxrtaaquarnd`). Medido em 28/10: build com a URL de produção e a variável
+  ligada respondeu 503 sem chamar o banco; build com uma URL de teste e a variável ligada chamou o banco.
+
+  **Prova local (28/10):** `npm run lint` limpo; `npm run build` verde (`ƒ /api/contato`); parte A do teste, **6 de 6
+  verdes** contra `next start` local: recusa sem/`cross-site`/`same-site`/`none` em `Sec-Fetch-Site`, o `fetch` de
+  dentro da página passa da conferência de origem (o navegador manda `same-origin`), GET dá 405, 415/400/413, 10
+  corpos ruins com `nao_encontrado` e 5 com `indisponivel`, e o teste "porta" exige 503 com a variável desligada.
+
+  **A parte B (só depois da 0006 no `vetria-e2e`):** com `CONTATO_ABERTO_PARA_TESTE: "1"` no `env:` do job do
+  `ci.yml`, 3 testes: o número só vem no corpo do POST e nunca no HTML (antes e depois do clique), a linha nasce em
+  `contatos` com `anon_id` igual ao cookie e a origem certa, o cookie tem `HttpOnly`, `Secure`, `SameSite=Lax`,
+  `Path=/`, `Max-Age=15552000`; o 2º clique em 24 h não duplica (D5); cookie que não é UUID vira cookie novo; origem
+  fora da lista vira nula; perfil sem WhatsApp dá 422 `sem_whatsapp` sem gravar; conta suspensa dá 404 sem gravar.
+  **Não ligar a variável antes da 0006:** o teste "porta" fica vermelho dizendo por quê.
+
+  **Gesto do Elber, regra do firewall da Vercel** (Firewall > Custom Rules, sessão do firewall junto com a T-020):
+  nome `contato-por-ip`; **se** o caminho for igual a `/api/contato` **e** o método for `POST`; **então** Rate Limit,
+  janela fixa de 60 s, **10 pedidos**, chave **IP** (no plano que permitir, acrescentar **JA4**), ação **429** por
+  60 s. Para o IPv6 contar por /64 (SEC-120 b): conferir no painel se a chave por IP já agrupa por /64; se não
+  agrupar, anotar aqui o que o plano oferece. Escrever aqui a regra aplicada e a data.
+
+  **Ficou de fora, de propósito:** limite em memória na rota (função serverless não guarda estado; o limite é da
+  borda e do banco); o freio global no banco da SEC-120 (c) (seria migration nova, sem decisão); o widget do
+  Turnstile e a chave (T-031, T-041); o vínculo na criação de conta (T-042); o teste do `muitas_tentativas` pela
+  rota (precisa de 6 profissionais ativos; já está provado na sonda 2 da `0006` e é item da T-043).
 
 ### T-041 — O botão "Chamar no WhatsApp", a revelação do número e o convite, no perfil público
-- **Estado:** ⬜ **fila de 28/10, item 3** (construída contra o `vetria-e2e`; **liga em produção só com a T-039 em produção e o Turnstile no clique**, meta ter 04/11)
+- **Estado:** 🔵 **escrita em 28/10 na branch `t-041-botao-whatsapp` (a partir da `t-040-api-contato`), sem push, aguardando aprovação do diff (🟡).** Produção continua "abre em breve". **Liga em produção só com a T-039 em produção e o Turnstile no clique**, meta ter 04/11
 - **Fase / Semana:** F4 / S7 · **Capacidade:** **E5** · **Nível:** 🟡 — `components/` · **Dono:** vetria-ui
 - **Depende de:** **T-040**
 - **Por quê:** é o que o responsável toca. DoD da F4 item 4, primeira metade
 - **Feito quando:**
-  - [ ] `BlocoDeContato` (`components/publico/Perfil.tsx`) com o fluxo do desenho §1: botão → POST → número formatado + "Abrir no WhatsApp" (`wa.me/55…?text=` com D7) + "Copiar número" → convite com "Agora não"
-  - [ ] Os quatro estados de erro com texto honesto; `sem_whatsapp` não desenha botão (D9)
-  - [ ] A linha de transparência sob o botão (D2)
-  - [ ] `CONTATO_PELO_SITE_ABERTO = true` **no mesmo commit que liga a rota em produção, e só então**
-  - [ ] O HTML inicial continua **sem** número (o teste de hoje continua verde). Toque com teclado e leitor de tela; 360 px; sem travessão
+  - [x] `BlocoDeContato` (`components/publico/Perfil.tsx`) com o fluxo do desenho §1: botão → POST → número formatado + "Abrir no WhatsApp" (`wa.me/55…?text=` com D7) + "Copiar número" → convite com "Agora não" _(escrito; a prova em tela é o `contato-botao.spec.ts`, que liga depois da 0006)_
+  - [x] Os quatro estados de erro com texto honesto (mais o `verificacao_recusada` da T-040 e a falta de rede); `sem_whatsapp` não desenha botão (D9) _(o botão sai depois da resposta: a página pública não sabe, sem o clique, se há número, ver Resultado)_
+  - [x] A linha de transparência sob o botão (D2)
+  - [ ] `CONTATO_PELO_SITE_ABERTO = true` **no mesmo commit que liga a rota em produção, e só então** _(de propósito NÃO feito: continua `false`)_
+  - [x] O HTML inicial continua **sem** número (o teste de hoje continua verde). Toque com teclado e leitor de tela; 360 px; sem travessão _(escrito no teste; falta rodar, ver Resultado)_
   - [ ] **Aceites da auditoria de 28/10 (`docs/relatorios/SEC-2026-10-28-T040-api-contato.md`), antes de ligar a constante:**
     - [ ] **SEC-127:** a regra `contato-por-ip` do firewall da Vercel (10/min por IP, IPv6 agrupado por /64) **aplicada e escrita neste card** antes de `CONTATO_PELO_SITE_ABERTO = true`. O freio global do banco (DL-075) já está na `0006`; o alarme de volume e a limpeza de rajadas ficam anotados como próximo passo
     - [ ] **SEC-131:** o siteverify do Turnstile (`lib/contato/turnstile.ts`) exige `hostname` igual ao domínio canônico e `action` igual a `contato`
@@ -729,7 +813,59 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
     - [ ] **SEC-133:** medir no Safari anterior ao 16.4 (não manda `Sec-Fetch-Site` e hoje recebe 403); se recusar gente real, aceitar cabeçalho ausente quando `Origin` for o domínio canônico
     - [ ] O texto de `muitas_tentativas` serve também para o freio global (DL-075): não acusar a pessoa de "tentar demais", pedir para tentar de novo em um minuto
 - **Não fazer:** botão no cartão da busca (D8). Abrir o WhatsApp sozinho depois do `await`. Pedir nome ou conta antes do número.
-- **Resultado:** _(a preencher)_
+- **Resultado:** 🔵 **28/10/2026, escrita; lint e checagem de tipos limpos; `npm run build` NÃO rodou (disco cheio, ver abaixo). Nada em produção, nada em banco.**
+  Arquivos: `components/publico/ContatoPeloWhatsapp.tsx` (novo, cliente), `components/publico/Perfil.tsx` (`BlocoDeContato`
+  e a prop `contato`), `app/veterinario/[slug]/page.tsx` e `app/estabelecimento/[slug]/page.tsx` (passam `contato`, que é
+  só tipo + slug), `tests/e2e/contato-botao.spec.ts` (novo), `tests/e2e/busca-com-dados.spec.ts` (o "abre em breve" vira
+  condicional à porta).
+
+  **Quem decide se o botão existe:** a mesma pergunta da rota, `estadoDaPorta()` de `lib/contato/porta.ts`, lida no
+  servidor a cada pedido (a página já é `force-dynamic`). Porta fechada: o bloco de sempre, *"O contato pelo WhatsApp abre
+  em breve."*, sem botão. **Produção fica igual a hoje**: a porta só abre lá com `CONTATO_PELO_SITE_ABERTO` **e**
+  `TURNSTILE_NO_CONTATO` em `true`. No teste, abre com `CONTATO_ABERTO_PARA_TESTE=1` contra o `vetria-e2e`, e o botão
+  aparece junto com a rota, sem uma segunda chave para esquecer. Botão nunca aparece com a rota fechada.
+
+  **Os estados:** inicial (frase curta, botão verde "Chamar no WhatsApp", linha do D2 embaixo); enviando (botão
+  desabilitado com `aria-busy`, girando, e "Buscando o número." anunciado); revelado (número formatado em destaque, com
+  foco nele; "Abrir no WhatsApp" em outra aba com `rel="noopener noreferrer"` e a mensagem do D7; "Copiar número" com
+  retorno "Número copiado" ou o pedido para copiar à mão; a frase dizendo que a mensagem vai escrita; o convite *"Quer
+  acompanhar seus contatos?"* com "Criar minha conta" (`/cadastro/responsavel`) e "Agora não"); `sem_whatsapp` (o botão
+  sai, *"Este veterinário ainda não informou um WhatsApp para contato."*); `nao_encontrado` (*"Este perfil não está mais
+  disponível."* e link para a busca, sem botão); `muitas_tentativas` (*"Você abriu muitos contatos em pouco tempo. Espere
+  alguns minutos e tente de novo."*, botão volta); `verificacao_recusada` (o botão vira "Recarregar a página");
+  `indisponivel`, resposta fora do formato e falta de rede (*"Não conseguimos mostrar o número agora. A falha foi do nosso
+  lado."*, botão volta). Nada abre sozinho depois do `await`. Uma região `aria-live` fixa anuncia o envio e o número;
+  as falhas saem em `role="alert"`.
+
+  **Decisões pequenas tomadas aqui (para o Elber confirmar ou desfazer):**
+  1. **Prévia do dono no painel:** com a porta aberta, o botão aparece esmaecido (tracejado) e não faz nada, com a frase
+     *"Na prévia ele não funciona, para não contar um contato seu."* Com a porta fechada, o "abre em breve" de hoje.
+  2. **Convite só sem sessão:** quem tem cookie de sessão do Supabase no navegador não vê "Crie sua conta" (seria
+     convidar quem já tem conta). É só a presença do cookie, sem chamada ao Supabase na página.
+  3. **`sem_whatsapp` só depois do toque:** o card pede "não desenha botão" (D9), mas a página pública lê como `anon` e
+     não alcança `perfil_privado`; saber antes do toque exigiria expor um "tem WhatsApp" no perfil público (mudança de
+     banco ou de matriz, fora deste card). Com a T-046 (WhatsApp obrigatório), o caso fica raro.
+  4. **Turnstile:** `pedirTokenDoTurnstile()` em `ContatoPeloWhatsapp.tsx` é o ponto: devolve nulo e não carrega script
+     nenhum. Quando a T-031 existir, o token entra no campo `turnstile` do corpo, que já é montado ali.
+
+  **⚠️ A origem da busca ainda chega nula.** O botão lê `cidade` e `especialidade` do endereço do perfil (só no formato de
+  slug), mas o cartão da busca (`lib/busca/buscar.ts`, `href: /veterinario/<slug>`) não leva esses parâmetros. Para a
+  métrica *"veio de uma busca por Clínica geral em Goiânia"* (desenho §5) é preciso o cartão acrescentar
+  `?cidade=<slug>&especialidade=<slug>` quando a busca tiver esses filtros. É `lib/` (🟡, backend) e tem efeito de
+  indexação (o perfil ganha endereços com parâmetro; pedir `canonical` junto na T-045). **Fica para a T-042 ou T-043.**
+
+  **Teste (`tests/e2e/contato-botao.spec.ts`), registrado só com `CONTATO_ABERTO_PARA_TESTE=1` e rodando só com
+  `E2E_ALVO=teste`** (mesmo padrão da parte B do `contato-rota.spec.ts`), em 360 px: HTML sem o número antes e depois;
+  sem rolagem lateral; toque pelo teclado (Enter) revela o número formatado com foco nele; `href`, `target` e `rel` do
+  "Abrir no WhatsApp" exatos; nenhuma aba abre sozinha; a linha nasce em `contatos`; convite e "Agora não"; perfil sem
+  WhatsApp tira o botão e não grava; 429, 403, 503, resposta fora do formato, 404 e falta de rede pela rota interceptada;
+  botão desabilitado durante o envio e um toque a mais não manda segundo pedido. **Não rodou:** depende da 0006 no
+  `vetria-e2e` (sessão A, 29/10).
+
+  **Prova local (28/10):** `npm run lint` limpo (eslint no repositório inteiro); `tsc --noEmit` limpo. **`npm run build`
+  não rodou:** o disco C: está com ~150 MB livres, a instalação das dependências nesta cópia falhou com `ENOSPC` e um build
+  completo não cabe. **Antes do push, o Elber (ou o próximo agente) roda `npm run build` com espaço livre.** Também não
+  houve conferência visual no navegador pelo mesmo motivo.
 
 ### T-042 — "Contatos recebidos" do profissional, "Seus contatos" do responsável e o vínculo na criação de conta
 - **Estado:** ⬜ **semana 2 (04/11 a 10/11)**, primeira do backend depois do contato no ar. ⚠️ Lembrete da T-039: pedir colunas pelo nome (`select=*` dá 42501) e chamar o vínculo no cadastro, não em login qualquer
@@ -808,7 +944,20 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
   - [x] Placeholder da home igual ao da `/buscar`: "Nome, especialidade ou serviço"
 - **Resultado:** home, cadastros, perfil do responsável, cabeçalho público e `/entrega-fase-2` corrigidos; lint e build verdes. **Ficou de fora, para o maestro:** as abas Agenda e Avaliações dos painéis de veterinário e estabelecimento, as páginas `/app/responsavel/historico` e `/avaliacoes`, e o "Moderação: avaliações" do admin ainda prometem o que não existe (painéis fora do pedido desta task). A vitrine da home mostra o perfil de teste da Larissa enquanto ele estiver `active` (QA-004, decisão do Elber).
 
----
+### T-052: O responsável logado chega à busca pelo painel (QA-002)
+- **Estado:** 🟡 **entregue na branch `t-052-busca-no-painel-do-responsavel`, aguardando revisão do diff** (29/10)
+- **Fase / Semana:** F4 / S8 · **Capacidade:** **E5** (o responsável chega ao perfil público e ao contato pela busca) · **Nível:** 🟡 (`app/app/layout.tsx` é o chrome de `/app`) · **Agente dono:** vetria-ui
+- **Depende de:** nada (a `/buscar` já está no ar, T-037)
+- **Por quê:** QA-002 (`docs/relatorios/QA-2026-10-28.md`, branch `t-039-migration-0006`): logado como responsável, o campo de busca do painel estava `disabled`, o cartão "Buscar profissional" não clicava, o menu não tinha "Buscar" e o logo voltava ao painel. Quem cria conta ficava fora do fluxo principal do produto
+- **Feito quando:**
+  - [x] O campo do painel é um formulário GET para `/buscar` com `q` e `cidade`, os mesmos campos da home (contrato de `lib/busca/pedido.ts`), com `<label>`, foco visível e funcionando sem JavaScript
+  - [x] O cartão "Buscar profissional" é link para `/buscar`; os atalhos do painel só apontam para rotas que existem
+  - [x] "Buscar" no menu do responsável (desktop e menu do celular)
+  - [x] Destino do logo decidido e explicado no código
+  - [x] O painel para de prometer agenda, avaliações e cadastro de animais
+  - [x] E2E que, logado com a conta fixa de responsável, chega a `/buscar` pelo campo, pelo cartão e pelo menu; roda só com `E2E_ALVO=teste`
+- **Não fazer:** mexer na home, nas outras personas ou no cabeçalho público (`components/publico/CascaPublica.tsx`); a limpeza geral de promessas é a T-054; "Histórico" vira "Seus contatos" na T-042
+- **Resultado:** painel do responsável reescrito (`app/app/responsavel/page.tsx`): busca com termo e cidade que envia para `/buscar`; dois atalhos clicáveis ("Buscar profissional" para `/buscar`, "Meu perfil" para `/app/responsavel/perfil`); saíram os cartões "Meus agendamentos", "Minhas avaliações", "Próximas consultas" (com "é só buscar um profissional e agendar") e "Meus animais" (cadastro de animais e agenda estão fora de 25/11); o texto do topo passou a dizer só o que existe. Menu (`app/app/layout.tsx`): Início, Buscar, Perfil, Histórico; "Avaliações" saiu do menu (a página continua, fica para a T-054). Logo segue indo a `/app`: é o padrão de área logada, "Buscar" fica visível ao lado, e a home pública devolve quem está logado para `/app` de qualquer jeito (`app/page.tsx`), então apontar o logo para `/` só daria um salto a mais. Teste: `tests/e2e/painel-responsavel-busca.spec.ts` (3 casos, pula sem `E2E_ALVO=teste`). Lint e build verdes; o E2E não rodou nesta máquina (o `.env.local` aponta para produção). **Descoberto:** em `/buscar`, o cabeçalho público mostra "Entrar" mesmo para quem está logado e não tem caminho de volta ao painel (fica para a T-054 ou card próprio); `/app/responsavel/perfil` ainda diz "os animais da sua família" e tem "Adicionar animal (em breve)"; `/app/responsavel/historico` ainda promete agendamentos (T-042)
 
 ### T-048: A rodada de testes internos de segurança e QA, e a correção do que ela achar
 - **Estado:** ⬜ **auditoria começa qui 06/11** (em paralelo, só leitura) · **correções na semana 3 (11 a 17/11)**
@@ -854,6 +1003,21 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
   - [ ] Sem travessão, Inter, 360 px sem rolagem lateral, relatório de UX sem 🔴
 - **Não fazer:** checkout, botão "Escolher plano" que sugira compra, reescrever a copy aprovada além do que o DL-074 item 2 decidiu
 - **Resultado:** _(a preencher)_
+
+### T-055: Os painéis param de oferecer agenda, avaliações e equipe (continuação da T-054)
+- **Estado:** ✅ **concluída em 29/10** (`vetria-ui`), PR para a `main` com merge automático
+- **Fase / Semana:** F4 / semana 1 · **Capacidade:** **E3** e **E5** (o painel mostra só o que existe: perfil, contatos, plano honesto) · **Nível:** 🟡 (`components/app/cascas.tsx` e mais de 3 arquivos)
+- **Agente dono:** vetria-ui · **Origem:** pedido do `vetria-maestro` depois da T-054 (PR #21). `00-ESCOPO.md`: avaliações, agenda e equipe ficam fora dos 3 meses
+- **Feito quando:**
+  - [x] Menu do veterinário sem Agenda e Avaliações; menu do estabelecimento sem Equipe, Agenda e Avaliações; menu do responsável sem Avaliações; admin sem Moderação (menu e cartão do painel)
+  - [x] As rotas fora do menu continuam de pé e **devolvem para o painel** depois do mesmo guard de antes (`requirePainel(..., SO_ATIVO)` no vet e no estabelecimento, role no responsável e no admin). `lib/auth/status.ts`, `middleware.ts` e a matriz não mudaram
+  - [x] "Meu plano" fica no menu: já é honesto (Gratuito · beta, planos pagos em breve, sem preço nem depoimento), como o DL-074 item 2 pede para a vitrine de preço
+  - [x] `/contatos` e `/historico` ficam (T-042): sem "nome e mensagem" que o contato não guarda (D6) e sem agendamento. O histórico do responsável vira "Seus contatos", com estado vazio honesto e link para `/buscar`
+  - [x] Painel inicial do vet e do estabelecimento: saíram a busca desabilitada, os números fantasma (visualizações, avaliações, salvos, equipe), o bloco de agenda e o de equipe. Fica o cartão "Contatos recebidos" (ghost), onde a contagem da T-042 vai entrar
+  - [x] FAQ da Ajuda sem "agendamento direto chega em breve"
+  - [x] `tests/e2e/portao-status.spec.ts`: agenda e avaliações seguem na lista do portão (a rota existe e tem que barrar quem espera validação), com a razão escrita. Nenhum teste procurava as abas pelo nome
+- **Não fazer:** apagar as rotas (link antigo e o portão), mexer na matriz, renomear o "Histórico" do menu do responsável (a PR #19 mexe no mesmo bloco; o nome muda na T-042)
+- **Resultado:** lint e build verdes. Quem abre o painel do vet ou do estabelecimento vê um menu menor (Dashboard, perfil, Contatos recebidos; Meu plano, Configurações, Ajuda) e um painel inicial sem números de mentira, com um único cartão de contatos esmaecido. Digitar `/agenda`, `/avaliacoes`, `/equipe` ou `/admin/moderacao` leva de volta ao painel. A PR #19 removeu a mesma linha "Avaliações" de `app/app/layout.tsx`; o merge entrou limpo. Ficou para depois (fora deste card): o texto "Em breve seu perfil entra na busca pública" no painel inicial, que já está desatualizado com a busca no ar
 
 ---
 

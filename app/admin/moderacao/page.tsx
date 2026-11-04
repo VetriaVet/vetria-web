@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../../lib/supabase/server";
-import AdminEmptyScreen from "../AdminEmptyScreen";
 
-export const metadata = { title: "Moderação" };
+// T-055: a moderação era a fila de avaliações e conteúdo reportado, e as duas
+// coisas estão fora da entrega de 25/11 (docs/00-ESCOPO.md). Saiu do menu e
+// do painel do admin. A rota fica, com o mesmo guard (matriz §2), e devolve
+// para o painel. ⚠️ `redirect()` fora de try/catch (DL-016).
 
 export default async function AdminModeracaoPage() {
   const supabase = await createClient();
@@ -17,12 +19,5 @@ export default async function AdminModeracaoPage() {
     .single();
   if (!profile || profile.role !== "admin") redirect("/app");
 
-  // TODO: fila de conteudo reportado (avaliacoes = Sprint 5)
-  return (
-    <AdminEmptyScreen
-      title="Moderação"
-      heading="Nada pra moderar"
-      desc="Avaliações e conteúdos reportados por usuários aparecem aqui pra revisão. Por enquanto, não há nada na fila."
-    />
-  );
+  redirect("/admin");
 }

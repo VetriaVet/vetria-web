@@ -51,5 +51,6 @@ export default async function PerfilDoVeterinarioPage({ params }: Props) {
   if (r.estado !== "ok") return <PerfilComErro tentarDeNovo={`/veterinario/${slug}`} />;
 
   // O mesmo componente da prévia do dono no painel (`/app/veterinario/perfil`).
-  return <PerfilDoVeterinario perfil={r.perfil} />;
+  // `contato` é só tipo + slug (DL-047): o número vem no clique (T-041).
+  return <PerfilDoVeterinario perfil={r.perfil} contato={r.perfil.contato} />;
 }

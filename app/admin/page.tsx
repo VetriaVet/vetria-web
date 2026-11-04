@@ -12,7 +12,6 @@ export const metadata = {
 const SECOES = [
   { href: "/admin/usuarios", label: "Usuários", desc: "Gerencie role e nível de acesso.", soMaster: true },
   { href: "/admin/validacoes", label: "Validações", desc: "Veterinários e estabelecimentos esperando validação.", soMaster: false },
-  { href: "/admin/moderacao", label: "Moderação", desc: "Avaliações e conteúdo reportado.", soMaster: false },
   { href: "/admin/conteudo", label: "Conteúdo", desc: "Especialidades e textos da plataforma.", soMaster: false },
 ];
 
@@ -36,7 +35,7 @@ export default async function AdminPage() {
           <AdminStat label="Usuários totais" />
           <AdminStat label="Veterinários ativos" />
           <AdminStat label="Validações pendentes" />
-          <AdminStat label="Moderação aberta" />
+          <AdminStat label="Estabelecimentos ativos" />
         </div>
 
         {/* Seções */}

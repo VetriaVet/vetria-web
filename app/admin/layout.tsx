@@ -13,7 +13,6 @@ const NAV_OPERACAO = [
   { label: "Dashboard", href: "/admin", enabled: true, soMaster: false },
   { label: "Usuários", href: "/admin/usuarios", enabled: true, soMaster: true },
   { label: "Validações", href: "/admin/validacoes", enabled: true, soMaster: false },
-  { label: "Moderação", href: "/admin/moderacao", enabled: true, soMaster: false },
   { label: "Conteúdo", href: "/admin/conteudo", enabled: true, soMaster: false },
 ];
 
