@@ -68,3 +68,40 @@ export function normalizarWhatsapp(
 
   return { ok: true, valor: d };
 }
+
+// ---------------------------------------------------------------------------
+// T-046 / DL-071 D9: O WHATSAPP PASSA A SER OBRIGATÓRIO NO ONBOARDING
+// ---------------------------------------------------------------------------
+// Perfil aprovado sem WhatsApp aparece na busca e não gera contato nenhum: o
+// botão do perfil público some (`sem_whatsapp`) e o profissional acha que a
+// Vetria não funciona (R-036 item 1). As duas Actions de onboarding (vet e
+// estabelecimento) chamam ESTA função no passo 3, no rascunho e na conclusão.
+// Uma função para as duas, pelo mesmo motivo de `normalizarWhatsapp` morar
+// aqui: o clone diverge.
+//
+// A regra é de Action, não de banco: `NOT NULL` em `perfil_privado.whatsapp`
+// seria migration e quebraria as contas antigas (decisão do card da T-046).
+
+/** O formato GRAVADO em `perfil_privado.whatsapp`, o mesmo do CHECK da `0006`
+ *  (SEC-128): só dígitos, DDD + número, sem o 55. */
+export const WHATSAPP_GRAVADO = /^[0-9]{10,11}$/;
+
+/** Vazio é recusado; preenchido passa pela normalização de sempre. */
+export function exigirWhatsapp(
+  bruto: string,
+  passo = "Passo 3"
+): WhatsappNormalizado {
+  if (!bruto.trim()) {
+    return {
+      ok: false,
+      motivo: `${passo}: informe o WhatsApp com DDD. É por ele que os responsáveis falam com você, e sem ele o cadastro não pode ser concluído.`,
+    };
+  }
+  return normalizarWhatsapp(bruto, passo);
+}
+
+/** Verdadeiro quando o valor lido do banco é um WhatsApp que o contato
+ *  consegue entregar. Nulo, vazio ou formato antigo fora da regra = não tem. */
+export function temWhatsappValido(gravado: string | null | undefined): boolean {
+  return typeof gravado === "string" && WHATSAPP_GRAVADO.test(gravado);
+}

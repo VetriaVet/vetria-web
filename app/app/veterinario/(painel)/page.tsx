@@ -3,6 +3,8 @@ import { requirePainel } from "@/lib/auth/painel";
 import { SO_ATIVO } from "@/lib/auth/status";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AvisoSemWhatsapp } from "@/components/app/AvisoSemWhatsapp";
+import { estaSemWhatsapp } from "@/lib/contato/semWhatsapp";
 import {
   ArrowRight,
   MessageCircle,
@@ -28,6 +30,9 @@ import {
 
 export default async function VetPage() {
   const { user } = await requirePainel("vet", SO_ATIVO);
+  // T-046 / DL-071 D9: quem foi aprovado antes do WhatsApp obrigatório pode
+  // estar no ar sem número. Só o sim ou não chega à tela, nunca o número.
+  const semWhatsapp = await estaSemWhatsapp(user.id);
 
   // Nome via user_metadata (profiles não tem full_name — DL-019).
   const meta = (user.user_metadata ?? {}) as {
@@ -56,6 +61,8 @@ export default async function VetPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {semWhatsapp && <AvisoSemWhatsapp tipo="vet" podeRever={false} />}
+
       {/* Greeting card */}
       <section className="flex flex-col gap-6 rounded-2xl bg-principal p-8 text-white md:flex-row md:items-center md:justify-between">
         <div>

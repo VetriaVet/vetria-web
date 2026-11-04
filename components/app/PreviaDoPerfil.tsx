@@ -12,6 +12,7 @@ import {
   UserRoundX,
 } from "lucide-react";
 import type { StatusUsuario } from "@/lib/auth/status";
+import { AvisoSemWhatsapp } from "./AvisoSemWhatsapp";
 
 // A tela `/perfil` do painel (vet e estabelecimento): a PRÉVIA do perfil
 // público, só leitura (F4/S7, E5). A prévia em si é o componente da página
@@ -102,6 +103,7 @@ export function PreviaDoPerfil({
   status,
   podeRever,
   carregada,
+  semWhatsapp = false,
   children,
 }: {
   tipo: Tipo;
@@ -109,6 +111,9 @@ export function PreviaDoPerfil({
   /** O status alcança `/onboarding` pela matriz §4 (lista de `lib/auth/status.ts`). */
   podeRever: boolean;
   carregada: Estado;
+  /** T-046: a conta está sem WhatsApp que o contato consiga entregar. Lido
+   *  pelo Server Component (`lib/contato/semWhatsapp.ts`); só o booleano. */
+  semWhatsapp?: boolean;
   /** A prévia desenhada com o componente da página pública. */
   children: ReactNode;
 }) {
@@ -121,6 +126,8 @@ export function PreviaDoPerfil({
         <h1 className="text-2xl font-bold text-titulo">{t.titulo}</h1>
         <p className="mt-1 max-w-2xl text-[14px] text-corpo-texto">{t.sub}</p>
       </div>
+
+      {semWhatsapp && <AvisoSemWhatsapp tipo={tipo} podeRever={podeRever} />}
 
       {carregada.estado === "erro" && (
         <Aviso tom="erro" role="alert" icone={<CircleAlert size={20} />}>
