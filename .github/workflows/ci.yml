@@ -14,9 +14,10 @@
 
 name: CI
 
+# 04/11: sem `push: main`. Toda mudanca entra por PR (ruleset) e ja foi testada
+# ali; a rodada repetida na main ocupava a fila unica do banco de teste e
+# cancelava o teste da PR seguinte. Para rodar na main a mao: workflow_dispatch.
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
