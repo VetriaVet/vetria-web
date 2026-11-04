@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { pedidoDoProprioSite } from "@/lib/http/origem";
 
 // T-008 — A ROTA DE ESCRITA DO DOCUMENTO DE VALIDAÇÃO.
 //
@@ -66,6 +67,52 @@ const LIMITE_BYTES = 10485760;
 // logo 🔴, logo NÃO é desta task. Está na lista da `0004`. O que dá pra fazer
 // aqui é não prometer o que o banco não entrega.
 const PODEM_ENVIAR = ["incomplete", "pending_validation", "active"];
+
+// ---------------------------------------------------------------------------
+// O LIMITE DE ENVIOS POR CONTA (C-2, revisão de 04/11/2026)
+// ---------------------------------------------------------------------------
+// Sem limite, uma conta logada enchia o bucket com 10 MB por POST, sem fim:
+// custo de armazenamento e um bucket que a varredura de órfãos não alcança.
+//
+// A contagem é dos OBJETOS do prefixo `<uid>/` criados na última hora, lidos
+// do próprio Storage com `service_role` (o bucket tem zero policy, DL-054).
+// É a fonte mais confiável que existe: conta exatamente o que ocupou espaço,
+// inclusive envio cujo passo 8 falhou e cuja compensação também falhou (o
+// órfão conta, e deve contar). Envio compensado com sucesso não deixou objeto
+// e não conta.
+//
+// ⚠️ ESTA ROTA NÃO APAGA O DOCUMENTO ANTERIOR. Trocar o documento deixa o
+// antigo no bucket, e a limpeza é da T-020 (🔴). O limite só freia o volume.
+//
+// ⚠️ Não é atômico: dois POSTs no mesmo milissegundo passam os dois na
+// contagem. Para o que o limite protege (volume), isso é aceitável.
+const ENVIOS_POR_JANELA = 5;
+const JANELA_MS = 60 * 60 * 1000;
+
+async function enviosRecentes(
+  serviceRole: ReturnType<typeof createAdminClient>,
+  donoId: string
+): Promise<number | null> {
+  const { data, error } = await serviceRole.storage.from(BUCKET).list(donoId, {
+    limit: 100,
+    sortBy: { column: "created_at", order: "desc" },
+  });
+  if (error) {
+    console.error("[documentos/upload] contagem de envios falhou", {
+      userId: donoId,
+      message: error.message,
+    });
+    return null;
+  }
+  const desde = Date.now() - JANELA_MS;
+  return (data ?? []).filter((o) => {
+    // Pasta (sem `id`) não é objeto. Sem data legível, conta: na dúvida, o
+    // limite fecha, não abre.
+    if (!o.id) return false;
+    const criado = Date.parse(o.created_at ?? "");
+    return Number.isNaN(criado) || criado >= desde;
+  }).length;
+}
 
 // ---------------------------------------------------------------------------
 // PASSO 4 — A ASSINATURA MÁGICA (0003 §2.c)
@@ -211,6 +258,14 @@ async function compensarObjetoOrfao(
 export async function POST(req: Request) {
   try {
     // -----------------------------------------------------------------------
+    // 0. SÓ DO PRÓPRIO SITE (CSRF em profundidade, 04/11/2026). O corpo é
+    //    multipart, então aqui não se exige JSON.
+    // -----------------------------------------------------------------------
+    if (!pedidoDoProprioSite(req, "navegador")) {
+      return recusa(403, "Pedido recusado.");
+    }
+
+    // -----------------------------------------------------------------------
     // 1. SESSÃO. Sem sessão, 401 antes de ler um byte.
     // -----------------------------------------------------------------------
     const supabase = await createClient();
@@ -279,6 +334,30 @@ export async function POST(req: Request) {
       return recusa(
         403,
         "A conta está num estado que não permite enviar documento agora. Fale com a gente."
+      );
+    }
+
+    // -----------------------------------------------------------------------
+    // 2b. O LIMITE DE ENVIOS, antes de ler um byte do corpo
+    // -----------------------------------------------------------------------
+    // O cliente `service_role` nasce aqui e é o MESMO do passo 7 e da
+    // compensação.
+    const serviceRole = createAdminClient();
+    const recentes = await enviosRecentes(serviceRole, user.id);
+    if (recentes === null) {
+      return recusa(
+        503,
+        "Não foi possível enviar o documento agora. Tente de novo em alguns instantes."
+      );
+    }
+    if (recentes >= ENVIOS_POR_JANELA) {
+      console.warn("[documentos/upload] envio recusado por limite", {
+        userId: user.id,
+        recentes,
+      });
+      return recusa(
+        429,
+        "Você já enviou 5 documentos na última hora. Espere um pouco e tente de novo."
       );
     }
 
@@ -352,7 +431,7 @@ export async function POST(req: Request) {
     const hash = createHash("sha256").update(bytes).digest("hex");
 
     // -----------------------------------------------------------------------
-    // 7. O OBJETO VAI PARA O BUCKET — E ESTE É O ÚNICO PASSO COM `service_role`
+    // 7. O OBJETO VAI PARA O BUCKET — E ESTE É O ÚNICO PASSO QUE ESCREVE COM `service_role` (o 2b só lê)
     // -----------------------------------------------------------------------
     // A ordem é 7 → 8, e o custo foi escolhido por escrito (seção 🔒, item 1):
     // objeto sem linha é INERTE (o bucket tem zero policy, nem o dono o
@@ -367,7 +446,6 @@ export async function POST(req: Request) {
     // O `contentType` declarado aqui é o que a rota DETECTOU, não o que o
     // navegador disse. A whitelist do bucket é o alarme sobre o nosso próprio
     // código, não a porta contra o atacante (0003 §2.c).
-    const serviceRole = createAdminClient();
     const { error: erroUpload } = await serviceRole.storage
       .from(BUCKET)
       .upload(caminho, bytes, { contentType: tipo.mime, upsert: false });

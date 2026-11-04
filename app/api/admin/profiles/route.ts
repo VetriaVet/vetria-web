@@ -1,86 +1,67 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// GET /api/admin/profiles · a lista de contas do painel do master.
+//
+// Revisão de 04/11/2026: saiu o objeto `debug` (devolvia id, email,
+// `admin_level` e `role` de quem chamou, inclusive na recusa) e saíram as
+// mensagens cruas do Supabase (`authErr.message`, `error.message`). Erro é
+// genérico, em português, na chave `error` (a que `AdminPanel.tsx` lê); no
+// log, só `code`.
 
-function supabaseAdmin() {
-  return createClient(URL, SERVICE, { auth: { persistSession: false } });
+const FALHA = "Não foi possível carregar a lista agora. Tente de novo em alguns instantes.";
+
+function erro(status: number, mensagem: string) {
+  return NextResponse.json({ error: mensagem }, { status });
 }
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
+    const supabase = await createClient();
 
-    const supabase = createServerClient(URL, ANON, {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set() {},
-        remove() {},
-      },
-    });
-
-    const { data: authData, error: authErr } = await supabase.auth.getUser();
-    if (authErr) return NextResponse.json({ error: authErr.message }, { status: 401 });
-
+    const { data: authData } = await supabase.auth.getUser();
     const userId = authData?.user?.id ?? null;
-    const email = authData?.user?.email ?? null;
-
     if (!userId) {
-      return NextResponse.json(
-        { error: "not authenticated", debug: { userId, email } },
-        { status: 401 }
-      );
+      return erro(401, "Sua sessão expirou. Entre de novo.");
     }
 
     const { data: me, error: meErr } = await supabase
       .from("profiles")
       .select("admin_level, role")
       .eq("id", userId)
-      .single();
+      .maybeSingle<{ admin_level: string | null; role: string | null }>();
 
     if (meErr) {
-      return NextResponse.json(
-        { error: meErr.message, debug: { userId, email } },
-        { status: 400 }
-      );
+      console.error("[api/admin/profiles] leitura do chamador falhou", { code: meErr.code });
+      return erro(502, FALHA);
     }
 
-    if (me?.admin_level !== "master") {
-      return NextResponse.json(
-        { error: "not authorized", debug: { userId, email, admin_level: me?.admin_level, role: me?.role } },
-        { status: 403 }
-      );
+    if (me?.role !== "admin" || me?.admin_level !== "master") {
+      return erro(403, "Você não tem permissão para ver esta lista.");
     }
 
-    // ✅ LISTA DIRETO COM SERVICE ROLE (sem RPC)
-    const admin = supabaseAdmin();
+    // Lista com service_role: não há policy que deixe o master ler tudo com
+    // as colunas abaixo sem passar pela RLS de cada tabela.
+    const admin = createAdminClient();
     const { data, error } = await admin
       .from("profiles")
       .select("id, role, admin_level, admin_team, onboarding_completed, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
-      return NextResponse.json(
-        { error: error.message, debug: { userId, email, admin_level: me.admin_level } },
-        { status: 400 }
-      );
+      console.error("[api/admin/profiles] listagem falhou", { code: error.code });
+      return erro(502, FALHA);
     }
 
-    return NextResponse.json({ data: data ?? [], debug: { userId, email, admin_level: me.admin_level } });
+    return NextResponse.json({ data: data ?? [] });
   } catch (e: unknown) {
-    // T-015 / R-037 — o `stack` saiu da resposta e foi pro log do servidor.
-    // Esta rota é GET e não tem `req.json()`, então não tinha o gatilho fácil
-    // que a `set-access` tinha — mas o `try` também abre antes da checagem de
-    // sessão, e devolver stack nunca foi o certo.
-    console.error("[api/admin/profiles] erro nao tratado", e);
-    return NextResponse.json({ error: "server error" }, { status: 500 });
+    // T-015 / R-037: nada do erro vai para a resposta.
+    console.error("[api/admin/profiles] erro nao tratado", {
+      name: e instanceof Error ? e.name : "desconhecido",
+    });
+    return erro(500, FALHA);
   }
 }

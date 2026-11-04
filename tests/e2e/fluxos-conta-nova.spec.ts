@@ -249,7 +249,9 @@ test.describe("item 1: cadastro novo, onboarding, documento, fila, sair e voltar
 
     // A primeira conclusão: `incomplete → pending_validation`, pela RPC.
     await expect(page).toHaveURL(rotaExata(DESTINO_VET.pending_validation), { timeout: 30_000 });
-    await expect(page.getByText(/estamos validando seu cadastro/i)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /estamos validando seu cadastro/i })
+    ).toBeVisible();
 
     // --- 4. O banco, e não a tela ------------------------------------------
     const naFila = await lerPerfil(id!);

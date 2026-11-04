@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { estadoDaPorta } from "@/lib/contato/porta";
 import { conferirTurnstile } from "@/lib/contato/turnstile";
+import { corpoEhJson, pedidoDoProprioSite } from "@/lib/http/origem";
 import type { PedidoDeContato, RespostaDoContato } from "@/lib/perfil-publico/contato";
 
 // T-040 · POST /api/contato: A ÚNICA PORTA POR ONDE O NÚMERO SAI (DL-047, DL-071 D1).
@@ -148,13 +149,12 @@ function conferirResposta(dado: unknown): RespostaDoContato | null {
 
 export async function POST(req: NextRequest) {
   // 1) só do próprio site
-  if (req.headers.get("sec-fetch-site") !== "same-origin") {
+  if (!pedidoDoProprioSite(req, "estrito")) {
     return indisponivel(403);
   }
 
   // 2) só JSON, e pequeno
-  const tipoDoCorpo = req.headers.get("content-type") ?? "";
-  if (!tipoDoCorpo.toLowerCase().startsWith("application/json")) {
+  if (!corpoEhJson(req)) {
     return indisponivel(415);
   }
   const declarado = Number(req.headers.get("content-length") ?? "0");
