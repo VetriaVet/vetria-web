@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { vincularContatosDoVisitante } from "@/lib/contato/vincular";
 import { destinoDoErroDoLink } from "@/lib/auth/erros";
 import {
   destinoDoLink,
@@ -35,7 +36,7 @@ export async function confirmarLinkDoEmail(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({
+  const { data, error } = await supabase.auth.verifyOtp({
     type: tipo,
     token_hash: tokenHash,
   });
@@ -54,6 +55,14 @@ export async function confirmarLinkDoEmail(formData: FormData) {
         fluxoDoTipo(tipo)
       ) ?? "/login?msg=auth_error"
     );
+  }
+
+  // T-042 (D10): a confirmação do cadastro é o primeiro momento em que a conta
+  // nova tem sessão neste navegador. Os contatos feitos sem conta, por este
+  // navegador, vão para ela. O banco recusa sozinho conta que não é de
+  // responsável ou que não é nova; a função nunca lança.
+  if (tipo === "signup" || tipo === "email") {
+    await vincularContatosDoVisitante(data.user?.id);
   }
 
   const destino = destinoDoLink(tipo, formData.get("next"));
