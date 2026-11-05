@@ -121,7 +121,7 @@ function mensagemDoBanco(
 //
 // Ela nasceu aqui, na T-007, e o onboarding do veterinário ficou sem — o que
 // só foi descoberto na prova em tela: a mesma consulta devolveu
-// `62992653278` para o estabelecimento e `62 992653278`, COM ESPAÇO, para o
+// `629XXXXXXXX` para o estabelecimento e `62 9XXXXXXXX`, COM ESPAÇO, para o
 // veterinário. O motivo de mover é esse, e não estética: o defeito nasceu de
 // duplicação, e duplicação não se conserta copiando com mais cuidado.
 //
