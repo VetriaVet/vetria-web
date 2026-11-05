@@ -172,7 +172,7 @@ if (BUSCA_LIGADA) {
     test.afterAll(async () => {
       if (!ATIVO) return;
       test.setTimeout(120_000);
-      await admin?.auth.signOut().catch(() => {});
+      await admin?.auth.signOut({ scope: "local" }).catch(() => {});
       await apagarContasDaRodada();
     });
 
@@ -281,7 +281,7 @@ if (BUSCA_LIGADA) {
         .select("id")
         .single();
       expect(error, `a dona nao conseguiu editar o proprio perfil: ${error?.message}`).toBeNull();
-      await cliente.auth.signOut().catch(() => {});
+      await cliente.auth.signOut({ scope: "local" }).catch(() => {});
       expect((await lerPerfil(v.conta.id)).status, "trocar o nome nao devolveu a conta para a fila").toBe(
         "pending_validation"
       );

@@ -90,7 +90,7 @@ test.describe("contatos: isolamento por dono e vinculo da conta nova", () => {
       if (error) throw new Error(`leitura de ${conta.nome}: ${error.code}: ${error.message}`);
       return (data ?? []) as { profissional_id: string }[];
     } finally {
-      await cliente.auth.signOut().catch(() => {});
+      await cliente.auth.signOut({ scope: "local" }).catch(() => {});
     }
   }
 
@@ -120,7 +120,7 @@ test.describe("contatos: isolamento por dono e vinculo da conta nova", () => {
         });
         expect(erroRpc, `${conta.nome} conseguiu chamar vincular_contatos_do_visitante`).not.toBeNull();
       } finally {
-        await cliente.auth.signOut().catch(() => {});
+        await cliente.auth.signOut({ scope: "local" }).catch(() => {});
       }
     }
   });
