@@ -272,7 +272,7 @@ if (CONTATO_LIGADO) {
     test.afterAll(async () => {
       if (!ATIVO) return;
       test.setTimeout(120_000);
-      await admin?.auth.signOut().catch(() => {});
+      await admin?.auth.signOut({ scope: "local" }).catch(() => {});
       await apagarContasDaRodada();
     });
 

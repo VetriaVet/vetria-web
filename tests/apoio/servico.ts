@@ -452,7 +452,7 @@ export async function semearVetNaFila(
   if (perfil.status !== "pending_validation") {
     throw new Error(`semearVetNaFila: a conta nova ficou em '${perfil.status}', e nao na fila.`);
   }
-  await cliente.auth.signOut().catch(() => {});
+  await cliente.auth.signOut({ scope: "local" }).catch(() => {});
   return conta;
 }
 

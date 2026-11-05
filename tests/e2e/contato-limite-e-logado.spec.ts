@@ -92,7 +92,7 @@ if (CONTATO_LIGADO) {
     test.afterAll(async () => {
       if (!ATIVO) return;
       test.setTimeout(120_000);
-      await admin?.auth.signOut().catch(() => {});
+      await admin?.auth.signOut({ scope: "local" }).catch(() => {});
       await apagarContasDaRodada();
     });
 
@@ -214,7 +214,7 @@ if (CONTATO_LIGADO) {
         const r = await tutor.from("contatos").select("anon_id").eq("profissional_id", v.conta.id);
         expect(r.error?.code, "o responsavel leu anon_id pelo PostgREST (R-074)").toBe("42501");
       } finally {
-        await tutor.auth.signOut().catch(() => {});
+        await tutor.auth.signOut({ scope: "local" }).catch(() => {});
       }
 
       // Outro logado (um vet qualquer, sem relação com o contato) não vê a linha.
@@ -228,7 +228,7 @@ if (CONTATO_LIGADO) {
         expect(error).toBeNull();
         expect(data ?? [], "um logado sem relacao leu o contato de outro profissional").toHaveLength(0);
       } finally {
-        await estranho.auth.signOut().catch(() => {});
+        await estranho.auth.signOut({ scope: "local" }).catch(() => {});
       }
     });
   });
