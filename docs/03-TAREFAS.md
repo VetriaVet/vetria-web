@@ -1133,7 +1133,7 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
   6. **SEC-139, cascata ao excluir conta:** o que acontece com `contatos` e `audit_logs` (vai para a T-049)
   7. **As 18 perguntas do fim de `docs/legal/termos-de-uso.md` e `docs/legal/politica-de-privacidade.md`** (T-049)
 - **Feito quando:** [ ] cada item com a resposta do Elber escrita aqui e, quando mudar regra, um DL
-- **Resultado:** _(a preencher)_
+- **Resultado:** **05/11, respostas do Elber (DL-080):** 1 mantém público · 2 caminho novo depois do Google (T-064) · 3 guardar os dados do animal (T-065) · 4 aprovação exige WhatsApp (T-066) · 5 reescrever o histórico, no fim da T-057. Itens 6 e 7 seguem abertos.
 
 ### T-059: Lote 🟡 da revisão de banco, numa migration só (B-3 a B-12)
 - **Estado:** ⬜ fila, semana 3 (11 a 17/11), junto da T-048
