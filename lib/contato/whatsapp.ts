@@ -8,7 +8,7 @@
 // arquivos são gêmeos que ninguém lê lado a lado.
 //
 // O defeito só apareceu em 20/09/2026, na prova em tela do Elber: a mesma
-// consulta devolveu `62992653278` para o estabelecimento e `62 992653278`,
+// consulta devolveu `629XXXXXXXX` para o estabelecimento e `62 9XXXXXXXX`,
 // COM ESPAÇO, para o veterinário. Dois formatos para o mesmo número, na mesma
 // coluna, escritos por dois caminhos que deveriam ser idênticos.
 //

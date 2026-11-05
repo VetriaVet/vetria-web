@@ -467,7 +467,7 @@ begin
     -- producao `profiles.id` tem FK para auth.users (profiles_id_fkey): o
     -- trigger on_auth_user_created cria o profile (tutor, active) sozinho.
     -- (Emenda de 04/11/2026: a versao antiga inseria direto em profiles e
-    -- quebrava com 23503 em producao; no vetria-e2e a FK faltava, R-077.)
+    -- quebrava com 23503 em producao; no vetria-e2e a FK faltava, R-079.)
     if coalesce(cardinality(v_outros), 0) < 20 then
       with novas as (
         insert into auth.users (id, instance_id, aud, role, email)
