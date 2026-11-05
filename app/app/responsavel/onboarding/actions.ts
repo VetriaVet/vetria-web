@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { validarAnimal } from "./campos";
+import { podeEscolherTipo } from "@/lib/auth/tipo";
 
 // A conclusão do onboarding do responsável. Saiu de dentro de `page.tsx`
 // (revisão de 04/11/2026) porque Server Action é endpoint público: o fato de
@@ -63,6 +64,13 @@ export async function completeOnboarding(
   // Já concluído (outra aba, ou o segundo clique): nada é gravado de novo.
   if (perfil.onboarding_completed) {
     redirect("/app/responsavel");
+  }
+
+  // SEC-145: conta que ainda pode escolher o tipo (T-064) escolhe ANTES de
+  // concluir como responsável. Sem isto, chamar a Action direto concluía o
+  // cadastro com `tipo_escolhido_em` nulo e deixava a escolha reabrível.
+  if (await podeEscolherTipo(supabase, user.id)) {
+    redirect("/onboarding");
   }
 
   // 1. ENTRADA
