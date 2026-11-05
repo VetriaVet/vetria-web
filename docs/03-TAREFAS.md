@@ -96,6 +96,34 @@
 
 **Nada em execução em 04/11 à noite.** A primeira da fila é a **T-031** (Turnstile).
 
+# ✅ FEITAS EM 05/11 (DL-080), provadas no `vetria-e2e`
+
+### T-066: A aprovação do admin exige WhatsApp
+- **Estado:** ✅ na `main` (código e teste); 🟡 a `0008` está aplicada só no `vetria-e2e`, **produção pendente** do "pode aplicar"
+- **Fase / Semana:** F6 / semana 2 · **Capacidade:** **E3** (*"validação de profissional por uma pessoa"*) e **E5** (o contato só existe com número)
+- **Nível:** 🔴 migration (`vetria-e2e` sem perguntar, produção com "pode aplicar", DL-076) + 🟡 Server Action e tela do admin
+- **Agente dono:** vetria-backend · **auditoria:** vetria-seguranca (antes da produção)
+- **Depende de:** DL-080 item 4
+- **Por quê:** conta antiga na fila sem WhatsApp podia ser aprovada (T-046 só obrigou o número no onboarding) e aparecia na busca sem botão de contato (R-036 item 1)
+- **Feito quando:**
+  - [x] A Server Action recusa aprovar sem WhatsApp válido, com frase em português, antes de chamar o banco
+  - [x] `admin_definir_status` recusa no banco (código 23514), pela mesma regra da `0006` (10 ou 11 dígitos)
+  - [x] A tela do detalhe explica o motivo, desliga o botão de aprovar e oferece o motivo pronto para reprovar
+  - [x] E2E no `vetria-e2e`: tela, recusa do banco (sem número e com número fora do formato), e a aprovação com número
+- **Não fazer:** exigir WhatsApp para reativar conta suspensa (é moderação do master, fora do DL-080); mexer em conta já `active`
+- **Resultado:** ver o handoff abaixo
+
+## HANDOFF · vetria-backend · T-066 · 05/11/2026
+
+**Fiz:** `supabase/migrations/0008_aprovar_exige_whatsapp.sql` (pré-voo com o hash da 0004 dentro da transação; `admin_definir_status` com o ramo de aprovar conferindo `perfil_privado.whatsapp`, erro 23514; select final de 5 linhas; reversão = seção 5 da 0004) e `supabase/prevoo-0008.sql` (só leitura: hash e contagem da fila sem número). `app/admin/validacoes/[conta]/actions.ts`: confere o WhatsApp com a sessão do admin antes da RPC e traduz o 23514. `decisao.ts`: as frases `APROVAR_SEM_WHATSAPP` e `MOTIVO_SUGERIDO_SEM_WHATSAPP`. `page.tsx` e `DecisaoForm.tsx`: aviso `data-aviso="aprovar-sem-whatsapp"`, botão de aprovar desligado, botão "Usar o motivo \"falta o WhatsApp\"". Testes: `fluxos-conta-nova.spec.ts` ganhou o teste "sem WhatsApp no cadastro"; aprovar e duas abas semeiam com número; o aviso do painel sem WhatsApp passou a ser provado tirando o número depois da aprovação. `tests/apoio/servico.ts`: `aprovarComoContaAntigaSemWhatsapp` e `gravarWhatsappDePreparacao`, usados por `contato-botao` e `contato-rota` para o perfil ativo sem número.
+**Não fiz:** marcar "sem WhatsApp" na lista da fila (a lista não lê dado privado, de propósito); exigir número na reativação de suspenso.
+**Estado agora:** no `vetria-e2e`, conta da fila sem WhatsApp não é aprovada nem pela tela nem pela API. Em produção, a tela e a Action já recusam (código na `main`); a porta da API direta fecha quando a `0008` for aplicada.
+**Descobri:** o pré-voo do `vetria-e2e` mediu 1 conta na fila, 0 sem número. Em produção a contagem ainda não foi lida.
+**Bloqueios:** produção da `0008` espera o "pode aplicar" e a revisão do `vetria-seguranca`.
+**Próximo passo óbvio:** rodar `supabase/prevoo-0008.sql` em produção (só leitura) e aplicar a `0008` com o Elber.
+**Docs que atualizei:** `docs/03-TAREFAS.md` (este card), `supabase/migrations/README.md` (linha da 0008 e o hash novo).
+**Commits:** os da PR da T-066.
+
 # ✅ FEITA EM 29/10, provada no `vetria-e2e`
 
 ### T-051 — O onboarding salva cada passo no "Continuar" e reabre onde a pessoa parou

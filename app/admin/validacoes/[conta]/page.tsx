@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { temWhatsappValido } from "@/lib/contato/whatsapp";
 import {
   EXPERIENCIA,
   TITULOS,
@@ -67,6 +68,15 @@ export default async function AdminValidacaoDetalhePage({ params }: Props) {
 
   const nome = nomeExibido(cadastro);
   const temDocumento = Boolean(cadastro.privado?.documento_enviado_em);
+  // T-066 / DL-080 item 4: sem WhatsApp válido o botão de aprovar não sai.
+  // `nao_lido` é a leitura que falhou: a tela não afirma que falta o número
+  // quando não conseguiu ler. Quem decide de verdade é a Action e o banco.
+  const whatsapp: "ok" | "falta" | "nao_lido" =
+    cadastro.privado === null && cadastro.erroParcial
+      ? "nao_lido"
+      : temWhatsappValido(cadastro.privado?.whatsapp)
+        ? "ok"
+        : "falta";
 
   return (
     <div>
@@ -177,6 +187,7 @@ export default async function AdminValidacaoDetalhePage({ params }: Props) {
           <DecisaoForm
             conta={cadastro.id}
             temDocumento={temDocumento}
+            whatsapp={whatsapp}
             action={decidirValidacao}
           />
         </Secao>

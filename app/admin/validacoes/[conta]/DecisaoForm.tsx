@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from "react";
 import {
+  APROVAR_SEM_WHATSAPP,
   MOTIVO_MAXIMO,
+  MOTIVO_SUGERIDO_SEM_WHATSAPP,
   MOTIVO_MINIMO,
   type Decisao,
   type ResultadoDecisao,
@@ -26,6 +28,9 @@ import {
 type Props = {
   conta: string;
   temDocumento: boolean;
+  /** T-066: "ok" libera o botão de aprovar; "falta" e "nao_lido" não. É
+   *  conveniência: a Action e o banco recusam do mesmo jeito. */
+  whatsapp: "ok" | "falta" | "nao_lido";
   action: (entrada: {
     conta: string;
     decisao: Decisao;
@@ -33,12 +38,13 @@ type Props = {
   }) => Promise<ResultadoDecisao | void>;
 };
 
-export default function DecisaoForm({ conta, temDocumento, action }: Props) {
+export default function DecisaoForm({ conta, temDocumento, whatsapp, action }: Props) {
   const [isPending, startTransition] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
   const [confirmandoAprovacao, setConfirmandoAprovacao] = useState(false);
   const [motivo, setMotivo] = useState("");
 
+  const podeAprovar = whatsapp === "ok";
   const tamanhoMotivo = motivo.trim().length;
   const motivoValido =
     tamanhoMotivo >= MOTIVO_MINIMO && tamanhoMotivo <= MOTIVO_MAXIMO;
@@ -69,8 +75,18 @@ export default function DecisaoForm({ conta, temDocumento, action }: Props) {
             o registro por outro meio.
           </p>
         )}
+        {!podeAprovar && (
+          <p
+            data-aviso="aprovar-sem-whatsapp"
+            className="text-[12px] text-amber-200/90 m-0"
+          >
+            {whatsapp === "falta"
+              ? APROVAR_SEM_WHATSAPP
+              : "Não foi possível conferir o WhatsApp desta conta agora. Recarregue a página antes de aprovar."}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-2">
-          {confirmandoAprovacao ? (
+          {confirmandoAprovacao && podeAprovar ? (
             <>
               <button
                 type="button"
@@ -97,7 +113,8 @@ export default function DecisaoForm({ conta, temDocumento, action }: Props) {
                 setErro(null);
                 setConfirmandoAprovacao(true);
               }}
-              disabled={isPending}
+              disabled={isPending || !podeAprovar}
+              title={podeAprovar ? undefined : "Falta o WhatsApp no cadastro."}
               className="cursor-pointer rounded-pill bg-white text-[#0F1F22] font-semibold text-[13px] px-4 py-2 hover:bg-white/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Aprovar esta conta
@@ -128,6 +145,16 @@ export default function DecisaoForm({ conta, temDocumento, action }: Props) {
           Não cole no motivo o conteúdo do documento, CPF, CNPJ nem dado de
           outra pessoa. Diga o que corrigir, sem repetir o dado.
         </p>
+        {whatsapp === "falta" && motivo.trim() === "" && (
+          <button
+            type="button"
+            onClick={() => setMotivo(MOTIVO_SUGERIDO_SEM_WHATSAPP)}
+            disabled={isPending}
+            className="self-start cursor-pointer rounded-pill border border-white/20 text-white/80 text-[12px] px-3 py-1.5 hover:bg-white/[0.06] transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Usar o motivo &quot;falta o WhatsApp&quot;
+          </button>
+        )}
         <textarea
           id="motivo-reprova"
           value={motivo}

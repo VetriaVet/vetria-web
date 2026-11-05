@@ -10,8 +10,10 @@ import {
   enviarEmailDeValidacao,
   type ResultadoDoEmail,
 } from "@/lib/email/validacao";
+import { temWhatsappValido } from "@/lib/contato/whatsapp";
 import { ROLES_DA_FILA, ehUuid, texto } from "../fila";
 import {
+  APROVAR_SEM_WHATSAPP,
   MOTIVO_MAXIMO,
   MOTIVO_MINIMO,
   type Decisao,
@@ -152,6 +154,28 @@ export async function decidirValidacao(entrada: {
   // vale enquanto a `0004` não estiver aplicada.
   if (alvo.status !== "pending_validation") return erro(NAO_ESTA_NA_FILA);
 
+  // ⚠️ T-066 / DL-080 item 4: APROVAR EXIGE WHATSAPP. Conferido aqui, com a
+  // sessão do admin (a policy `perfil_privado_select_admin` entrega o dossiê
+  // de quem está na fila), para a frase sair certa sem gastar a RPC. A mesma
+  // regra mora DENTRO de `admin_definir_status` desde a `0008`, com o código
+  // 23514: esta conferência é a primeira porta, a do banco é a que não se
+  // contorna por POST direto. O número não sai daqui: nem log, nem resposta.
+  if (decisao === "aprovar") {
+    const { data: privado, error: erroPrivado } = await supabase
+      .from("perfil_privado")
+      .select("whatsapp")
+      .eq("id", conta)
+      .maybeSingle<{ whatsapp: string | null }>();
+
+    if (erroPrivado) {
+      registrarErro("leitura do whatsapp", erroPrivado);
+      return erro(
+        "Não foi possível conferir o WhatsApp desta conta agora, então nada foi alterado. Tente de novo em alguns instantes."
+      );
+    }
+    if (!temWhatsappValido(privado?.whatsapp)) return erro(APROVAR_SEM_WHATSAPP);
+  }
+
   // ⚠️ T-027 / SEC-097(b) — o nome de exibição é lido AGORA, com a conta
   // ainda na fila. Desde a `0004`, o admin comum só lê `vet_profiles` e
   // `clinic_profiles` de conta em `pending_validation` (ou `active`, pela
@@ -187,7 +211,9 @@ export async function decidirValidacao(entrada: {
     //   22023  o banco recusou o pedido (motivo vazio ou longo demais). A
     //          validação acima já cobre os dois; se chegou aqui, é divergência
     //   42501  a sessão não é de admin para o banco
+    //   23514  aprovar sem WhatsApp válido no cadastro (0008, T-066)
     if (erroRpc.code === "55000") return erro(NAO_ESTA_NA_FILA);
+    if (erroRpc.code === "23514") return erro(APROVAR_SEM_WHATSAPP);
     if (erroRpc.code === "42501") {
       return erro(
         "O banco não reconheceu sua conta como admin, então nada foi alterado. Saia e entre de novo."
