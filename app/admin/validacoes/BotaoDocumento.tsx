@@ -49,15 +49,17 @@ export default function BotaoDocumento({ dono, temDocumento }: Props) {
   useEffect(() => {
     if (!url) return;
 
-    if (restam <= 0) {
-      // O link morreu do lado do servidor. Some da tela junto, senão vira um
-      // botão que devolve erro sem explicar por quê.
-      setUrl(null);
-      setAviso("O link expirou. Peça um novo para abrir de novo.");
-      return;
-    }
-
-    const t = setTimeout(() => setRestam((r) => r - 1), 1000);
+    const t = setTimeout(() => {
+      if (restam <= 1) {
+        // O link morreu do lado do servidor. Some da tela junto, senão vira um
+        // botão que devolve erro sem explicar por quê.
+        setUrl(null);
+        setRestam(0);
+        setAviso("O link expirou. Peça um novo para abrir de novo.");
+        return;
+      }
+      setRestam((r) => r - 1);
+    }, 1000);
     return () => clearTimeout(t);
   }, [url, restam]);
 

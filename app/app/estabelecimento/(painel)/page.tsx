@@ -2,10 +2,12 @@ import Link from "next/link";
 import { requirePainel } from "@/lib/auth/painel";
 import { SO_ATIVO } from "@/lib/auth/status";
 import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { AvisoSemWhatsapp } from "@/components/app/AvisoSemWhatsapp";
+import { estaSemWhatsapp } from "@/lib/contato/semWhatsapp";
+import { carregarContatosRecebidos } from "@/lib/contato/leitura";
+import { CartaoDeContatosRecebidos } from "@/components/app/Contatos";
 import {
   ArrowRight,
-  MessageCircle,
   Check,
 } from "lucide-react";
 
@@ -24,6 +26,10 @@ import {
 
 export default async function ClinicPage() {
   const { user } = await requirePainel("clinic", SO_ATIVO);
+  // T-046 / DL-071 D9: ver a gêmea do veterinário.
+  const semWhatsapp = await estaSemWhatsapp(user.id);
+  // T-042: os dois números e os 3 contatos mais recentes, pela sessão do dono.
+  const contatos = await carregarContatosRecebidos(user.id, "clinic", 3);
 
   // Nome via user_metadata (profiles não tem nome da clínica — DL-019).
   const meta = (user.user_metadata ?? {}) as {
@@ -48,6 +54,8 @@ export default async function ClinicPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {semWhatsapp && <AvisoSemWhatsapp tipo="clinic" podeRever={false} />}
+
       {/* Greeting card */}
       <section className="flex flex-col gap-6 rounded-2xl bg-principal p-8 text-white md:flex-row md:items-center md:justify-between">
         <div>
@@ -75,32 +83,13 @@ export default async function ClinicPage() {
       <section className="grid gap-6 lg:grid-cols-3">
         {/* Coluna esquerda (2/3): contatos recebidos. T-055 tirou daqui a
             equipe, as avaliações e as visualizações: nada disso entra na
-            entrega de 25/11. A contagem real chega na T-042. */}
+            entrega de 25/11. A contagem é a da T-042. */}
         <div className="flex flex-col gap-6 lg:col-span-2">
-          <Card className="border-neutro-border p-6">
-            <h2 className="mb-1 text-lg font-bold text-titulo">
-              Contatos recebidos
-            </h2>
-            <p className="mb-5 text-[13px] text-corpo-texto">
-              Responsáveis que chamaram o estabelecimento pelo perfil
-            </p>
-
-            {/* TODO (T-042): contagem e lista reais dos contatos */}
-            <EmptyState
-              icon={MessageCircle}
-              ghost={3}
-              title="Nenhum contato ainda"
-              description="Os contatos aparecem aqui quando um responsável chamar o estabelecimento pelo perfil na Vetria, com a data e o canal usado."
-            />
-
-            <Link
-              href="/app/estabelecimento/contatos"
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-neutro-border py-3 text-sm font-medium text-corpo-texto no-underline transition hover:border-principal hover:text-principal"
-            >
-              Ver contatos recebidos
-              <ArrowRight size={14} aria-hidden />
-            </Link>
-          </Card>
+          <CartaoDeContatosRecebidos
+            dados={contatos}
+            href="/app/estabelecimento/contatos"
+            sub="Responsáveis que chamaram o estabelecimento pelo perfil"
+          />
         </div>
 
         {/* Coluna direita (1/3): pipeline de ativação */}

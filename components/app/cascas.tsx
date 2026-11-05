@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import {
-  MessageCircle,
   Crown,
   Lock,
   Bell,
@@ -21,7 +20,7 @@ import {
 
 // Conteúdos casca compartilhados pelos painéis vet/clínica (DL-034). Páginas
 // finas por papel só fazem o guard (requirePainel) e renderizam estes blocos.
-// Ghost onde ensina (contatos). T-055: Agenda e Avaliações saíram daqui junto
+// "Contatos recebidos" saiu daqui na T-042 (components/app/Contatos.tsx). T-055: Agenda e Avaliações saíram daqui junto
 // com as abas do menu, por estarem fora da entrega de 25/11.
 
 function PageHeader({ title, sub }: { title: string; sub: string }) {
@@ -29,24 +28,6 @@ function PageHeader({ title, sub }: { title: string; sub: string }) {
     <div>
       <h1 className="text-2xl font-bold text-titulo">{title}</h1>
       <p className="mt-1 max-w-2xl text-[14px] text-corpo-texto">{sub}</p>
-    </div>
-  );
-}
-
-/* ---------------- Contatos recebidos (ghost) ---------------- */
-export function ContatosCasca() {
-  return (
-    <div className="flex max-w-3xl flex-col gap-6">
-      <PageHeader
-        title="Contatos recebidos"
-        sub="As vezes em que um responsável chamou você a partir do seu perfil na Vetria."
-      />
-      <EmptyState
-        icon={MessageCircle}
-        ghost={3}
-        title="Nenhum contato ainda"
-        description="Seus contatos aparecem aqui quando um responsável chamar você pelo seu perfil na Vetria, com a data e o canal usado. A conversa continua no seu WhatsApp ou telefone."
-      />
     </div>
   );
 }

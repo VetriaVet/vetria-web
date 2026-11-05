@@ -177,9 +177,17 @@ export function portaoDeStatus(
   const resto = pathname.slice(painel.prefixo.length).replace(/^\//, "");
   const segmento = resto.split("/")[0] ?? "";
 
+  // ⚠️ `Object.hasOwn`, e não `ALCANCE_POR_SEGMENTO[segmento]` puro: o
+  // segmento vem da URL, e `/app/veterinario/constructor` ou `/__proto__`
+  // leriam uma chave HERDADA do protótipo de `Object`, que não é lista de
+  // status e não cai no `??`. Só chave própria da tabela alarga alcance.
+  const permitidos = Object.hasOwn(ALCANCE_POR_SEGMENTO, segmento)
+    ? ALCANCE_POR_SEGMENTO[segmento]
+    : ALCANCE_PADRAO;
+
   return {
     role: painel.role,
-    permitidos: ALCANCE_POR_SEGMENTO[segmento] ?? ALCANCE_PADRAO,
+    permitidos,
   };
 }
 

@@ -332,6 +332,9 @@ const VET_FIXO = {
   atende_teleorientacao: false,
 };
 
+/** O WhatsApp da conta fixa (T-046). Exemplo, não é de ninguém. */
+const WHATSAPP_DO_VET_FIXO = "11987650000";
+
 let vetFixoPreparado: Promise<void> | null = null;
 
 /**
@@ -386,6 +389,17 @@ async function preparar(credencial: Credencial): Promise<void> {
 
   if (!(await documentoExisteNoBucket(id, privado?.documento_path ?? null))) {
     await subirDocumentoDeTeste(id);
+  }
+
+  // T-046 / DL-071 D9: desde 04/11 o passo 3 do onboarding não avança sem
+  // WhatsApp, e quase todo teste de `onboarding-vet.spec.ts` atravessa o passo
+  // 3. O número é de exemplo, dentro da regra da 0006 (SEC-128), e não é de
+  // ninguém. `whatsapp` não é dado vigiado pela revalidação (0002 §5).
+  const { error: erroWhatsapp } = await s
+    .from("perfil_privado")
+    .upsert({ id, whatsapp: WHATSAPP_DO_VET_FIXO }, { onConflict: "id" });
+  if (erroWhatsapp) {
+    throw new Error(`garantirVetFixoNaFila(whatsapp): ${erroWhatsapp.code}: ${erroWhatsapp.message}`);
   }
 
   const { error: erroStatus } = await s

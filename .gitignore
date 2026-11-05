@@ -66,3 +66,6 @@ backup-*.csv
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# CLI do Supabase (supabase link grava ref e URL do pooler aqui; SEC-141/D-7)
+supabase/.temp/

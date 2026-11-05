@@ -125,22 +125,13 @@ export type ResultadoPasso = { ok: true } | ResultadoOnboarding;
 
 /**
  * Em qual passo o formulário abre, a partir do que o SERVIDOR leu do banco.
- * Mesma regra do vet: passo incompleto é passo com campo obrigatório vazio; o
- * passo 3 (todo opcional) conta como feito quando tem algum conteúdo ou quando
- * o documento do passo 4 já foi enviado.
+ * Mesma regra do vet: passo incompleto é passo com campo obrigatório vazio.
+ * Desde a T-046 (DL-071 D9) o WhatsApp é o campo obrigatório do passo 3: sem
+ * ele a página abre no passo 3, mesmo com o documento já enviado.
  */
-export function primeiroPassoIncompleto(
-  d: ClinicOnboardingInicial,
-  temDocumento: boolean
-): 1 | 2 | 3 | 4 {
+export function primeiroPassoIncompleto(d: ClinicOnboardingInicial): 1 | 2 | 3 | 4 {
   if (!d.nomeFantasia.trim() || !d.cnpj.trim()) return 1;
   if (!d.cidade.trim() || !d.estado.trim()) return 2;
-  if (
-    !temDocumento &&
-    !d.sobre.trim() &&
-    d.servicos.length === 0 &&
-    !d.whatsapp.trim()
-  )
-    return 3;
+  if (!d.whatsapp.trim()) return 3;
   return 4;
 }

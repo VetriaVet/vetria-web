@@ -3,6 +3,7 @@ import { ESPERANDO_OU_ATIVO, ONBOARDING } from "@/lib/auth/status";
 import { carregarPreviaDoEstabelecimento } from "@/lib/perfil-publico/previa";
 import { PerfilDoEstabelecimento } from "@/components/publico/Perfil";
 import { PreviaDoPerfil } from "@/components/app/PreviaDoPerfil";
+import { estaSemWhatsapp } from "@/lib/contato/semWhatsapp";
 
 export const metadata = {
   title: "Perfil público do estabelecimento",
@@ -21,11 +22,15 @@ export const metadata = {
 
 export default async function ClinicPerfilPage() {
   const { user, status } = await requirePainel("clinic", ESPERANDO_OU_ATIVO);
-  const r = await carregarPreviaDoEstabelecimento(user.id);
+  const [r, semWhatsapp] = await Promise.all([
+    carregarPreviaDoEstabelecimento(user.id),
+    // T-046 / DL-071 D9: o aviso de contato sem WhatsApp. Só o booleano.
+    estaSemWhatsapp(user.id),
+  ]);
   const podeRever = (ONBOARDING as readonly string[]).includes(status);
 
   return (
-    <PreviaDoPerfil tipo="clinic" status={status} podeRever={podeRever} carregada={r}>
+    <PreviaDoPerfil tipo="clinic" status={status} podeRever={podeRever} carregada={r} semWhatsapp={semWhatsapp}>
       {r.estado === "ok" && (
         <PerfilDoEstabelecimento
           perfil={r.conteudo}

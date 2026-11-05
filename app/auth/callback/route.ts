@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { vincularContatosDoVisitante } from "@/lib/contato/vincular";
 import { destinoDoErroDoLink } from "@/lib/auth/erros";
 import { caminhoInternoSeguro } from "@/lib/auth/link-do-email";
 
@@ -75,6 +76,14 @@ export async function GET(request: NextRequest) {
     .select("role")
     .eq("id", user.id)
     .maybeSingle();
+
+  // T-042 (D10): link antigo de confirmação do cadastro de responsável. O
+  // fluxo de senha fica de fora; o banco só vincula para conta `tutor` criada
+  // nas últimas 24 horas, então um login comum pelo Google não puxa nada de
+  // conta antiga. A função nunca lança.
+  if (!fluxoDeSenha && profile?.role === "tutor") {
+    await vincularContatosDoVisitante(user.id);
+  }
 
   // next interno (ex.: /recuperar-senha/nova) tem prioridade. Valida que é
   // caminho relativo seguro (evita open redirect).

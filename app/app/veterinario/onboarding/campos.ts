@@ -169,21 +169,17 @@ export type ResultadoPasso = { ok: true } | ResultadoOnboarding;
  * Em qual passo o formulário abre, a partir do que o SERVIDOR leu do banco.
  *
  * O passo é "incompleto" quando falta um campo obrigatório dele: são os
- * mesmos que o "Continuar" e a Server Action exigem. O passo 3 não tem campo
- * obrigatório (WhatsApp é opcional até a T-046), então ele conta como feito
- * quando tem bio ou WhatsApp, ou quando o documento do passo 4 já foi
- * enviado. Sem coluna de "último passo visto" no banco (e sem migration nesta
- * task), essa é a leitura honesta: no pior caso a pessoa revê o passo 3, que
- * é opcional, e toca em Continuar.
+ * mesmos que o "Continuar" e a Server Action exigem. Desde a T-046 (DL-071
+ * D9) o WhatsApp é o campo obrigatório do passo 3: sem ele a página abre no
+ * passo 3, mesmo com o documento já enviado, porque a conclusão recusaria.
+ * (Antes da T-046 o passo 3 era todo opcional e contava como feito com bio,
+ * WhatsApp ou documento; o documento saiu da conta junto.)
  */
-export function primeiroPassoIncompleto(
-  d: VetOnboardingInicial,
-  temDocumento: boolean
-): 1 | 2 | 3 | 4 {
+export function primeiroPassoIncompleto(d: VetOnboardingInicial): 1 | 2 | 3 | 4 {
   if (!d.nome.trim() || !d.crmv.trim() || !d.crmvUf.trim()) return 1;
   const algumModo =
     d.atendePresencial || d.atendeDomiciliar || d.atendeTeleorientacao;
   if (!d.cidade.trim() || !d.estado.trim() || !algumModo) return 2;
-  if (!temDocumento && !d.bio.trim() && !d.whatsapp.trim()) return 3;
+  if (!d.whatsapp.trim()) return 3;
   return 4;
 }

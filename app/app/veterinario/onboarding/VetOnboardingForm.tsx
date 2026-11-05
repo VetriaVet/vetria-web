@@ -139,8 +139,12 @@ export default function VetOnboardingForm({
       if (!algumModo) return "Marque pelo menos uma forma de atendimento para continuar.";
       return null;
     }
-    if (step === 3 && erroDoCampo("telefone", whatsapp))
-      return "Confira o WhatsApp para continuar.";
+    if (step === 3) {
+      if (erroDoCampo("telefone", whatsapp)) return "Confira o WhatsApp para continuar.";
+      // T-046 / DL-071 D9: obrigatório. Mesma regra de `exigirWhatsapp`, que
+      // é a que vale; isto só evita a ida e volta ao servidor.
+      if (!whatsapp.trim()) return "Informe seu WhatsApp com DDD para continuar.";
+    }
     return null;
   }
   const motivoParado = motivoDoPasso();
@@ -448,8 +452,17 @@ export default function VetOnboardingForm({
                 <div className="text-right text-[11px] text-corpo-texto/60 mt-1">{bio.length} / 500</div>
               </div>
               <div>
-                <Label htmlFor="wpp">WhatsApp</Label>
-                <CampoMascarado id="wpp" mascara="telefone" valor={whatsapp} onValor={setWhatsapp} placeholder="(00) 00000-0000" />
+                <Label htmlFor="wpp">WhatsApp (obrigatório)</Label>
+                <CampoMascarado
+                  id="wpp"
+                  mascara="telefone"
+                  valor={whatsapp}
+                  onValor={setWhatsapp}
+                  placeholder="(00) 00000-0000"
+                  required
+                  aria-required="true"
+                  ajuda="É por este número que os responsáveis falam com você. Ele não fica escrito na página do seu perfil: só é entregue a quem tocar no botão do WhatsApp."
+                />
               </div>
             </StepWrap>
           )}
