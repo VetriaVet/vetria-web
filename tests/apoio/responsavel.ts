@@ -39,7 +39,7 @@ export async function garantirResponsavelNoPainel(
     await page.getByLabel("Idade aproximada").selectOption("adulto");
     await page.getByLabel("Peso aproximado").selectOption("medio");
     await page.getByLabel("Cidade onde mora").fill("Palmas, TO");
-    await page.getByRole("button", { name: /concluir onboarding/i }).click();
+    await page.getByRole("button", { name: /^concluir cadastro$/i }).click();
 
     // Estado, não relógio: a action redireciona para o painel no sucesso e de
     // volta ao onboarding com `?error=` na falha.
