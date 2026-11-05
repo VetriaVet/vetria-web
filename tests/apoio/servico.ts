@@ -129,6 +129,42 @@ export async function criarContaDescartavel(
   return { id: data.user.id, email, senha, nome };
 }
 
+/**
+ * T-064: a conta como o Google a cria. O Google não manda `role` (o OAuth não
+ * leva metadata do cadastro): o `user_metadata` tem `name`, `full_name`,
+ * `email` e o avatar. Sem `role`, o `handle_new_user` da 0009 grava `tutor`,
+ * `active` e `tipo_escolhido_em` nulo. O Google está desligado no
+ * `vetria-e2e`, então a suíte cria a conta neste formato pelo Auth admin.
+ */
+export async function criarContaSemTipo(nome: string): Promise<ContaDescartavel> {
+  const email = emailDescartavel("sem-tipo");
+  const senha = senhaDescartavel();
+  anotarEmailParaLimpar(email);
+
+  const { data, error } = await clienteDeServico().auth.admin.createUser({
+    email,
+    password: senha,
+    email_confirm: true,
+    user_metadata: { name: nome, full_name: nome, email, email_verified: true },
+  });
+  if (error || !data.user) {
+    throw new Error(`criarContaSemTipo: ${error?.code ?? error?.status ?? "?"}: ${error?.message ?? "sem usuario"}`);
+  }
+  criadasNestaRodada.add(data.user.id);
+  return { id: data.user.id, email, senha, nome };
+}
+
+/** `profiles.tipo_escolhido_em` (0009). Leitura com service_role: prova. */
+export async function lerTipoEscolhido(id: string): Promise<string | null> {
+  const { data, error } = await clienteDeServico()
+    .from("profiles")
+    .select("tipo_escolhido_em")
+    .eq("id", id)
+    .single<{ tipo_escolhido_em: string | null }>();
+  if (error) throw new Error(`lerTipoEscolhido: ${error.code}: ${error.message}`);
+  return data.tipo_escolhido_em;
+}
+
 async function listarUsuarios() {
   const todos: { id: string; email?: string; created_at: string }[] = [];
   for (let pagina = 1; pagina <= 20; pagina++) {

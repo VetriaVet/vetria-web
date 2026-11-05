@@ -76,7 +76,8 @@
 | Dado | Quem lê | Quem escreve |
 |---|---|---|
 | `profiles` (linha própria) | o dono, admin, master | o dono (campos limitados), master |
-| `profiles.role` / `admin_level` | o dono, admin, master | **só master**, e só via `/api/admin/set-access` |
+| `profiles.role` / `admin_level` | o dono, admin, master | **só master**, e só via `/api/admin/set-access`. **Única exceção (DL-080 item 2, T-064, `0009`):** a conta criada sem tipo (Google, `/login`) escolhe o próprio `role` **uma vez**, entre `tutor`, `vet` e `clinic` (nunca `admin`), pela função `escolher_tipo_de_conta`, enquanto `tipo_escolhido_em` é nulo e o cadastro não foi concluído. `vet` e `clinic` saem `incomplete` e passam pela validação |
+| `profiles.tipo_escolhido_em` | o dono, admin, master | **ninguém pelo cliente**: `handle_new_user` (nascimento) e `escolher_tipo_de_conta` (a escolha). A policy do dono fixa o valor |
 | `profiles.status` | o dono, admin, master | **só admin e master**. Nunca o próprio usuário. |
 | `vet_profiles` / `clinic_profiles` | **público, apenas se `role` bate E `status='active'`**; sempre o dono; admin e master | o dono (menos `slug`), admin (moderação), master |
 | `perfil_privado` (whatsapp, telefone, email, documento) | **só o dono e admin/master. Nunca anônimo, nunca outro usuário.** Admin e master, só enquanto a conta está na fila de validação (DL-061; no banco, a partir da `0004`, §5) | o dono |

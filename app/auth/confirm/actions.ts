@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { vincularContatosDoVisitante } from "@/lib/contato/vincular";
+import { podeEscolherTipo } from "@/lib/auth/tipo";
 import { destinoDoErroDoLink } from "@/lib/auth/erros";
 import {
   destinoDoLink,
@@ -61,8 +62,15 @@ export async function confirmarLinkDoEmail(formData: FormData) {
   // nova tem sessão neste navegador. Os contatos feitos sem conta, por este
   // navegador, vão para ela. O banco recusa sozinho conta que não é de
   // responsável ou que não é nova; a função nunca lança.
+  //
+  // T-064: a conta que ainda vai escolher o tipo (cadastro pelo `/login`, sem
+  // tipo) não vincula aqui: o vínculo acontece na escolha, se ela for
+  // responsável (`/api/onboarding/set-role`).
   if (tipo === "signup" || tipo === "email") {
-    await vincularContatosDoVisitante(data.user?.id);
+    const id = data.user?.id;
+    if (id && !(await podeEscolherTipo(supabase, id))) {
+      await vincularContatosDoVisitante(id);
+    }
   }
 
   const destino = destinoDoLink(tipo, formData.get("next"));

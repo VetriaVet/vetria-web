@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 type Role = "tutor" | "vet" | "clinic";
 
+// T-064: os nomes da tela são os nomes legais (responsável, veterinário,
+// estabelecimento); o valor enviado é o role do banco (DL-043).
 const ROLES: Array<{
   role: Role;
   emoji: string;
@@ -14,65 +16,73 @@ const ROLES: Array<{
     role: "tutor",
     emoji: "🐶",
     title: "Sou responsável",
-    desc: "Encontre profissionais perto de você, agende consultas e cuide melhor do seu animal.",
+    desc: "Encontre veterinários e estabelecimentos perto de você e fale com eles pelo WhatsApp.",
   },
   {
     role: "vet",
     emoji: "🩺",
     title: "Sou veterinário",
-    desc: "Crie seu perfil profissional, seja encontrado por responsáveis e organize sua agenda.",
+    desc: "Crie seu perfil profissional e seja encontrado por responsáveis. Seu cadastro passa pela validação da equipe.",
   },
   {
     role: "clinic",
     emoji: "🏥",
     title: "Sou um estabelecimento veterinário",
-    desc: "Cadastre seu estabelecimento, gerencie sua equipe e fortaleça sua marca regional.",
+    desc: "Cadastre seu estabelecimento e seja encontrado na sua região. O cadastro passa pela validação da equipe.",
   },
 ];
+
+const FALHA = "Não foi possível salvar agora. Tente de novo em alguns instantes.";
+
+// Verdadeiro só depois da hidratação (o mesmo recurso dos onboardings).
+const semAssinatura = () => () => {};
 
 export default function OnboardingClient() {
   const [loading, setLoading] = useState<Role | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const hidratado = useSyncExternalStore(semAssinatura, () => true, () => false);
 
   async function chooseRole(role: Role) {
     setMsg(null);
     setLoading(role);
 
+    let res: Response;
     try {
-      const res = await fetch("/api/onboarding/set-role", {
+      res = await fetch("/api/onboarding/set-role", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role }),
       });
-
-      const json = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setMsg(json.error ?? "Erro ao salvar role");
-        setLoading(null);
-        return;
-      }
-
-      // T-014 — `assign()` em vez de `window.location.href = ...`.
-      // A regra `react-hooks/immutability` acusa a ATRIBUIÇÃO a um objeto
-      // definido fora do componente. O efeito é idêntico: navegação com
-      // recarga completa, que aqui é o que se quer — o role acabou de mudar no
-      // banco e o servidor precisa reler antes de decidir o painel.
-      window.location.assign("/app");
-    } catch (e: unknown) {
-      setMsg(e instanceof Error ? e.message : "Erro ao salvar role");
+    } catch {
+      setMsg("Sem conexão com a internet. Confira e tente de novo.");
       setLoading(null);
+      return;
     }
+
+    const json = (await res.json().catch(() => ({}))) as { error?: unknown };
+
+    // 409: o tipo já foi escolhido (outra aba, ou o segundo clique). Segue
+    // para `/app` como no sucesso: ele sabe o destino certo.
+    if (!res.ok && res.status !== 409) {
+      setMsg(typeof json.error === "string" ? json.error : FALHA);
+      setLoading(null);
+      return;
+    }
+
+    // T-014: `assign()` em vez de `window.location.href = ...`. Navegação com
+    // recarga completa: o tipo acabou de mudar no banco e o servidor precisa
+    // reler antes de decidir o painel.
+    window.location.assign("/app");
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-16">
+    <div className="max-w-5xl mx-auto px-6 py-16" data-hidratado={hidratado ? "sim" : "nao"}>
       <h1 className="text-3xl font-bold text-titulo mb-3 tracking-tight">
         Como você quer usar a Vetria?
       </h1>
       <p className="text-corpo-texto text-base mb-10 max-w-xl">
-        Escolha seu perfil. Cada um tem um painel próprio com ferramentas
-        específicas.
+        Escolha o tipo da sua conta. Cada um tem um painel próprio. Essa escolha
+        é feita uma vez só e não pode ser trocada depois.
       </p>
 
       <div className="grid md:grid-cols-3 gap-4">
@@ -98,7 +108,7 @@ export default function OnboardingClient() {
               </span>
               <h2 className="text-titulo font-bold text-xl mb-2">{title}</h2>
               <p className="text-corpo-texto text-sm leading-relaxed">
-                {isActive ? "Carregando..." : desc}
+                {isActive ? "Salvando..." : desc}
               </p>
             </button>
           );

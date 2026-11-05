@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { vincularContatosDoVisitante } from "@/lib/contato/vincular";
+import { podeEscolherTipo } from "@/lib/auth/tipo";
 import { destinoDoErroDoLink } from "@/lib/auth/erros";
 import { caminhoInternoSeguro } from "@/lib/auth/link-do-email";
 
@@ -81,7 +82,12 @@ export async function GET(request: NextRequest) {
   // fluxo de senha fica de fora; o banco só vincula para conta `tutor` criada
   // nas últimas 24 horas, então um login comum pelo Google não puxa nada de
   // conta antiga. A função nunca lança.
-  if (!fluxoDeSenha && profile?.role === "tutor") {
+  //
+  // T-064: a conta do Google que ainda vai escolher o tipo não vincula aqui:
+  // o vínculo acontece na escolha, se ela for responsável
+  // (`/api/onboarding/set-role`). Sem isso, quem escolhesse veterinário
+  // levaria os contatos de visitante para a conta profissional.
+  if (!fluxoDeSenha && profile?.role === "tutor" && !(await podeEscolherTipo(supabase, user.id))) {
     await vincularContatosDoVisitante(user.id);
   }
 
