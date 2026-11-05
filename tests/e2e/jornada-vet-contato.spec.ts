@@ -241,7 +241,7 @@ if (CONTATO_LIGADO && BUSCA_LIGADA) {
         await expect(concluir).toBeEnabled();
         await concluir.click();
         await expect(page).toHaveURL(rotaExata(DESTINO_VET.pending_validation), { timeout: 30_000 });
-        await expect(page.getByText(/estamos validando seu cadastro/i)).toBeVisible();
+        await expect(page.getByRole("heading", { name: /estamos validando seu cadastro/i })).toBeVisible();
       });
 
       const naFila = await lerPerfil(id!);
