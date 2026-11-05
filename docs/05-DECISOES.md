@@ -1117,3 +1117,19 @@ mesmas contas.
 `signOut` (deixa sessão aberta sem dono no banco de teste).
 **Implicações:** teste novo que fizer login e logout segue a mesma regra.
 **Status:** ✅ aplicada
+
+### DL-080: Decisões do Elber sobre a lista da T-058 (05/11)
+**Data:** 05/11/2026 · **Fase:** F6 · **Card:** T-058 · **Quem decidiu:** o Elber, no chat.
+**Decisão, item por item:**
+1. **Endereço e CEP do estabelecimento continuam públicos** (mantém o DL-070 E). Endereço comercial, por desenho.
+2. **Conta criada pelo Google ganha um caminho próprio:** depois do Google a pessoa escolhe o tipo de conta
+   (responsável, veterinário ou estabelecimento), em vez de virar responsável sem escolha. Vira a T-064.
+3. **Dados do animal passam a ser guardados:** o onboarding do responsável grava na tabela `animais` (existe na
+   `0002`, com RLS por dono). Vira a T-065. A Política de Privacidade passa a citar esses dados.
+4. **A aprovação do admin passa a exigir WhatsApp** ("o mínimo profissional possível"). Conta na fila sem número não
+   é aprovada; o admin vê o motivo. Vira a T-066.
+5. **O histórico do git será reescrito** para tirar o email e o telefone reais (D-1). Entra no fim da limpeza do
+   repositório (T-057), sem PR aberta, com força push e reclone. Antes, o Elber libera a proteção da `main` só para
+   esse push.
+**Ainda aberto:** item 6, a cascata ao excluir conta (SEC-139, T-049), e as perguntas dos Termos e da Política.
+**Status:** ✅ decidida · ⬜ T-064, T-065, T-066 · ⬜ D-1 na T-057
