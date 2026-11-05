@@ -6,6 +6,7 @@ import { credencialAdmin, SEM_ADMIN } from "../apoio/credenciais";
 import { EXIGIR, falharSeExigir, pularOuFalhar } from "../apoio/pulo";
 import {
   apagarContasDaRodada,
+  aprovarComoContaAntigaSemWhatsapp,
   aprovarPelaRpc,
   clienteDeServico,
   clienteDoUsuario,
@@ -57,7 +58,9 @@ async function vetAtivo(
     { crmv: `${1 + Math.floor(Math.random() * 9)}${digitos(5)}`, crmv_uf: "TO" },
     whatsapp ? { whatsapp } : {}
   );
-  await aprovarPelaRpc(admin, conta.id);
+  // T-066: sem número, a conta é a antiga, aprovada antes da regra da 0008.
+  if (whatsapp) await aprovarPelaRpc(admin, conta.id);
+  else await aprovarComoContaAntigaSemWhatsapp(admin, conta.id);
   const slug = await lerSlugDoVet(conta.id);
   if (!slug) throw new Error("vetAtivo: a aprovacao nao gerou slug (0005)");
   return { conta, slug };

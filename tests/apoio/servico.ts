@@ -494,6 +494,40 @@ export async function aprovarPelaRpc(admin: SupabaseClient, id: string): Promise
   }
 }
 
+/**
+ * T-066 / DL-080 item 4: desde a `0008` o banco não aprova conta sem
+ * WhatsApp. Os testes que precisam de um perfil ATIVO SEM número (o botão de
+ * contato que some, `sem_whatsapp` na rota, o aviso do painel) simulam a conta
+ * antiga, aprovada antes da regra: o número entra antes, a aprovação é a do
+ * produto (RPC com a sessão do admin) e o número sai depois.
+ *
+ * ⚠️ As duas escritas de `perfil_privado.whatsapp` com `service_role` são
+ * PREPARAÇÃO, como em `garantirVetFixoNaFila`. `whatsapp` não é dado vigiado
+ * pela revalidação (0002 §5), então tirar o número não devolve a conta à fila.
+ * `status` não é tocado aqui.
+ */
+export async function aprovarComoContaAntigaSemWhatsapp(
+  admin: SupabaseClient,
+  id: string
+): Promise<void> {
+  // O mesmo número de exemplo da conta fixa: some logo depois, e não é de ninguém.
+  await gravarWhatsappDePreparacao(id, WHATSAPP_DO_VET_FIXO);
+  await aprovarPelaRpc(admin, id);
+  await gravarWhatsappDePreparacao(id, null);
+  const depois = await lerPerfil(id);
+  if (depois.status !== "active") {
+    throw new Error(`aprovarComoContaAntigaSemWhatsapp: tirar o numero mudou o status para '${depois.status}'.`);
+  }
+}
+
+/** Ver `aprovarComoContaAntigaSemWhatsapp`. Só preparação. */
+export async function gravarWhatsappDePreparacao(id: string, whatsapp: string | null): Promise<void> {
+  const { error } = await clienteDeServico()
+    .from("perfil_privado")
+    .upsert({ id, whatsapp }, { onConflict: "id" });
+  if (error) throw new Error(`gravarWhatsappDePreparacao: ${error.code}: ${error.message}`);
+}
+
 /** O slug gravado no banco (leitura com service_role: prova, não atalho). */
 export async function lerSlugDoVet(id: string): Promise<string | null> {
   const { data, error } = await clienteDeServico()

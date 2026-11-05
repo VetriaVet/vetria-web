@@ -32,6 +32,7 @@ import {
   criarContaDescartavel,
   decisoesNaTrilha,
   emailDescartavel,
+  gravarWhatsappDePreparacao,
   idPorEmail,
   lerPerfil,
   semearVetNaFila,
@@ -39,6 +40,7 @@ import {
   varrerDescartaveisAntigas,
   type ContaDescartavel,
 } from "../apoio/servico";
+import { whatsappDeTeste } from "../apoio/contato";
 
 // Camada 6 da suíte: O QUE SÓ SE PROVA COM CONTA NOVA (T-029, itens 1 e 3 do
 // DoD da F3).
@@ -610,7 +612,8 @@ test.describe("item 3: o admin comum decide pela tela e a conta muda de painel",
     page,
   }) => {
     test.setTimeout(240_000);
-    const conta = await semearVetNaFila(`QA E2E Aprovar ${sufixo()}`);
+    // T-066: desde a 0008 só se aprova com WhatsApp no cadastro.
+    const conta = await semearVetNaFila(`QA E2E Aprovar ${sufixo()}`, {}, { whatsapp: whatsappDeTeste() });
 
     await abrirDetalhe(page, conta);
 
@@ -643,9 +646,15 @@ test.describe("item 3: o admin comum decide pela tela e a conta muda de painel",
     const vet = await paginaCom(browser, sessaoVet);
     try {
       expect(await destinoDeApp(vet.page)).toBe(DESTINO_VET.active);
-      // T-046 / DL-071 D9: a conta semeada não tem WhatsApp, que é o caso de
-      // quem foi aprovado antes de o número ser obrigatório. O painel e a
-      // prévia avisam, e o número (que não existe) não está na tela.
+      // Aprovado com número: o painel não avisa nada.
+      await expect(vet.page.locator('[data-aviso="sem-whatsapp"]')).toHaveCount(0);
+
+      // T-046 / DL-071 D9: quem foi aprovado ANTES de o número ser obrigatório
+      // ficou sem WhatsApp. Simulado tirando o número depois da aprovação
+      // (preparação, ver `gravarWhatsappDePreparacao`). O painel e a prévia
+      // avisam, e o número (que não existe) não está na tela.
+      await gravarWhatsappDePreparacao(conta.id, null);
+      await vet.page.reload();
       const aviso = vet.page.locator('[data-aviso="sem-whatsapp"]');
       await expect(aviso).toContainText(/sem WhatsApp ninguém consegue te chamar/i);
       await expect(aviso.getByRole("link", { name: /enviar meu whatsapp para a equipe/i })).toHaveAttribute(
@@ -706,13 +715,67 @@ test.describe("item 3: o admin comum decide pela tela e a conta muda de painel",
     }
   });
 
+  test("sem WhatsApp no cadastro: o botao de aprovar nao sai, a tela diz por que e o banco recusa", async ({
+    page,
+  }) => {
+    // T-066 / DL-080 item 4. A conta da fila sem número é a antiga (antes da
+    // T-046 o número não era obrigatório). A tela explica; o banco recusa
+    // mesmo pela API, com a sessão do admin, que é o que um POST direto faria.
+    test.setTimeout(180_000);
+    const conta = await semearVetNaFila(`QA E2E Sem Whats ${sufixo()}`);
+
+    await abrirDetalhe(page, conta);
+
+    const aviso = page.locator('[data-aviso="aprovar-sem-whatsapp"]');
+    await expect(aviso).toContainText(/não pode ser aprovada: falta um WhatsApp com DDD/i);
+    await expect(page.getByRole("button", { name: /^aprovar esta conta$/i })).toBeDisabled();
+    await expect(page.getByRole("button", { name: /^confirmar aprovação$/i })).toHaveCount(0);
+
+    // O motivo pronto preenche o campo, e a reprova continua possível.
+    await page.getByRole("button", { name: /usar o motivo "falta o whatsapp"/i }).click();
+    await expect(page.locator("#motivo-reprova")).toHaveValue(/falta o WhatsApp com DDD/i);
+    await expect(page.getByRole("button", { name: /^reprovar com este motivo$/i })).toBeEnabled();
+
+    // O banco: a RPC recusa com 23514 (0008) e nada muda.
+    const { cliente: admin } = await clienteDoUsuario(credencialAdminDeTeste!);
+    try {
+      const { error } = await admin.rpc("admin_definir_status", {
+        target_user_id: conta.id,
+        novo_status: "active",
+        motivo: null,
+      });
+      expect(error?.code, "o banco aprovou conta sem WhatsApp").toBe("23514");
+
+      // Número fora da regra (formato antigo, com espaço) também não conta.
+      await gravarWhatsappDePreparacao(conta.id, "63 912345678");
+      const { error: erroFormato } = await admin.rpc("admin_definir_status", {
+        target_user_id: conta.id,
+        novo_status: "active",
+        motivo: null,
+      });
+      expect(erroFormato?.code, "o banco aprovou WhatsApp fora do formato").toBe("23514");
+    } finally {
+      await admin.auth.signOut({ scope: "local" }).catch(() => {});
+    }
+
+    const depois = await lerPerfil(conta.id);
+    expect(depois.status).toBe("pending_validation");
+    expect(await decisoesNaTrilha(conta.id)).toBe(0);
+
+    // Com o número certo, o mesmo detalhe libera o botão.
+    await gravarWhatsappDePreparacao(conta.id, whatsappDeTeste());
+    await page.reload();
+    await expect(page.locator('[data-aviso="aprovar-sem-whatsapp"]')).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^aprovar esta conta$/i })).toBeEnabled();
+  });
+
   test("duas abas: aprovar numa e reprovar na outra nao decide duas vezes", async ({
     page,
   }) => {
     // SEC-099: a segunda decisão sobre a mesma conta é recusada com frase
     // legível, e a trilha tem UMA linha, não duas.
     test.setTimeout(180_000);
-    const conta = await semearVetNaFila(`QA E2E Duas Abas ${sufixo()}`);
+    const conta = await semearVetNaFila(`QA E2E Duas Abas ${sufixo()}`, {}, { whatsapp: whatsappDeTeste() });
 
     const segunda = await page.context().newPage();
     try {
