@@ -3,6 +3,7 @@ import { ESPERANDO_OU_ATIVO, ONBOARDING } from "@/lib/auth/status";
 import { carregarPreviaDoVeterinario } from "@/lib/perfil-publico/previa";
 import { PerfilDoVeterinario } from "@/components/publico/Perfil";
 import { PreviaDoPerfil } from "@/components/app/PreviaDoPerfil";
+import { estaSemWhatsapp } from "@/lib/contato/semWhatsapp";
 
 export const metadata = {
   title: "Meu perfil público",
@@ -24,12 +25,16 @@ export const metadata = {
 
 export default async function VetPerfilPage() {
   const { user, status } = await requirePainel("vet", ESPERANDO_OU_ATIVO);
-  const r = await carregarPreviaDoVeterinario(user.id);
+  const [r, semWhatsapp] = await Promise.all([
+    carregarPreviaDoVeterinario(user.id),
+    // T-046 / DL-071 D9: o aviso de contato sem WhatsApp. Só o booleano.
+    estaSemWhatsapp(user.id),
+  ]);
   // A mesma lista que o middleware aplica em /onboarding (ver aguardando/page.tsx).
   const podeRever = (ONBOARDING as readonly string[]).includes(status);
 
   return (
-    <PreviaDoPerfil tipo="vet" status={status} podeRever={podeRever} carregada={r}>
+    <PreviaDoPerfil tipo="vet" status={status} podeRever={podeRever} carregada={r} semWhatsapp={semWhatsapp}>
       {r.estado === "ok" && (
         <PerfilDoVeterinario
           perfil={r.conteudo}

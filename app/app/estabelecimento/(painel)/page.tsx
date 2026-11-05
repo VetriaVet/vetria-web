@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requirePainel } from "@/lib/auth/painel";
 import { SO_ATIVO } from "@/lib/auth/status";
 import { Card } from "@/components/ui/Card";
+import { AvisoSemWhatsapp } from "@/components/app/AvisoSemWhatsapp";
+import { estaSemWhatsapp } from "@/lib/contato/semWhatsapp";
 import { carregarContatosRecebidos } from "@/lib/contato/leitura";
 import { CartaoDeContatosRecebidos } from "@/components/app/Contatos";
 import {
@@ -24,6 +26,8 @@ import {
 
 export default async function ClinicPage() {
   const { user } = await requirePainel("clinic", SO_ATIVO);
+  // T-046 / DL-071 D9: ver a gêmea do veterinário.
+  const semWhatsapp = await estaSemWhatsapp(user.id);
   // T-042: os dois números e os 3 contatos mais recentes, pela sessão do dono.
   const contatos = await carregarContatosRecebidos(user.id, "clinic", 3);
 
@@ -50,6 +54,8 @@ export default async function ClinicPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {semWhatsapp && <AvisoSemWhatsapp tipo="clinic" podeRever={false} />}
+
       {/* Greeting card */}
       <section className="flex flex-col gap-6 rounded-2xl bg-principal p-8 text-white md:flex-row md:items-center md:justify-between">
         <div>

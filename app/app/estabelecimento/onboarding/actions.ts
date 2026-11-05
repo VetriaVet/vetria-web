@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { normalizarWhatsapp } from "@/lib/contato/whatsapp";
+import { exigirWhatsapp } from "@/lib/contato/whatsapp";
 import { ONBOARDING } from "@/lib/auth/status";
 import {
   LIMITES,
@@ -365,18 +365,17 @@ function validarPasso3(entrada: ClinicOnboardingPayload): Validado<ColunasDoPass
   if (whatsappBruto.length > LIMITES.whatsapp)
     return erro(`Passo 3: o WhatsApp passa de ${LIMITES.whatsapp} caracteres.`);
 
-  let whatsapp = "";
-  if (whatsappBruto) {
-    const normalizado = normalizarWhatsapp(whatsappBruto);
-    if (!normalizado.ok) return erro(normalizado.motivo);
-    whatsapp = normalizado.valor;
-  }
+  // ⚠️ T-046 / DL-071 D9: obrigatório, com a MESMA função do vet (ver o
+  // comentário em `veterinario/onboarding/actions.ts` e `lib/contato/whatsapp.ts`).
+  // Vale para o rascunho do passo 3 e para a conclusão.
+  const whatsapp = exigirWhatsapp(whatsappBruto);
+  if (!whatsapp.ok) return erro(whatsapp.motivo);
 
   return {
     ok: true,
     valor: {
       publico: { sobre: sobre || null, servicos },
-      privado: { whatsapp: whatsapp || null },
+      privado: { whatsapp: whatsapp.valor },
     },
   };
 }

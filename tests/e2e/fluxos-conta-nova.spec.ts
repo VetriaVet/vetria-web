@@ -13,6 +13,7 @@ import {
 } from "../apoio/sessao";
 import {
   abrirFormulario,
+  adulterarProximaAction,
   botaoContinuar,
   contarServerActions,
   esperarHidratacao,
@@ -102,6 +103,28 @@ async function subirDocumentoPelaTela(page: Page) {
     page.getByText(/documento recebido em/i),
     "o envio do documento pela tela nao terminou com 'Documento recebido em'"
   ).toBeVisible({ timeout: 30_000 });
+}
+
+/**
+ * T-046 / DL-071 D9: o SERVIDOR recusa concluir sem WhatsApp, mesmo com a tela
+ * contornada. Apaga o WhatsApp do pedido de conclusão antes de ele sair do
+ * navegador (o que alguém com DevTools faria), confere a recusa em português e
+ * que a conta continua fora da fila. A Action valida antes de gravar, então
+ * nada muda no banco: o número salvo no passo 3 continua lá.
+ */
+async function concluirSemWhatsappERecusado(page: Page, rota: string, contaId: string) {
+  const adulteracao = await adulterarProximaAction(page, rota, (p) => {
+    p.whatsapp = "";
+  });
+  await page.getByRole("button", { name: /^concluir cadastro$/i }).click();
+  await expect(
+    alertaDeErro(page),
+    "concluir sem WhatsApp nao foi recusado pelo servidor"
+  ).toContainText(/informe o whatsapp com ddd/i, { timeout: 30_000 });
+  expect(adulteracao.adulterou(), adulteracao.motivoDeFalha() ?? "").toBe(true);
+  await expect(page).toHaveURL(rotaExata(rota));
+  expect((await lerPerfil(contaId)).status, "a conta entrou na fila sem WhatsApp").toBe("incomplete");
+  await page.unrouteAll({ behavior: "ignoreErrors" });
 }
 
 // ---------------------------------------------------------------------------
@@ -208,6 +231,9 @@ test.describe("item 1: cadastro novo, onboarding, documento, fila, sair e voltar
 
     await irParaPasso(page, 3);
     await page.locator("#bio").fill(bio);
+    // T-046: sem WhatsApp o passo 3 não avança, e o rodapé diz por quê.
+    await expect(botaoContinuar(page)).toBeDisabled();
+    await expect(page.getByText(/informe seu whatsapp com ddd para continuar/i)).toBeVisible();
     await page.locator("#wpp").fill("11987654321");
 
     await irParaPasso(page, 4);
@@ -218,6 +244,7 @@ test.describe("item 1: cadastro novo, onboarding, documento, fila, sair e voltar
 
     await subirDocumentoPelaTela(page);
     await expect(concluir).toBeEnabled();
+    await concluirSemWhatsappERecusado(page, ROTA_ONB_VET, id!);
     await concluir.click();
 
     // A primeira conclusão: `incomplete → pending_validation`, pela RPC.
@@ -326,10 +353,14 @@ test.describe("item 1: cadastro novo, onboarding, documento, fila, sair e voltar
     await irParaPasso(page, 3);
     await page.locator("#sobre").fill("Texto sobre de teste da suite E2E.");
     await page.getByRole("button", { name: /^Vacinação/ }).click();
+    // T-046: sem WhatsApp o passo 3 não avança, e o rodapé diz por quê.
+    await expect(botaoContinuar(page)).toBeDisabled();
+    await expect(page.getByText(/informe o whatsapp do estabelecimento com ddd para continuar/i)).toBeVisible();
     await page.locator("#wpp").fill("11987654321");
 
     await irParaPasso(page, 4);
     await subirDocumentoPelaTela(page);
+    await concluirSemWhatsappERecusado(page, ROTA_ONB_CLINIC, conta.id);
     await page.getByRole("button", { name: /^concluir cadastro$/i }).click();
     await expect(page).toHaveURL(rotaExata(`${BASE_CLINIC}/aguardando`), { timeout: 30_000 });
 
@@ -612,6 +643,19 @@ test.describe("item 3: o admin comum decide pela tela e a conta muda de painel",
     const vet = await paginaCom(browser, sessaoVet);
     try {
       expect(await destinoDeApp(vet.page)).toBe(DESTINO_VET.active);
+      // T-046 / DL-071 D9: a conta semeada não tem WhatsApp, que é o caso de
+      // quem foi aprovado antes de o número ser obrigatório. O painel e a
+      // prévia avisam, e o número (que não existe) não está na tela.
+      const aviso = vet.page.locator('[data-aviso="sem-whatsapp"]');
+      await expect(aviso).toContainText(/sem WhatsApp ninguém consegue te chamar/i);
+      await expect(aviso.getByRole("link", { name: /enviar meu whatsapp para a equipe/i })).toHaveAttribute(
+        "href",
+        /^mailto:/
+      );
+      await vet.page.goto(`${BASE_VET}/perfil`);
+      await expect(vet.page.locator('[data-aviso="sem-whatsapp"]')).toContainText(
+        /sem WhatsApp ninguém consegue te chamar/i
+      );
       // Quem foi aprovado não volta a ler "estamos validando".
       await vet.page.goto(DESTINO_VET.pending_validation);
       await expect(vet.page).toHaveURL(rotaExata(BASE_VET));

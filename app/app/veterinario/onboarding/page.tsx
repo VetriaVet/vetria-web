@@ -141,7 +141,7 @@ export default async function VetOnboardingPage() {
   const passoInicial =
     profile.status === "pending_validation" || motivoReprova
       ? 1
-      : primeiroPassoIncompleto(inicial, Boolean(documentoEnviadoEm));
+      : primeiroPassoIncompleto(inicial);
 
   return (
     <VetOnboardingForm

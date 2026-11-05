@@ -55,8 +55,10 @@ import { clienteDeServico, garantirVetFixoNaFila, idPorEmail } from "../apoio/se
 // regra DESABILITA o "Continuar" com o motivo no rodapé. As especialidades
 // passaram a recusar a quinta no próprio chip. Consequência para este arquivo:
 //
-//   · Digitar "nao e um telefone" no WhatsApp deixa o campo VAZIO, e WhatsApp
-//     vazio é aceito (é opcional). O teste antigo contava com a recusa do
+//   · Digitar "nao e um telefone" no WhatsApp deixa o campo VAZIO. (Até a
+//     T-046 WhatsApp vazio era aceito; desde 04/11 ele também segura o passo
+//     3, e a conta fixa ganha um número no `garantirVetFixoNaFila`, porque
+//     quase todo teste daqui atravessa o passo 3.) O teste antigo contava com a recusa do
 //     servidor, e com a máscara ele passaria a GRAVAR a cidade marcadora na
 //     conta real. Ele saiu. A recusa agora é provada NA TELA, e com a prova de
 //     que nenhuma Server Action foi disparada (`contarServerActions`).

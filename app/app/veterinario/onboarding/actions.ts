@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { normalizarWhatsapp } from "@/lib/contato/whatsapp";
+import { exigirWhatsapp } from "@/lib/contato/whatsapp";
 import { ONBOARDING } from "@/lib/auth/status";
 import {
   ESPECIALIDADES,
@@ -323,8 +323,9 @@ function validarPasso2(entrada: VetOnboardingPayload): Validado<ColunasPasso2> {
 type ColunasPasso3 = {
   /** Vai para `vet_profiles` (público). */
   bio: string | null;
-  /** Vai para `perfil_privado` (nunca público, SEC-002). */
-  whatsapp: string | null;
+  /** Vai para `perfil_privado` (nunca público, SEC-002). Obrigatório desde a
+   *  T-046: só dígitos, DDD + número. */
+  whatsapp: string;
 };
 
 function validarPasso3(entrada: VetOnboardingPayload): Validado<ColunasPasso3> {
@@ -340,14 +341,18 @@ function validarPasso3(entrada: VetOnboardingPayload): Validado<ColunasPasso3> {
   // ⚠️ R-041 / SEC-062 — a normalização mora em `lib/contato/whatsapp.ts` e é
   // a MESMA para vet e estabelecimento, de propósito: o bug de 20/09 (o mesmo
   // número gravado em dois formatos) nasceu de duplicação.
-  let whatsapp = "";
-  if (whatsappBruto) {
-    const normalizado = normalizarWhatsapp(whatsappBruto);
-    if (!normalizado.ok) return erro(normalizado.motivo);
-    whatsapp = normalizado.valor;
-  }
+  //
+  // ⚠️ T-046 / DL-071 D9: o WhatsApp é OBRIGATÓRIO, e quem decide é o
+  // servidor. Perfil aprovado sem WhatsApp aparece na busca e não gera contato
+  // nenhum (R-036 item 1). Vale para o rascunho do passo 3 e para a conclusão,
+  // porque as duas chamam esta função: ninguém chega ao passo 4, nem entra na
+  // fila, sem número. A regra mora na Action, e não no banco: `NOT NULL` em
+  // `perfil_privado.whatsapp` seria migration e quebraria as contas antigas
+  // (o card da T-046 decidiu assim).
+  const whatsapp = exigirWhatsapp(whatsappBruto);
+  if (!whatsapp.ok) return erro(whatsapp.motivo);
 
-  return { ok: true, valor: { bio: bio || null, whatsapp: whatsapp || null } };
+  return { ok: true, valor: { bio: bio || null, whatsapp: whatsapp.valor } };
 }
 
 // -------------------------------------------------------------------------

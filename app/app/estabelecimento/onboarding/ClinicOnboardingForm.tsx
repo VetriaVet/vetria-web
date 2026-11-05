@@ -135,8 +135,12 @@ export default function ClinicOnboardingForm({
       if (!estado) return "Escolha o estado do estabelecimento para continuar.";
       return null;
     }
-    if (step === 3 && erroDoCampo("telefone", whatsapp))
-      return "Confira o WhatsApp para continuar.";
+    if (step === 3) {
+      if (erroDoCampo("telefone", whatsapp)) return "Confira o WhatsApp para continuar.";
+      // T-046 / DL-071 D9: obrigatório. Mesma regra de `exigirWhatsapp`, que
+      // é a que vale; isto só evita a ida e volta ao servidor.
+      if (!whatsapp.trim()) return "Informe o WhatsApp do estabelecimento com DDD para continuar.";
+    }
     return null;
   }
   const motivoParado = motivoDoPasso();
@@ -389,9 +393,11 @@ export default function ClinicOnboardingForm({
                 </div>
               </div>
               <div>
-                <Label htmlFor="wpp">WhatsApp</Label>
-                <CampoMascarado id="wpp" mascara="telefone" valor={whatsapp} onValor={setWhatsapp} placeholder="(00) 00000-0000" aria-describedby="wpp-nota" />
+                <Label htmlFor="wpp">WhatsApp (obrigatório)</Label>
+                <CampoMascarado id="wpp" mascara="telefone" valor={whatsapp} onValor={setWhatsapp} placeholder="(00) 00000-0000" required aria-required="true" aria-describedby="wpp-nota" />
                 <p id="wpp-nota" className="mt-1.5 text-[12px] text-corpo-texto/70 leading-relaxed">
+                  É por este número que os responsáveis falam com vocês, e sem
+                  ele o cadastro não pode ser concluído.
                   Precisa ser um número com DDD que receba mensagem no WhatsApp.
                   Números 0800 não servem. Guardamos só os dígitos, e o número
                   nunca aparece na página: ele é revelado quando o responsável
