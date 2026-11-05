@@ -46,7 +46,12 @@ create table public.profiles (
   updated_at            timestamptz   not null default now(),
   admin_level           admin_level            default 'none'::admin_level,
   admin_team            admin_team             default 'none'::admin_team,
-  constraint profiles_pkey primary key (id)
+  constraint profiles_pkey primary key (id),
+  -- NOTA (04/11/2026, SEC-139 / R-079): esta FK existe em produção desde antes
+  -- da baseline, mas foi OMITIDA NA INTROSPECÇÃO DE 26/08: o `introspect.sql`
+  -- §8 só lia `pg_indexes`, e FK não é índice. Corrigida na 0007, que a cria
+  -- onde falta (vetria-e2e) e não mexe onde já existe (produção).
+  constraint profiles_id_fkey foreign key (id) references auth.users(id) on delete cascade
 );
 
 -- Índices: SOMENTE a primary key. Não há índice em `role` nem em nada mais.

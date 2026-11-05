@@ -75,11 +75,27 @@ join pg_namespace n on n.oid = c.relnamespace
 where n.nspname = 'auth' and not t.tgisinternal
 order by c.relname, t.tgname;
 
--- 8) ÍNDICES e CONSTRAINTS
+-- 8) ÍNDICES
 select tablename, indexname, indexdef
 from pg_indexes
 where schemaname = 'public'
 order by tablename, indexname;
+
+-- 8b) CONSTRAINTS (todas: p, f, u, c, x, t), lidas de pg_constraint
+--     ⚠️ (04/11/2026, SEC-139 / R-079) até esta data a §8 só lia pg_indexes e
+--     chamava isso de "índices e constraints". FK e CHECK não são índice: a
+--     FK profiles_id_fkey (para auth.users) ficou de fora da baseline de 26/08
+--     e o vetria-e2e nasceu sem ela. Corrigida na 0007.
+select c.relname as tabela,
+       k.conname as constraint_nome,
+       k.contype as tipo,
+       k.convalidated as validada,
+       pg_get_constraintdef(k.oid) as definicao
+from pg_constraint k
+join pg_class c on c.oid = k.conrelid
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public'
+order by c.relname, k.contype, k.conname;
 
 -- 9) QUEM EXISTE HOJE (contagem, sem expor dado pessoal)
 select role, admin_level, onboarding_completed, count(*) as total
