@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
 import { destinoPorStatus } from "../../lib/auth/status";
+import { podeEscolherTipo } from "../../lib/auth/tipo";
 
 // `/app` é o roteador: ninguém fica aqui, todo mundo é despachado.
 //
@@ -57,6 +58,12 @@ export default async function AppHome() {
   // que diz ser: autodeclaração de tela, sem benefício atrás. Ninguém entra na
   // busca, ninguém alcança dado de terceiro e nenhum plano é liberado por ela.
   if (profile.role === "tutor") {
+    // T-064 / DL-080 item 2: conta criada sem tipo (Google, `/login`) escolhe
+    // o tipo antes de qualquer cadastro. `podeEscolherTipo` espelha a regra
+    // do banco, então quem não pode escolher nunca é mandado para lá (sem laço).
+    if (!profile.onboarding_completed && (await podeEscolherTipo(supabase, user.id))) {
+      redirect("/onboarding");
+    }
     if (!profile.onboarding_completed) redirect("/app/responsavel/onboarding");
     redirect("/app/responsavel");
   }

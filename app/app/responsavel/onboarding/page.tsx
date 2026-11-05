@@ -3,6 +3,7 @@ import { createClient } from "../../../../lib/supabase/server";
 import LogoutButton from "../../LogoutButton";
 import TutorOnboardingForm from "./TutorOnboardingForm";
 import { completeOnboarding } from "./actions";
+import { podeEscolherTipo } from "../../../../lib/auth/tipo";
 
 export default async function TutorOnboardingPage() {
   const supabase = await createClient();
@@ -19,6 +20,8 @@ export default async function TutorOnboardingPage() {
 
   if (!profile || profile.role !== "tutor") redirect("/app");
   if (profile.onboarding_completed) redirect("/app/responsavel");
+  // T-064: quem ainda não escolheu o tipo escolhe antes de virar responsável.
+  if (await podeEscolherTipo(supabase, user.id)) redirect("/onboarding");
 
   return (
     <div className="max-w-2xl mx-auto py-8">

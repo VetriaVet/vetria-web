@@ -151,6 +151,33 @@
 **Docs que atualizei:** `docs/03-TAREFAS.md` (este card), `docs/legal/politica-de-privacidade.md`.
 **Commits:** os da PR da T-065.
 
+### T-064: A conta criada pelo Google escolhe o tipo de conta, uma vez
+- **Estado:** ✅ na `main` (código e teste); 🟡 a `0009` está aplicada só no `vetria-e2e`, **produção pendente** do "pode aplicar". Até lá, em produção, nada muda para ninguém: o código trata a coluna ausente como "tipo já escolhido"
+- **Fase / Semana:** F6 / semana 2 · **Capacidade:** **E1** (isolamento de role é o modelo de negócio) e **E2** (o profissional que entra pelo Google chega ao cadastro dele)
+- **Nível:** 🔴 migration e auth (`vetria-e2e` sem perguntar, produção com "pode aplicar") + 🟡 `lib/`, `/api/onboarding/set-role`, `/auth/*`
+- **Agente dono:** vetria-backend · **auditoria:** vetria-seguranca (antes da produção)
+- **Depende de:** DL-080 item 2
+- **Por quê:** A-4: conta criada pelo Google virava responsável sem escolha e não tinha caminho para veterinário ou estabelecimento. A rota `set-role` existia mas nunca gravava (`role` é NOT NULL com default `tutor`)
+- **Feito quando:**
+  - [x] Conta sem `role` no metadata nasce com `tipo_escolhido_em` nulo; toda conta que já existe fica "escolhida"
+  - [x] `/app` manda a conta sem tipo para `/onboarding`, uma vez; `/onboarding` devolve qualquer outra para `/app` (sem laço: a leitura espelha a regra do banco)
+  - [x] A escolha é gravada só pelo banco (`escolher_tipo_de_conta`): lista fechada, nunca `admin`, uma vez, só no estado de nascimento sem tipo; `vet` e `clinic` saem `incomplete`
+  - [x] O dono não zera a marca nem escreve `role` pela API
+  - [x] E2E no `vetria-e2e` (6 testes, inclusive o cadastro pelo `/login` pela tela)
+- **Não fazer:** reabrir a escolha para contas antigas do Google (decisão do Elber, se quiser); trocar o enum
+- **Resultado:** ver o handoff abaixo
+
+## HANDOFF · vetria-backend · T-064 · 05/11/2026
+
+**Fiz:** `supabase/migrations/0009_escolher_tipo_de_conta.sql` e `supabase/prevoo-0009.sql`. `lib/auth/tipo.ts` (novo, `podeEscolherTipo`: espelha a regra do banco; erro ou coluna ausente = "não pode"). `app/app/page.tsx` e `app/app/responsavel/onboarding/page.tsx`: a conta sem tipo vai para `/onboarding`. `app/onboarding/page.tsx` e `OnboardingClient.tsx`: a tela abre só para quem pode escolher, diz que a escolha é uma vez só, copy sem promessa de agenda, erro em português, `data-hidratado`. `app/api/onboarding/set-role/route.ts`: a escrita direta saiu, a rota chama a função do banco e traduz o código; ao escolher responsável chama o vínculo dos contatos do visitante (o TODO da T-063). `app/auth/callback/route.ts` e `app/auth/confirm/actions.ts`: a conta que ainda vai escolher não vincula contatos antes da escolha. `docs/06-PERMISSOES.md` §3: a exceção do DL-080 item 2 na linha de `profiles.role` e a linha de `tipo_escolhido_em`. Testes: `tests/e2e/escolher-tipo.spec.ts` (6) e, em `tests/apoio/servico.ts`, `criarContaSemTipo` (a conta como o Google a cria: metadata com `name`, sem `role`) e `lerTipoEscolhido`.
+**Não fiz:** o Google de verdade no teste (desligado no `vetria-e2e`); reabrir a escolha para as contas antigas do Google em produção (ficam responsáveis, como hoje); o teste do vínculo de contatos na escolha (a T-063 continua com esse item).
+**Estado agora:** no `vetria-e2e`, quem entra sem tipo escolhe responsável, veterinário ou estabelecimento uma vez e cai no cadastro certo. Em produção, nada muda até a `0009`.
+**Descobri:** `/api/onboarding/set-role` nunca gravou nada desde o início do projeto: o `update ... where role is null` nunca achava linha, e a policy do dono também recusaria a troca de `role`. A tela `/onboarding` era inalcançável.
+**Bloqueios:** produção da `0009` espera o "pode aplicar" e a revisão do `vetria-seguranca`.
+**Próximo passo óbvio:** `supabase/prevoo-0009.sql` em produção (só leitura) e aplicar a `0009` com o Elber, depois da `0008`.
+**Docs que atualizei:** `docs/03-TAREFAS.md` (este card e a T-063), `docs/06-PERMISSOES.md`, `supabase/migrations/README.md`.
+**Commits:** os da PR da T-064.
+
 # ✅ FEITA EM 29/10, provada no `vetria-e2e`
 
 ### T-051 — O onboarding salva cada passo no "Continuar" e reabre onde a pessoa parou
@@ -1242,8 +1269,8 @@ matriz); se o Elber preferir o DL, é uma linha a menos.
 - **Estado:** ⬜ fila, semana 2-3 (depende da resposta do item 2 da T-058 só no caso do Google)
 - **Fase / Semana:** F4 · **Capacidade:** **E5** (D10) · **Nível:** 🟡 `/api/onboarding/set-role` · **Dono:** vetria-backend
 - **Por quê:** a T-042 chama `vincular_contatos_do_visitante` no `/auth/confirm` e no `/auth/callback` só com role `tutor`. Conta criada sem role recebe o `tutor` depois, em `set-role`, e ali ninguém chama o vínculo (TODO deixado pela PR #36). O banco ainda exige conta criada há menos de 24 h
-- **Feito quando:** [ ] `set-role` chama o vínculo quando grava `tutor` · [ ] teste com conta nova sem role
-- **Resultado:** _(a preencher)_
+- **Feito quando:** [x] `set-role` chama o vínculo quando grava `tutor` (feito na T-064, 05/11) · [ ] teste com conta nova sem role
+- **Resultado:** 05/11, parcial: a T-064 ligou o vínculo em `/api/onboarding/set-role` quando a escolha é responsável, e o `/auth/callback` e o `/auth/confirm` deixaram de vincular antes da escolha. Falta o teste do vínculo pela escolha
 
 ---
 
