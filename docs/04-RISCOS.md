@@ -18,6 +18,12 @@ de crítico foi medido.** A seção 🟠 logo abaixo continua com quatro entrada
 quinta hoje** (**R-057**), e o 🟠 da auditoria da T-008 (SEC-081) está no card **T-020**, com
 trava escrita: **antes do primeiro profissional de fora.**
 
+**04/11/2026: continua sem 🔴.** A revisão de segurança completa de 04/11 (`docs/relatorios/SEC-2026-11-04.md`) não
+achou 🔴. Entraram o **R-079** (🟠, o banco de teste não era igual a produção), o **R-080** (🟠, B-1), o **R-081** (🟠,
+`npm run banco`), o **R-082** (🟡, dado pessoal no histórico do git), o **R-083** (🟡, lote de banco) e o **R-084** (⚪,
+`middleware.ts`). **Fecharam oito:** R-057 (#36), R-069, R-070, R-074 e R-076 (`0006` em produção), R-072 (T-051 provada no
+CI), R-075 (T-054) e R-036 (T-046). O R-073 segue 🟡 com a T-044 verde todo dia.
+
 **28/10/2026: continua sem 🔴 de severidade, mas o R-073 ACONTECEU.** O projeto ficou pausado por decisão do Elber
 de 25/09 a 28/10. Sem uso, o Supabase de produção (plano grátis) pausou sozinho, e o site ficou sem banco até o Elber
 restaurar em 28/10 (conferido hoje: `/api/cidades`, `/buscar` e um perfil público respondem 200). O `vetria-e2e`
@@ -36,6 +42,43 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
 "antes de abrir" viraram **uma lista só, o portão de abertura** (**DL-063**), com prazo 20/10.
 
 ## 🟠 ABERTOS — ALTOS
+
+### R-079 · O `vetria-e2e` não era igual a produção: faltava a FK `profiles_id_fkey` (SEC-139)
+- **Descoberto:** 04/11/2026, na sessão B: a sonda 2 da `0006` inseria contas falsas direto em `profiles` e quebrou com
+  `23503` em produção, onde `profiles.id` tem `FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE`
+- **O quê:** a FK existe em produção desde antes da baseline, mas a introspecção de 26/08 (`supabase/introspect.sql` §8)
+  só lia `pg_indexes`, a `0000_baseline.sql` não a declarava e o `vetria-e2e` nasceu sem ela. **Todo ensaio no banco de
+  teste rodou sobre um schema diferente do de produção**, e nada mostrava a diferença.
+- **Por que 🟠:** o `vetria-e2e` é o ensaio de toda migration (DL-064). Divergência silenciosa entre os dois é a forma de
+  uma migration passar no teste e quebrar em produção. Sem dano real até aqui: a sonda parou antes de mudar qualquer coisa.
+- **Correção:** `0007_paridade_profiles_fk.sql` (cria a FK onde falta, não mexe onde existe) e
+  `supabase/paridade-schema.sql` (impressão de constraints, policies, funções, grants, triggers, extensões, buckets,
+  default ACLs e RLS dos dois bancos). `introspect.sql` §8b lê `pg_constraint`; baseline e `montar-vetria-e2e.sql`
+  declaram a FK. PR #35, `0fab012`.
+- **Estado em 04/11:** `0007` aplicada no `vetria-e2e` (7/7, idempotente). Em produção não (será no-op; precisa do "pode
+  aplicar", DL-076). ⚠️ O `supabase/migrations/README.md` ainda diz "NÃO aplicada em lugar nenhum" e o comentário de
+  `supabase/verificar-apos-0006.sql:470` cita "R-077" por engano: os dois ficam para o próximo PR do backend. **Fecha
+  quando** a `0007` estiver nos dois e a `paridade-schema.sql` der a mesma impressão nos dois, inclusive os corpos de
+  `admin_list_profiles` e `admin_set_user_access`, que não estão versionados (T-059). 🟠
+
+### R-080 · O admin pode aprovar um CRMV ou documento diferente do que abriu (B-1)
+- **Descoberto:** 04/11/2026, revisão de banco
+- **O quê:** entre abrir o documento em `/admin/validacoes` e tocar em "Aprovar", o profissional em `pending_validation`
+  ainda edita CRMV e documento (DL-046). A aprovação não confere se o que foi aprovado é o que foi visto.
+- **Por que 🟠:** o selo "Verificado pela Vetria" é a promessa da E3. Precisa de migration.
+- **Task:** **T-056**, antes do primeiro profissional de fora. 🟠
+
+### R-081 · `npm run banco` rodava SQL arbitrário em produção como `postgres` (SEC-138)
+- **Descoberto:** 04/11/2026, revisão do script novo (`scripts/banco.mjs`, PR #27)
+- **O quê:** qualquer arquivo, de qualquer pasta, rodava em produção com o papel `postgres`.
+- **Corrigido em 04/11 (PR #30, `c5e6cbb`):** (b) só arquivo de dentro de `supabase/` (realpath; `%TEMP%` recusado),
+  migration só `supabase/migrations/NNNN_*.sql`; (d) em produção, o que não é migration roda com toda transação
+  `read only`, e sonda que escreve e desfaz pede `--sonda-que-escreve`; erro de produção sai sem `detail` (SEC-141).
+- **Aberto:** (a) regra de permissão local para `npm run banco` pedir confirmação (gesto do Elber); (c) confirmação por
+  TTY; (e) trocar a senha do `postgres` de produção depois de cada sessão (gesto do Elber). Junto: SEC-140 (`ssl` sem
+  verificar certificado), SEC-141 (falta `--so-arquivo` e retenção de `supabase/backups/`), SEC-142 (`dev:teste` com
+  lista positiva de variáveis e `-H 127.0.0.1`).
+- **Task:** **T-062**. 🟠 até (a) e (e)
 
 ### R-078 · O buffer acabou: a E6 (landing pages) e a LGPD ficaram no fim de um calendário sem folga
 - **Descoberto:** 28/10/2026, pelo `vetria-maestro`, no replanejamento depois da pausa de 25/09 a 28/10
@@ -117,26 +160,6 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
   garantia é leitura de código, não medição. **É uma tentativa de upload, e ela fecha isto.**
 - **Corrige em:** F3 / S2 — **T-008**, como validação de MIME no upload. O CHECK de `documento_path` já barra `.svg` no banco (SEC-026); falta barrar no servidor, antes de o arquivo existir.
 
-### R-057 — Nenhuma das duas rotas de documento confere a origem do pedido (SEC-086)
-- **Descoberto:** 16/09/2026, auditoria da T-008
-- **Onde:** `upload/route.ts:191` · `abrir/route.ts:41` · `lib/supabase/server.ts:7-30`
-- **O quê:** as duas aceitam POST sem olhar `Origin` nem `Sec-Fetch-Site`. `multipart/form-data` é
-  content-type "simples" de CORS: um `<form>` de terceiro faz o POST **sem preflight**. O que
-  impede o cookie de acompanhar é o `SameSite=Lax`, que é o **default do `@supabase/ssr`** — **não
-  está escrito em lugar nenhum deste repositório, não é conferido por teste nenhum**, e é a única
-  coisa entre o site do atacante e um upload em nome da vítima.
-- **Impacto se cair:** substituição do documento de validação em nome da vítima, e remoção dela da
-  busca pela revalidação. **Só alcançável se o `SameSite` mudar** — upgrade de biblioteca, alguém
-  passando `cookieOptions` um dia, ou um subdomínio hostil, que é same-site e o Lax não cobre.
-- **Por que 🟠 e não 🟡:** a defesa inteira depende de um default que **ninguém neste projeto
-  escolheu, escreveu ou testou**. É o R-016 na forma clássica: salvaguarda que ninguém sabe que
-  tem. O conserto são **três linhas** — recusar quando `Sec-Fetch-Site` não for `same-origin`, nas
-  duas rotas.
-- **Sem card hoje:** cabe na T-020, que é a próxima a tocar essas rotas. **Se a T-020 escorregar
-  para a F6, este sobe para card próprio**, porque ele não depende de volume nenhum. 🟠
-- **25/09/2026:** entrou **por escrito** no card da **T-020** (fila dos próximos 5 dias), como item de carona.
-  A rota nova da S8 (`/api/contato`, T-040) já nasce com a mesma conferência.
-
 ### R-061 — O teto de email do projeto vira arma: cadastro e recuperação de senha sem captcha (SEC-102)
 - **Descoberto:** 23/09/2026, `docs/relatorios/SEC-2026-09-23-rate-limit-captcha-2fa.md`
 - **O quê:** login, cadastro e recuperação de senha **não passam pelo nosso servidor**: o navegador
@@ -172,6 +195,24 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
 > `vetria-qa` e do `vetria-ui`, e o que o planejamento da S8 descobriu. Cada um tem card ou destino.
 > **SEC-113, SEC-117 e SEC-118 já fecharam** (ver ✅ FECHADOS).
 
+### R-082 · Email e telefone reais no histórico do git (D-1)
+- **Descoberto:** 04/11/2026, varredura de segredos (244 commits, nenhum segredo)
+- **O quê:** um email e um telefone de pessoa real apareciam em `docs/03-TAREFAS.md` e `docs/04-RISCOS.md`.
+  **Mascarados nos docs em 04/11** (`c***@gmail.com`, `629****3278`). O **histórico do git** ainda tem os dois, e o
+  telefone ainda está em dois comentários de código (`lib/contato/whatsapp.ts:11`,
+  `app/app/estabelecimento/onboarding/actions.ts:124`).
+- **Decisão do Elber:** reescrever o histórico ou aceitar (**T-058** item 3). Na entrega, a T-057 tira os docs de
+  governança do repositório do cliente. 🟡
+
+### R-083 · Lote de achados 🟡 do banco, sem migration ainda (B-3 a B-12)
+- **Descoberto:** 04/11/2026, revisão de banco
+- **O quê:** B-3 admin comum lê `phone`/`full_name` de todos; B-4 telefone ou `wa.me` na bio ou no site fura o DL-047;
+  B-5 `documento_hash`/`path`/tamanho escrevíveis pelo dono; B-6 sem teto de tamanho e de linhas; B-7 edição de admin
+  sem trilha e `id` editável; B-9 `concluir_onboarding` sem exigir perfil; B-10 `TRUNCATE`/`DELETE` por default para
+  `authenticated`; B-11 exclusão não limpa bucket nem `audit_logs`; B-12 `onboarding_completed` editável (R-040).
+- **Task:** **T-059**, uma migration só. B-2 (endereço e CEP de estabelecimento legíveis pelo `anon`) já foi decidido no
+  DL-070 E; a confirmação está na T-058 item 1. 🟡
+
 ### R-067 — Link de email de conta alheia faz a vítima entrar logada na conta do atacante (SEC-112)
 - **Descoberto:** 23/09/2026, auditoria da T-036
 - **O quê:** com `token_hash`, o link não fica preso ao navegador que o pediu (é o que a T-036 quis). O
@@ -191,22 +232,6 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
   reduz o volume na origem.
 - **Task:** **T-031** (item acrescentado em 25/09). 🟡
 
-### R-069 — Qualquer admin reescreve o `slug` pela API, e a matriz diz "só o master" (SEC-115)
-- **Descoberto:** 23/09/2026, auditoria da `0005`
-- **O quê:** `vet_profiles_update_admin` e `clinic_profiles_update_admin` (da `0002`) deixam o admin comum
-  fazer `PATCH slug=...`. A matriz §3 diz que troca de slug é gesto do master (DL-067 item 5).
-- **Por que 🟡:** exige conta admin, e hoje só existe o Elber. Vira real com o segundo admin (R-014).
-- **Correção recomendada:** trigger `BEFORE UPDATE` recusando mudança de `slug` fora do gerador e do
-  master. Alternativa: DL corrigindo a matriz. ✅ **25/09: decidido o trigger** (DL-071, "fora da tabela").
-- **Task:** **T-039** (`0006`). 🟡
-
-### R-070 — Aprovação de conta sem linha de perfil passa sem `slug` (SEC-116)
-- **Descoberto:** 23/09/2026, auditoria da `0005` (`0005:567-569` contra o comentário `620-622`)
-- **O quê:** se uma conta vet/clinic chegar a `active` sem linha em `vet_profiles`/`clinic_profiles`, o
-  trigger não gera slug e não reclama. Hoje não há caminho pelo app (a conclusão exige a linha).
-- **Correção:** `raise` quando o gerador devolver nulo, ou o comentário passa a dizer a verdade.
-- **Task:** **T-039** (`0006`). ⚪ na prática, 🟡 por ser silêncio em banco
-
 ### R-071 — Cada GET em `/buscar` faz 7 a 9 consultas, sem limite de requisições (SEC-119)
 - **Descoberto:** 23/09/2026, auditoria da busca
 - **O quê:** duas das consultas usam `count: exact`. Um laço de GETs vira carga no banco sem custo para
@@ -214,25 +239,6 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
 - **Correção:** regra do firewall da Vercel em `/buscar` e `/api/cidades`; uma função de busca única
   quando a ordenação por relevância entrar (DL-070 D).
 - **Task:** **T-020** (a mesma sessão de firewall, item acrescentado em 25/09). 🟡
-
-### R-072 — "Pausar e voltar" no onboarding: causa encontrada (QA-001), corrigido na T-051 aguardando prova no `vetria-e2e`
-- **Estado em 29/10/2026:** **causa encontrada (QA-001)**, no relatório `docs/relatorios/QA-2026-10-28.md`
-  (branch `t-039-migration-0006`): os passos 1 a 3 do onboarding viviam só em `useState` e só eram
-  gravados no "Concluir" do passo 4; o documento, ao contrário, ia ao banco na hora. Era a "meia coisa"
-  do relato: documento sim, dados não. **Corrigido na T-051** (branch `t-051-onboarding-salva-cada-passo`):
-  cada "Continuar" grava o passo no servidor, sem migration e sem mudar status, e a página reabre no
-  primeiro passo incompleto. **Aguardando prova no `vetria-e2e`**: os testes novos
-  (`fluxos-conta-nova.spec.ts`, bloco "T-051", vet e estabelecimento) rodam só com `E2E_ALVO=teste`.
-  Fecha quando a suíte passar lá.
-- **Descoberto:** 23-24/09/2026, relato do `vetria-qa` nas sessões de teste; **sem passo a passo escrito**
-- **O quê:** a pessoa sai do onboarding no meio (fecha a aba ou toca em sair) e, ao voltar, **algo não
-  volta como estava** (o relato não diz se é passo, campo ou documento). O DoD da F3 item 1 é
-  justamente "sair e voltar e os dados estão lá", provado no CI com conta nova; **se o bug for real, o
-  teste está medindo outro caminho**.
-- **Por que 🟡 e não mais:** não reproduzido. Relato sem passo a passo é relato, não bug.
-- **Próximo passo:** o `vetria-qa` reproduz no `vetria-e2e` com os três caminhos (passo 2, passo 3 com
-  documento enviado, passo 4) e escreve o passo a passo aqui. **Reproduziu → card E2 na fila, na frente
-  da S8. Não reproduziu em 3 tentativas → fecha com a nota.** Prazo: 02/10. 🟡
 
 ### R-073 — Projeto Supabase grátis pausa depois de 7 dias sem uso
 - **Descoberto:** 24/09/2026, ao criar o `vetria-e2e` (DL-064, "plano grátis")
@@ -260,33 +266,8 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
   automática após 7 dias sem uso.
 - 🟡 aceito · **a mitigação é a T-044, prioridade zero da fila de 28/10** · vira 🔴 no dia em que a T-044 parar de
   rodar sem ninguém ver. Conferir a execução agendada toda segunda, na abertura da semana
-
-### R-074 — O profissional consegue ler o `anon_id` de quem o contatou, e o `anon_id` é a chave do histórico do visitante
-- **Descoberto:** 25/09/2026, pelo `vetria-maestro`, planejando a S8 (leitura de `0002_nucleo.sql:346-355` e `:610-611`)
-- **O quê:** `contatos_select_profissional` libera a **linha** (RLS é row-level, DL-049), e o PostgREST deixa
-  o profissional pedir `select=anon_id,user_id`. O `anon_id` é o valor do cookie do visitante: quem o
-  conhece pode pôr no próprio navegador, criar conta de responsável e puxar para si o histórico de contatos
-  daquele visitante (o vínculo do DL-047 §6.4).
-- **Não é bug hoje:** `contatos` está vazia e nada grava nela.
-- **Correção:** privilégio por coluna em `contatos` (o profissional e o responsável leem só as colunas das
-  telas), na `0006`. **Precisa estar aplicada antes do primeiro contato gravado.**
-- **Task:** **T-039**. 🟡 (vira 🟠 no dia em que a S8 gravar sem isto)
-
-### R-076 — O CHECK de `contatos` impede excluir a conta de quem contatou logado
-- **Descoberto:** 25/09/2026, pelo `vetria-maestro`, mesma leitura
-- **O quê:** `contatos.user_id` é `on delete set null`, e `contatos_tem_origem` exige `user_id` **ou**
-  `anon_id`. Um contato feito por conta logada sem `anon_id` faz a exclusão dessa conta **falhar** (a linha
-  ficaria sem nenhum dos dois). Isso trava a exclusão de conta da LGPD (F6).
-- **Correção:** a `0006` grava `anon_id` **sempre** e o CHECK passa a aceitar linha anonimizada (a contagem
-  do profissional fica; quem clicou some), conforme a D11.
-- **Task:** **T-039**. 🟡
-
-### R-075 — O botão da newsletter estoura 22 px na largura de 360 px (relato do `vetria-ui`)
-- **Descoberto:** 24/09/2026, `vetria-ui`
-- **O quê:** rolagem lateral no rodapé público em celular pequeno. Visual, sem risco de dado. Viola o
-  transversal "Responsivo" do `00-ESCOPO.md` §2.
-- **Destino:** 🟢 de 1 arquivo, entra de carona no próximo card de tela pública (T-041) ou na passada de
-  QA da F6/S12. ⚪
+- ✅ **04/11/2026: a mitigação roda.** `manter-acordado.yml` (T-044, PR #17) verde todo dia de 29/10 a 04/11, nos dois
+  bancos. 🟡 aceito
 
 ### R-063 — Faltam os cabeçalhos de segurança, e o botão *Aprovar* pode ser clicado dentro de um iframe alheio (SEC-104)
 - **Descoberto:** 23/09/2026, mesma avaliação
@@ -360,8 +341,8 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
   normalização **só no arquivo dela**. **Três auditorias de segurança não pegaram**, porque as
   três leram o código do **estabelecimento** — o arquivo novo, o que estava em revisão. **O gêmeo
   velho não foi lido por ninguém**, e o defeito ficou aberto do lado do veterinário por 11 dias,
-  invisível. Quem descobriu foi o `select` do Elber, em 20/09: `62 992653278`, com espaço, do lado
-  do vet; `62992653278` do lado do estabelecimento.
+  invisível. Quem descobriu foi o `select` do Elber, em 20/09: `62 9****3278`, com espaço, do lado
+  do vet; `629****3278` do lado do estabelecimento.
   **É o R-017 pela terceira vez: clone herda defeito — e revisar o clone não é revisar o par.**
 - ⚠️ **O RISCO NÃO FECHA, e são duas coisas que faltam:** **(1)** não há verificação de posse do
   número (SMS está fora dos 3 meses) nem CHECK no banco — a coluna continua `text` sem constraint,
@@ -606,7 +587,7 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
 - **Onde:** `lib/contato/whatsapp.ts` (a função, que existe desde `08dd42b`) × as linhas de
   `perfil_privado` gravadas **antes** dela
 - **O quê:** o conserto do **R-041** normaliza na **escrita**. Quem já estava gravado continuou
-  como estava: o `select` de 20/09 devolveu **`62 992653278`, com espaço**, para o veterinário. A
+  como estava: o `select` de 20/09 devolveu **`62 9****3278`, com espaço**, para o veterinário. A
   linha só ficou limpa quando o Elber **salvou o perfil à mão**.
 - **Hoje o impacto é zero, e é por isso que é 🟡:** são contas de teste, e o Elber já corrigiu a
   dele. **O que muda de categoria é a escala.** Pelo **DL-047** é esse valor que o servidor
@@ -620,7 +601,7 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
   este projeto adotar nasce com *"e o que já está gravado?"* respondido dentro do card.
 - **Task:** **T-026** · **Prazo:** a medição, na S4. A correção, antes do primeiro profissional de
   fora. 🟡
-- 📏 **23/09/2026 — a medição rodou: UMA linha suja.** `perfil_privado.id = e5a1a020-0e71-4f52-89fc-b57c83043179`, `whatsapp = '62 99265327'`: com espaço **e com 10 dígitos** (celular com DDD tem 11), então além de sujo o número parece incompleto. **Não é a linha de 20/09** (`62 992653278`, que o Elber já corrigiu). A dona está entre as 4 contas de teste da fila (a consulta 6b mostrou `perfil_privado` só em `vet` 3 e `clinic` 1). **O conserto não precisa de `update` 🔴:** desde a T-025 a dona abre *"Rever e corrigir o cadastro"* em `/aguardando`, chega ao fim e salva, e a Action normaliza na escrita. Se o número estiver de fato incompleto, ela corrige o dígito no mesmo gesto. ✅ **Feito no mesmo dia:** a dona salvou pelo *"Rever e corrigir o cadastro"* e a consulta rodou de novo: **zero linha. R-055 FECHA por medição** (o critério escrito acima: *"Zero → fecha com a medição escrita"*). A lição fica: normalização na escrita não retroage, e o caminho que a fez retroagir aqui foi a própria interface.
+- 📏 **23/09/2026 — a medição rodou: UMA linha suja.** `perfil_privado.id = e5a1a020-0e71-4f52-89fc-b57c83043179`, `whatsapp = '62 9****327'`: com espaço **e com 10 dígitos** (celular com DDD tem 11), então além de sujo o número parece incompleto. **Não é a linha de 20/09** (`62 9****3278`, que o Elber já corrigiu). A dona está entre as 4 contas de teste da fila (a consulta 6b mostrou `perfil_privado` só em `vet` 3 e `clinic` 1). **O conserto não precisa de `update` 🔴:** desde a T-025 a dona abre *"Rever e corrigir o cadastro"* em `/aguardando`, chega ao fim e salva, e a Action normaliza na escrita. Se o número estiver de fato incompleto, ela corrige o dígito no mesmo gesto. ✅ **Feito no mesmo dia:** a dona salvou pelo *"Rever e corrigir o cadastro"* e a consulta rodou de novo: **zero linha. R-055 FECHA por medição** (o critério escrito acima: *"Zero → fecha com a medição escrita"*). A lição fica: normalização na escrita não retroage, e o caminho que a fez retroagir aqui foi a própria interface.
 
 ### R-056 — O corpo do pedido é materializado inteiro antes do teto, nas duas rotas de documento (SEC-082)
 - **Descoberto:** 16/09/2026, auditoria da T-008
@@ -792,46 +773,15 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
   formato. Não vira card próprio: entra no primeiro card que tocar o arquivo de verificação.
 - **Prazo:** antes da `0004`. 🟡
 
-### R-036 — O onboarding aprova perfil que a busca não consegue entregar
-- **Descoberto:** 31/08/2026, pelo Elber, durante a prova de persistência da T-006. **Medido em
-  dado real na preview**, não deduzido do código.
-- **O quê:** a T-006 já barra o caso mais grave — concluir sem marcar **nenhuma** forma de
-  atendimento, porque aí o profissional não aparece em filtro nenhum. **Faltaram dois da mesma
-  família**, e os dois passaram na prova:
-  1. **Nenhum canal de contato é obrigatório.** `whatsapp` é opcional. Um veterinário conclui,
-     é validado por uma pessoa, entra na busca — e **não há como falar com ele**. Isso colide de
-     frente com o **DL-047**, que define o contato como o evento de servidor que o produto
-     entrega. `telefone` e `email_contato` nem campo em tela têm hoje.
-  2. **`cidade` e `estado` não se conferem.** Foi gravado `cidade = 'Goiânia'` com
-     `estado = 'AP'`, e `crmv = 'GO-0155'` com `crmv_uf = 'AL'`. Ninguém procurando em Goiânia/GO
-     encontra esse perfil, e ninguém procurando no Amapá espera achá-lo.
-- **O padrão é o mesmo nos três casos, e é o que importa:** o profissional preenche tudo, é
-  **aprovado por uma pessoa**, e some do produto sem erro em tela nenhuma. É o sintoma da SEC-044
-  outra vez — usuário legítimo sumindo sem entender por quê —, agora por dado incompleto em vez de
-  por guarda de banco.
-- **Não é regressão da T-006.** O código antigo não gravava nada, então nem chegava a ter o
-  problema. A task tornou o buraco visível, que é o que uma task boa faz.
-- ⚠️ **A T-007 herda os dois**, e no estabelecimento o item 2 é pior: lá `endereco` e `cep` são
-  vitrine, e CEP errado num mapa é mais visível que UF errada numa lista.
-- **Onde decidir, e o que NÃO fazer:** tornar `whatsapp` obrigatório é decisão de produto, não
-  conserto óbvio — pode derrubar conversão no funil. Amarrar cidade a uma lista por UF é trabalho
-  de verdade (base de municípios) e não cabe numa task de persistência. **Nenhum dos dois entra
-  na T-007 sem card próprio.**
-- **Prazo:** decisão escrita antes da busca da **F4/S6**, que é quando os dois viram sintoma real
-  para o usuário final. 🟡
-- ⚠️ **25/09/2026 — a busca está no ar e o prazo passou.** Item 2: mitigado pela `0005` (ver R-059).
-  **Item 1 (WhatsApp opcional) virou a decisão D9 da S8** (`03-TAREFAS.md`), com recomendação: **obrigatório
-  para concluir o onboarding a partir de agora**, e aviso no painel de quem já está `active` sem ele. Sem
-  WhatsApp, o botão da S8 nem aparece, e o perfil é vitrine sem lead.
-- ✅ **25/09/2026 — D9 DECIDIDA como recomendada (DL-071).** Execução: **T-046**. O item 1 fecha quando a
-  T-046 estiver em produção com o teste de "concluir sem WhatsApp é recusado".
-
 ### R-019 — O plano promete foto de perfil e horários, e não existe nem campo nem coluna para nenhum dos dois
 - **Descoberto:** 26/08/2026, na abertura da S2, conferindo o `01-PLANO.md` §S2 contra o código e o schema
 - **O quê:** o plano da S2 diz "foto" para o veterinário e "horários" para o estabelecimento. Na realidade: `vet_profiles` não tem coluna de foto, `clinic_profiles` não tem coluna de horários, o `ClinicOnboardingForm` **não coleta horário nenhum**, e o `VetOnboardingForm:229` já avisa honestamente "Upload de foto chega em breve".
 - **Consequência de fazer agora:** coluna nova é migration (🔴) e foto pública é **outro bucket**, público, com regra própria. Some com a semana.
 - **Não é corte de escopo:** o `00-ESCOPO.md` §2 não menciona foto nem horário em E1 a E6. É imprecisão do plano, não do contrato.
 - **Onde entra de fato:** foto pesa na **F4/S7** (perfil público sem foto converte mal). Horário é candidato natural a mês 4. Quem decidir, registra em `05-DECISOES.md`. 🟡
+
+### R-084 · `middleware.ts` está deprecated no Next 16 (A-9)
+- **Descoberto:** 04/11/2026, revisão de auth. Funciona hoje; o nome novo é `proxy.ts`. **Task:** **T-060**. ⚪
 
 ### R-017 — Margens negativas órfãs depois da reestruturação do chrome ✅ CORRIGIDO
 - **Descoberto:** 26/08/2026, no primeiro cadastro real de ponta a ponta
@@ -910,6 +860,28 @@ somaram quatro 🟠 (SEC-096, SEC-097b, **R-061** captcha, **R-062** 2FA do admi
 ---
 
 ## ✅ FECHADOS
+
+> **04/11/2026: fechados pelas entregas de 29/10 a 04/11** (`vetria-escriba`):
+
+- **R-057**: as rotas de documento não conferiam a origem do pedido (SEC-086). **04/11/2026, FECHADO pela PR #36**
+  (`34b9c66`): `lib/http/origem.ts` (`pedidoDoProprioSite`) recusa `Sec-Fetch-Site` diferente de `same-origin` em
+  upload, abrir, `set-access` e `set-role` (modo "navegador": sem o cabeçalho, confere `Origin` contra `Host`; sem os
+  dois não é navegador e não carrega sessão de vítima) e no contato (modo estrito). Teste em
+  `tests/e2e/seguranca-rotas.spec.ts`.
+- **R-069** (SEC-115, admin reescrevia `slug`), **R-070** (SEC-116, aprovação sem linha de perfil passava sem `slug`),
+  **R-074** (o profissional lia o `anon_id`) e **R-076** (o CHECK de `contatos` impedia excluir a conta). **04/11/2026,
+  FECHADOS pela `0006` em produção** (sessão B, PR #28): trigger `proteger_slug`, `raise` 55000 em `slug_ao_ativar`,
+  privilégio por coluna em `contatos` (`42501` em `anon_id`/`user_id`, provado também no E2E da T-043) e o CHECK
+  `contatos_tem_origem_ou_anonimizado`. Select final 27/27, sonda 2 69/69 em produção.
+- **R-072**: "pausar e voltar" no onboarding (QA-001). **04/11/2026, FECHADO:** a correção da T-051 (PR #20,
+  `9c8829c`) está provada no `vetria-e2e` pelo bloco "T-051" de `fluxos-conta-nova.spec.ts`, entre os 145 verdes do CI
+  da PR #31.
+- **R-075**: botão da newsletter estourava 360 px. **FECHADO pela T-054** (PR #21, `ca05e6e`): a newsletter sem envio
+  saiu do rodapé.
+- **R-036**: o onboarding aprovava perfil sem canal de contato. **04/11/2026, item 1 FECHADO pela T-046** (PR #32,
+  `e336299`): concluir sem WhatsApp é recusado na tela e no servidor, com teste nas duas personas; quem está `active`
+  sem WhatsApp vê aviso. O item 2 (cidade × UF) vive no R-059. ⚠️ **Sobra:** a aprovação do admin ainda não exige
+  WhatsApp (T-058 item 5).
 
 > **25/09/2026 — fechados pelas provas de 23 a 25/09** (`vetria-maestro`):
 

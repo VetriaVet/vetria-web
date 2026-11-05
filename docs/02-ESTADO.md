@@ -1,72 +1,59 @@
 # 02 — ESTADO REAL DO PROJETO
 
 > **Este é o primeiro arquivo que qualquer sessão ou agente lê.**
-> Curto de propósito. Se passar de ~150 linhas, está virando log — o log é o `05-DECISOES.md`.
+> Curto de propósito. Se passar de ~150 linhas, está virando log: o log é o `05-DECISOES.md`.
 >
-> **Última atualização:** 28/10/2026, terça (`vetria-maestro`, retomada depois da pausa e replanejamento até 25/11; `vetria-escriba`, DL-073 e DL-074) ·
-> **Fase:** **F4 (fechamento) com F5 e F6 comprimidas** · **Último commit na `main`:** `4eb7824` (PR #14, 25/09).
-> **Tudo entra por PR**: o CI é obrigatório na `main` (ruleset) e `git push` direto é recusado.
+> **Última atualização:** 04/11/2026, terça à noite (`vetria-escriba`, fechamento do dia: PRs #21 e #23 a #36, DL-076 a DL-079) ·
+> **Fase:** **F4 (fechamento) com F5 e F6 comprimidas** · **Último commit na `main`:** `0ab4199` (PR #35, 04/11).
+> **Tudo entra por PR com merge automático** (CI obrigatório na `main`; `git push` direto é recusado).
 
 ---
 
 ## AGORA
 
-**Fase:** **F4, Motor B2C, por fechar** · **Semana:** **1 de 4 até a entrega (28/10 a 03/11)** · **Entrega:** 25/11/2026 (faltam 28 dias)
+**Fase:** **F4 por fechar** · **Semana:** **2 de 4 até a entrega (04/11 a 10/11)** · **Entrega:** 25/11/2026 (faltam 21 dias)
+· **Andamento estimado: ~78%** do contratado (E1 a E5 de pé; faltam o portão, a LGPD e a E6).
 
-⏸️ **O projeto ficou pausado por decisão do Elber de 25/09 a 28/10.** Nenhum commit nesse período. As semanas S6 a S9
-do plano não aconteceram. Retomado em 28/10.
+✅ **O contato existe de ponta a ponta, e está desligado em produção de propósito.** A `0006` foi **aplicada em
+produção em 04/11** (sessão B, por `npm run banco`: 27/27 `true`, sonda 1 8/8, sonda 2 69/69, sonda 3 zero, sonda 4
+OK, nada sobrou). Rota, botão, "Contatos recebidos", "Seus contatos" e o vínculo na criação de conta estão na `main`.
+No `vetria-e2e` a jornada inteira roda no CI: cadastro do vet, onboarding com WhatsApp, fila, aprovação, busca, perfil,
+número revelado, limite real de 5 visitas (T-043). Em produção a rota responde 503 e o perfil diz "abre em breve"
+até `CONTATO_PELO_SITE_ABERTO` **e** `TURNSTILE_NO_CONTATO` virarem `true`.
 
-🔴 **O número honesto: o buffer acabou.** Em 25/09 estávamos ~1,5 semana adiantados; a pausa consumiu 4,5 semanas.
-Saldo: **~3 semanas de atraso contra o plano original**. O que o plano punha em 7 semanas (fim da S8, F5, F6 e o
-buffer da S13) agora cabe em 4, **sem nenhum dia de folga**. Calendário novo em `01-PLANO.md` §Reavaliação de 28/10.
+🔒 **Revisão de segurança completa em 04/11** (`docs/relatorios/SEC-2026-11-04.md`): sem 🔴. Corrigido no mesmo dia:
+Next 16.1.5 para 16.4.5 (RCE no otimizador de imagem, bypass de middleware, SSRF; `npm audit --omit=dev` = 0),
+`set-access` com lista fechada e trilha, CSRF nas 5 rotas de sessão, limite de 5 envios de documento por hora,
+travas do `npm run banco`, CI só leitura. **Abertos e com card:** B-1 🟠 (T-056), lote 🟡 de banco (T-059), SEC-138
+restante (T-062), decisões do Elber (T-058).
 
-**Prioridade do Elber (28/10):** (1) o aplicativo funcionando ponta a ponta, com o contato por WhatsApp;
-(2) portão de segurança e uma rodada de testes internos de segurança e QA; (3) landing pages no fim.
-⚠️ **As landing pages são a capacidade E6, contratada** (`00-ESCOPO.md` §2). Elas ficam na última semana, na versão
-mínima, e **não saem do contrato sem emenda** (ver R-078).
+⚠️ **R-079: o `vetria-e2e` divergia de produção** (faltava a FK `profiles_id_fkey`). A `0007` cria a FK onde falta e
+`supabase/paridade-schema.sql` compara os dois bancos. **`0007` aplicada no `vetria-e2e` em 04/11 (7/7, idempotente);
+em produção, não** (lá a FK já existe, será no-op; precisa do "pode aplicar" do Elber, DL-076).
 
-⚠️ **R-073 ACONTECEU:** com a pausa, o Supabase de produção (plano grátis) pausou sozinho depois de 7 dias sem uso. O
-Elber restaurou em 28/10 e o site voltou (conferido hoje: `/api/cidades`, `/buscar` e o perfil
-`larissa-lima-goiania-go` respondem 200). **O `vetria-e2e` quase certamente também está pausado** (último CI em 25/09,
-33 dias); não conferido daqui, porque a URL dele não está no repositório. **Restaurar o `vetria-e2e` é gesto do Elber.**
+✅ **Autorizações do Elber em 04/11 (DL-076):** migration no `vetria-e2e` sem perguntar; produção só com "pode aplicar"
+escrito no chat; ritmo PR + auto-merge segue.
 
-✅ **Decidido em 28/10: produção FICA no plano grátis** (confirma o DL-072). **O item 7 do portão está fechado** com
-essa decisão. Consequência: **a T-044 (manter os dois bancos acordados) é a prioridade zero da fila.** O R-073 continua
-valendo daqui para frente; a mitigação é a T-044 e mais nada (**DL-073**).
+🚪 **Portão de abertura (DL-063): 3 de 7 provados. Prazo: 10/11.**
+✅ T-027 `0004` · ✅ T-033 cabeçalhos · ✅ item 7, plano do Supabase decidido (grátis) ·
+⬜ T-020 teto do bucket + firewall (o limite de 5 envios por hora entrou no #36; teto e firewall não) ·
+⬜ T-031 captcha · ⬜ T-032 2FA do admin · 🟡 senha mínima 8 (falta a prova com 7 caracteres).
 
-✅ **Decidido em 28/10, delegado pelo Elber (DL-074):** sessões presenciais diárias até 25/11 · página de preço como
-vitrine "em breve", sem depoimentos, texto até 14/11 (R-077) · Termos e Política rascunhados por agente até 10/11,
-aprovados pelo Elber, advogado depois da entrega · gatilho de 10/11: se a F4 não fechar, a meta de Lighthouse >= 90 vira
-só medição · demonstração de 31/10 no ambiente de teste, produção só a partir de 04/11.
+🟢 **Para ligar o botão do contato em produção, falta exatamente isto** (card T-041):
+1. **T-031** Turnstile no clique, conferido no servidor (`TURNSTILE_NO_CONTATO = true`)
+2. **SEC-131** siteverify exige `hostname` canônico e `action = contato`
+3. **SEC-127** regra `contato-por-ip` no firewall da Vercel (10/min, IPv6 por /64), escrita no card (gesto do Elber)
+4. **SEC-132** Política de Privacidade **publicada** (`/privacidade`, T-049) para a linha sob o botão
+5. **SEC-133** medir Safari anterior ao 16.4 (sem `Sec-Fetch-Site` recebe 403)
+6. **Pelo menos 1 profissional ativo** em produção (a sessão de 04/11 informou 0 contas `active` lá)
 
-**O que entrou desde a última atualização (25/09), conferido no código:**
-- **T-038** (prévia do perfil em `/app/*/perfil`, mesmo componente da página pública): **em produção** (PR #11, `81784e1`).
-  Falta o teste do item 5 do card (vai para a T-043).
-- **T-033** (cabeçalhos + "Você entrou como"): **em produção** (PR #13). Prova de hoje: `curl -I` em produção devolve
-  `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` e HSTS.
-- **T-039** (a `0006` do contato): **escrita, ensaiada e auditada (APROVADA), NÃO aplicada.** Mora na **PR #15**, que
-  está **em conflito com a `main` só no `docs/03-TAREFAS.md`**. O SQL não conflita. O texto do card já foi trazido
-  para a `main` nesta atualização, então resolver o conflito é ficar com a versão da `main`.
+**Fila dos próximos dias (05 a 10/11):** **T-031** Turnstile → **T-041** aceites e o botão ligado → **T-056** (B-1, 🔴) e
+**T-059** (lote de banco, 🔴) → **T-049** (Elber responde as perguntas dos Termos e da Política; depois aceite, exportar,
+excluir) → **T-048** rodada interna → **T-045** indexação, só com o portão 7 de 7. Detalhe em `03-TAREFAS.md`.
 
-🚪 **Portão de abertura (DL-063): 3 de 7 provados. O prazo de 20/10 venceu.** Prazo novo: **10/11**.
-✅ T-027 `0004` · ✅ T-033 cabeçalhos (28/10) · ✅ item 7, plano do Supabase decidido (grátis, 28/10) ·
-⬜ T-020 teto do bucket + firewall · ⬜ T-031 captcha · ⬜ T-032 2FA do admin · 🟡 senha mínima 8 (falta a prova:
-cadastrar com 7 caracteres e ver recusar). Pela auditoria da `0006` (SEC-120), **o Turnstile no clique de contato é
-obrigatório antes de ligar o botão em produção**: a T-031 deixou de ser opcional para o contato.
-
-**Fila dos próximos 5 dias (28/10 a 03/11):** **T-044** bancos acordados → **PR #15** sem conflito → 🔴 **`0006` no
-`vetria-e2e`** → **T-040** rota do contato → **T-046** WhatsApp obrigatório → **T-041** o botão. Detalhe em `03-TAREFAS.md`.
-
-🎯 **Resultado para mostrar:** **sexta 31/10**, o contato completo **no ambiente de teste** (`vetria-e2e` por localhost
-ou preview: busca, perfil, "Chamar no WhatsApp", número aparece, contato gravado). **Terça 04/11**, o mesmo em
-`vetriabrasil.com.br`, com Turnstile. Produção não entra antes de 04/11 (DL-074 item 5).
-
-🔴 **SESSÕES PRESENCIAIS:** **Elber disponível todo dia até 25/11 (DL-074).** Os marcos continuam: **sessão A, quarta
-29/10 à noite** (restaurar o `vetria-e2e`, aplicar a `0006` nele, criar a chave do Turnstile) e **sessão B, segunda 03/11
-à noite** (`0006` em produção, Turnstile ligado no painel, firewall da Vercel, prova da senha 8). Outro 🔴 entra no dia
-em que ficar pronto.
-
-📏 **Gesto do Elber ainda aberto (desde 25/09):** conferir a `RESEND_API_KEY` na Vercel (Production).
+📏 **Gestos do Elber abertos:** conferir a `RESEND_API_KEY` na Vercel (desde 25/09) · regras do firewall da Vercel
+(SEC-127, R-071) · trocar a senha do `postgres` de produção depois de cada sessão (SEC-138 e) · responder a T-058 ·
+"pode aplicar" da `0007` em produção.
 
 ---
 
@@ -74,36 +61,36 @@ em que ficar pronto.
 
 | Área | Estado |
 |---|---|
-| **Auth** | ✅ Email/senha + Google + confirmação + recuperação. **Desde 24/09 o link do email funciona em qualquer navegador** (`/auth/confirm`, `token_hash`, T-036). Senha com regra única (T-034). ⚠️ Sem captcha (T-031) e admin sem 2FA (T-032). |
-| **Domínio e email** | ✅ `vetriabrasil.com.br` na Vercel, Resend verificado, templates novos no Supabase. O app manda email de aprovação e reprova. ⚠️ `RESEND_API_KEY` na Vercel não conferida. |
-| **RBAC** | ✅ `middleware.ts` isola painel por prefixo e aplica o portão de status (matriz §4); as páginas reconferem por `requirePainel`. |
-| **Onboarding profissional** | ✅ Persiste nas duas personas, com documento, máscaras e limite no passo certo (T-035). Ao concluir vai a `pending_validation`. ⚠️ Possível bug de "pausar e voltar" relatado pelo QA, **não reproduzido** (R-072). ⚠️ WhatsApp é **opcional** (R-036, aberto desde 31/08). |
-| **Admin** | ✅ Fila real, documento por URL de 60 s, aprovar e reprovar com motivo, email, `audit_logs`. **O banco impõe as transições desde a `0004`.** Moderação e conteúdo continuam casca. |
-| **Banco** | ✅ `0002` a `0005` aplicadas. CHECKs de conteúdo (0004), listas de especialidades, serviços e 5571 cidades, slug `nome-cidade-uf` gerado na aprovação, full-text em português (0005). `contatos` existe e está **vazia**. |
-| **Busca e perfil público** | ✅ **No ar desde 25/09.** Leitura como visitante anônimo; quem aparece é decidido pela RLS `perfil_esta_ativo`. Telefone e WhatsApp fora do HTML (conferido por teste). `noindex` de propósito até o portão. Contato mostra "abre em breve" (`CONTATO_PELO_SITE_ABERTO = false`). |
-| **Storage** | ✅ Bucket privado `documentos`, zero policy. ⚠️ Sem teto de volume (T-020). |
-| **Cabeçalhos e prévia** | ✅ Cabeçalhos de segurança em todas as rotas (T-033, conferido em produção em 28/10). Prévia do perfil público no painel do profissional (T-038). |
-| **Testes** | ✅ **88 + 10 no CI, no projeto de teste `vetria-e2e`** (DL-064), pulo vira falha (`E2E_EXIGIR_FILA=1`). Cobrem cadastro com conta nova, aprovação, portão, busca, perfil e cabeçalhos. Não cobrem contato (não existe). ⚠️ **Último CI em 25/09; o `vetria-e2e` provavelmente está pausado (R-073) e o próximo CI falha até ele ser restaurado.** |
+| **Auth** | ✅ Email/senha + Google + confirmação + recuperação. Depois de criar conta, tela clara "Falta só confirmar o seu email" (#26). ⚠️ Sem captcha (T-031), admin sem 2FA (T-032). ⚠️ Conta criada pelo Google vira responsável e não tem caminho para vet/estabelecimento (A-4, decisão na T-058). |
+| **Domínio e email** | ✅ `vetriabrasil.com.br` na Vercel, Resend verificado. ⚠️ `RESEND_API_KEY` na Vercel não conferida. |
+| **RBAC** | ✅ `middleware.ts` isola painel por prefixo e aplica o portão de status; as páginas reconferem por `requirePainel`. `set-access` só para master, lista fechada, sem auto-rebaixamento, sem zerar masters, trilha em `audit_logs` (#36). ⚠️ `middleware.ts` está deprecated no Next 16 (T-060). |
+| **Onboarding profissional** | ✅ Salva cada passo no "Continuar" e reabre onde parou (T-051, R-072 fechado). **WhatsApp obrigatório para concluir** nas duas personas, na tela e no servidor (T-046). Quem está `active` sem WhatsApp vê aviso no painel e em `/perfil`. ⚠️ A aprovação do admin ainda não exige WhatsApp (T-058). |
+| **Admin** | ✅ Fila real, documento por URL de 60 s, aprovar e reprovar com motivo, email, `audit_logs`, rotas sem `debug` nem erro cru (#36). ⚠️ B-1: o profissional pode trocar CRMV ou documento entre o admin abrir e aprovar (T-056). |
+| **Contato (E5)** | ✅ Na `main` e no banco de produção: `POST /api/contato` + `registrar_contato` (só `service_role`, limites, deduplicação 24 h, freio global de 30/min), botão "Chamar no WhatsApp", "Contatos recebidos" (30 dias, mês, lista com origem), "Seus contatos" do responsável, vínculo na criação de conta. **Desligado em produção** (ver AGORA). ⚠️ A origem da busca chega nula (T-061). ⚠️ Conta criada pelo Google ou sem role não vincula (T-063). |
+| **Banco** | ✅ `0002` a `0006` aplicadas em produção. `0007` aplicada só no `vetria-e2e`. SQL do repositório roda por `npm run banco` (DL-077). ⚠️ Corpos de `admin_list_profiles` e `admin_set_user_access` não versionados (T-059). |
+| **Busca e perfil público** | ✅ No ar desde 25/09. Visibilidade pela RLS. Número fora do HTML (testado). `noindex` até o portão (T-045). |
+| **Storage** | ✅ Bucket privado `documentos`, zero policy, 5 envios por hora por conta. ⚠️ Sem teto de volume e documento antigo não é apagado (T-020). |
+| **Testes** | ✅ **145 testes verdes, 0 pulados** no CI da PR #31 contra o `vetria-e2e`, com `E2E_ALVO=teste` e pulo virando falha. CI roda só em PR, com `permissions: contents: read`. ✅ `manter-acordado.yml` roda todo dia e mantém os dois bancos acordados (T-044, verde de 29/10 a 04/11). `npm run dev:teste` sobe o site local contra o `vetria-e2e` na porta 3001. |
+| **Dependências** | ✅ Next 16.4.5, `npm audit --omit=dev` = 0 (#34). |
 
 ---
 
 ## O QUE É CASCA (tela existe, dado não)
 
-- `/admin/moderacao`, `/admin/conteudo` → sem card (não são item de DoD)
-- Onboarding do responsável (coleta cidade e animal e descarta) → sem card
-- Editores de perfil das 3 personas → T-019, **só se sobrar tempo** (não é capacidade contratada, DL-056). A **prévia** (só leitura) está no ar (T-038)
-- **Contatos recebidos** (vet e estabelecimento) e **histórico do responsável** ("Seus agendamentos") → T-042, semana de 04/11
-- Agenda, avaliações, plano → fora do escopo dos 3 meses
+- `/admin/conteudo` e `/admin/moderacao` (fora do menu desde a T-055) → sem card
+- Onboarding do responsável (pergunta pelo animal e descarta) → decisão na T-058
+- Editores de perfil das 3 personas → T-019, **só se sobrar tempo**. A prévia está no ar (T-038)
+- Agenda, avaliações, equipe → fora do escopo; as rotas devolvem para o painel (T-055)
 
 ---
 
 ## O QUE NÃO EXISTE AINDA
 
-- O **evento de contato** (T-039 escrita e não aplicada; T-040 a T-043) e o vínculo do contato anônimo à conta nova
-- Captcha, 2FA do admin, teto do bucket (portão de abertura, DL-063)
-- Indexação no Google das páginas públicas e `sitemap` (T-045, depois do portão)
-- As 6 landing pages (F5, E6 contratada): semana de 18/11, versão mínima (T-050); preço como vitrine "em breve" (DL-074)
-- Consentimento, exportação e exclusão de dados, Termos e Política (LGPD, transversal contratada): semana de 11/11 (T-049); rascunho dos Termos até 10/11 (DL-074)
+- Captcha, 2FA do admin, teto do bucket, regras do firewall (portão de abertura, DL-063)
+- Indexação no Google e `sitemap` (T-045, depois do portão)
+- As 6 landing pages (E6 contratada): semana de 18/11, versão mínima (T-050); preço como vitrine "em breve" (DL-074)
+- LGPD: aceite no cadastro, exportar e excluir a conta, `/termos` e `/privacidade` publicados (T-049). **O texto existe
+  em rascunho** em `docs/legal/` (#29), com 18 perguntas para o Elber no fim dos dois arquivos
 
 ---
 
@@ -111,13 +98,14 @@ em que ficar pronto.
 
 | Camada | Escolha | Nota |
 |---|---|---|
-| Framework | Next.js 16 (App Router) | React 19.2 |
+| Framework | Next.js 16.4.5 (App Router) | React 19.2 |
 | Estilo | Tailwind v4 via `@theme inline` em `app/globals.css` | Sem `tailwind.config` |
 | Fonte | Inter, única (DL-032) | Serif foi tentada e revertida |
-| Auth + DB + Storage | Supabase (produção + `vetria-e2e`) | Resend como SMTP; ícones `lucide-react` |
+| Auth + DB + Storage | Supabase (produção + `vetria-e2e`, os dois no grátis) | Resend como SMTP; ícones `lucide-react` |
 | Hospedagem | Vercel, deploy no merge da PR na `main` | |
 | Testes | Playwright + GitHub Actions | CI obrigatório na `main` (ruleset) |
-| Pagamento | nenhum | **fora do escopo dos 3 meses.** O plano original dizia Stripe; a proposta da rodada 2 recomenda Asaas (`docs/07-RODADA-2.md` §4, não decidido) |
+| Banco por comando | `npm run banco -- <teste\|producao> <arquivo.sql>` (`scripts/banco.mjs`, `pg`) | Conexão em `.env.banco.local` (gitignored). DL-077 |
+| Pagamento | nenhum | **fora do escopo dos 3 meses** (`docs/07-RODADA-2.md` §4, não decidido) |
 
 ---
 
@@ -126,20 +114,20 @@ em que ficar pronto.
 ```
 PÚBLICO   /  ·  /buscar  ·  /veterinario/[slug]  /estabelecimento/[slug]
           /login  /cadastro  /cadastro/{responsavel,veterinario,estabelecimento}
-          /recuperar-senha[/nova]  /auth/callback  /auth/confirm  ·  /roadmap  /entrega-fase-2 (noindex)
-RESPONSÁVEL (role tutor, chrome header)   /app/responsavel  + /onboarding /perfil /historico /avaliacoes
-VETERINÁRIO (role vet, sidebar)           /app/veterinario/onboarding · /app/veterinario + /agenda
-          /aguardando /ajuda /avaliacoes /bloqueado /configuracoes /contatos /perfil /plano
-ESTABELECIMENTO (role clinic, sidebar)    /app/estabelecimento/onboarding · /app/estabelecimento
-          + os mesmos do vet, mais /equipe
-ADMIN (role admin, chrome dark)           /admin + /usuarios /validacoes /moderacao /conteudo
-API       /api/admin/profiles  /api/admin/set-access  /api/onboarding/set-role  /api/cidades
+          /recuperar-senha[/nova]  /auth/callback  /auth/confirm  ·  /roadmap  /entrega-fase-2 (noindex, sai na T-057)
+RESPONSÁVEL (role tutor, chrome header)   /app/responsavel  + /onboarding /perfil /historico ("Seus contatos")
+VETERINÁRIO (role vet, sidebar)           /app/veterinario/onboarding · /app/veterinario + /contatos /perfil /plano
+          /configuracoes /ajuda /aguardando /bloqueado   (agenda e avaliações devolvem ao painel)
+ESTABELECIMENTO (role clinic, sidebar)    /app/estabelecimento/onboarding · /app/estabelecimento + os mesmos do vet
+ADMIN (role admin, chrome dark)           /admin + /usuarios /validacoes  (moderação e conteúdo fora do menu)
+API       /api/contato  /api/admin/profiles  /api/admin/set-access  /api/onboarding/set-role  /api/cidades
           /api/documentos/upload  /api/documentos/abrir
 ```
 
 > ⚠️ **Nomenclatura.** Rotas em português, **valores de role no banco** `tutor`/`vet`/`clinic` (DL-043).
 >
-> ⚠️ **As duas rotas de documento ficam FORA do `matcher` do `middleware.ts` e se defendem sozinhas.**
+> ⚠️ **As duas rotas de documento ficam FORA do `matcher` do `middleware.ts` e se defendem sozinhas** (sessão, origem
+> por `lib/http/origem.ts`, limite).
 
 ---
 
@@ -149,18 +137,17 @@ API       /api/admin/profiles  /api/admin/set-access  /api/onboarding/set-role  
 |---|---|
 | O que foi contratado | `docs/00-ESCOPO.md` 🔒 |
 | O que vem depois de 25/11 (cobrança e o resto) | `docs/07-RODADA-2.md` (proposta para decisão) |
-| **Quem acessa o quê** | **`docs/06-PERMISSOES.md`** — vira RLS e middleware |
+| **Quem acessa o quê** | **`docs/06-PERMISSOES.md`**: vira RLS e middleware |
 | O plano das 13 semanas | `docs/01-PLANO.md` |
 | A fila de tasks | `docs/03-TAREFAS.md` |
 | Bugs, dívidas e riscos | `docs/04-RISCOS.md` |
 | Por que decidimos X | `docs/05-DECISOES.md` (DL-041+) e `CONTEXT.md` (DL-001 a DL-040, histórico) |
 | Como os agentes trabalham | `docs/AGENTES.md` |
-| Relatórios de segurança/QA/UX | `docs/relatorios/` |
-| O que os **donos** veem | rota `/roadmap` (viva, noindex) e `/entrega-fase-2` |
+| Relatórios de segurança/QA/UX | `docs/relatorios/` (o mais recente: `SEC-2026-11-04.md`) |
+| Rascunho de Termos e Política | `docs/legal/` (não publicado; perguntas para o Elber no fim) |
+| Estado de cada migration | `supabase/migrations/README.md` |
+| O que os **donos** veem | rota `/roadmap` (viva, noindex) |
 | Como entrar numa sessão nova | `HANDOFF.md` e `RETOMAR.md` |
-| Referência visual | `design-system (1).html`, `vetria-proto/` (gitignored) |
-| Marca, copy, briefing | pasta `..` (Desktop/Vetria): manual da marca, copies `.docx` |
 
 > **Arquivos históricos, congelados, não escreva neles:** `CONTEXT.md` (DL-001 a DL-040) ·
-> `BACKLOG.md` (TASK-001 a 039) · `DEMO.md` · `../VETRIA_PROJETO.md` (desatualizado, válido pelo mapa de
-> telas e pelos backlogs V2/V3).
+> `BACKLOG.md` (TASK-001 a 039) · `DEMO.md` · `../VETRIA_PROJETO.md`.
