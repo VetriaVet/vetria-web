@@ -986,7 +986,7 @@ prioridade zero da fila.
   migration continua manual.
 - O R-073 só fica 🟡 enquanto a T-044 rodar. A execução agendada é conferida toda segunda, na abertura da semana.
 - Se o plano mudar depois da entrega, é DL novo, não emenda deste.
-**Status:** ✅ decidida · item 7 do portão ✅ · ⬜ T-044 (a mitigação)
+**Status:** ✅ decidida · item 7 do portão ✅ · ✅ T-044 (a mitigação) no ar desde 28/10, verde todo dia
 
 ### DL-074: O Elber disponível todo dia até 25/11, com as decisões de 28/10 delegadas e aprovadas como recomendadas
 **Data:** 28/10/2026 · **Fase:** F4 (fechamento), com F5 e F6 comprimidas · **Riscos:** R-077, R-078 · **Cards:**
@@ -1022,7 +1022,7 @@ demonstrar em produção antes de a `0006` estar lá.
 - A T-049 perde a dependência "decisão aberta" sobre o texto; continua dependendo da aprovação do rascunho pelo Elber.
 - A T-050 perde a dependência "decisão do R-077".
 - O roadmap público (`app/roadmap/page.tsx`) foi ressincronizado com o calendário de 28/10 no mesmo passo.
-**Status:** ✅ decidida · ⬜ executada (sessões A e B, texto da LP de preço até 14/11, rascunho dos Termos até 10/11)
+**Status:** ✅ decidida · ✅ sessões A (29/10) e B (04/11) · ✅ rascunho dos Termos e da Política (04/11, `docs/legal/`) · ⬜ texto da LP de preço até 14/11
 
 ### DL-075: Freio global de contatos na `registrar_contato`: 30 por minuto no sistema inteiro (SEC-120 c)
 **Data:** 28/10/2026 · **Fase:** F4 · **Card:** T-039 · **Auditoria:** SEC-120 (c), SEC-127
@@ -1049,4 +1049,71 @@ métrica falsa.
 sem ganho real de folga no lançamento); trava global em todo pedido (fila desnecessária com volume baixo).
 **Implicações:** mudar o teto é **migration nova + DL novo + a sonda 2** (casos 80 a 85). Revisar o número quando o
 volume real passar de 10 por minuto. O texto de `muitas_tentativas` na T-041 serve aos dois casos.
-**Status:** ✅ decidida · ⬜ aplicada (entra com a `0006`, sessão A)
+**Status:** ✅ decidida · ✅ aplicada no `vetria-e2e` (29/10) e em produção (04/11), com a `0006`
+
+### DL-076: Migration no `vetria-e2e` sem perguntar; em produção, só com "pode aplicar" escrito pelo Elber no chat
+**Data:** 04/11/2026 · **Fase:** F4 (fechamento), F6 · **Cards:** T-039 (sessão B), T-056, T-059, T-049 · **Quem decidiu:**
+o Elber, em 04/11.
+**Contexto:** o semáforo do projeto põe toda migration em 🔴, só com o Elber presente. Com 21 dias até a entrega, três
+migrations na fila (T-056, T-059, o aceite da T-049) e o `npm run banco` em uso (DL-077), esperar sessão presencial
+para o banco de ensaio virou o gargalo do dia. A sessão B de 04/11 já rodou a `0006` em produção por comando, com
+autorização dada no chat.
+**Decisão:** (1) **migration no `vetria-e2e`** pode ser aplicada por agente **sem perguntar**, seguindo o roteiro de
+sempre (pré-voo, backup, migration, sondas, CI verde); (2) **migration em produção** só depois de o Elber escrever
+**"pode aplicar"** no chat, para aquela migration; (3) o ritmo segue **PR + merge automático** para tudo o que passa
+no CI.
+**Alternativas descartadas:** manter o 🔴 também para o `vetria-e2e` (trava o ensaio, que é o que protege produção);
+liberar produção por agente (a decisão de mexer no banco real continua do Elber).
+**Implicações:**
+- O 🔴 de migration passa a valer **só para produção**. A auditoria do `vetria-seguranca` antes de produção continua
+  obrigatória (DL-050), e correção de 🔴 ou 🟠 volta para ela.
+- O `CLAUDE.md` e o `docs/AGENTES.md` ainda descrevem migration como 🔴 sem distinção: leia os dois com este DL.
+- A `0007` já está no `vetria-e2e` por esta regra; em produção espera o "pode aplicar".
+**Status:** ✅ decidida e em uso desde 04/11
+
+### DL-077: O SQL do repositório roda por `npm run banco`, não mais colado no SQL Editor
+**Data:** 04/11/2026 · **Fase:** F4 · **Commits:** `cf026e2` (PR #27), `c5e6cbb` (PR #30) · **Auditoria:** SEC-138 a
+SEC-141 (`docs/relatorios/SEC-2026-11-04.md`)
+**Contexto:** até 29/10 todo pré-voo, backup, migration e sonda era colado bloco por bloco no SQL Editor do Supabase,
+com o resultado anotado à mão. Era lento e sujeito a erro de projeto aberto (teste no lugar de produção).
+**Decisão:** `npm run banco -- <teste|producao> <arquivo.sql> [--so N]` (`scripts/banco.mjs`, dependência `pg` de
+desenvolvimento) separa o arquivo pelos títulos CONSULTA/QUERY/SONDA, roda cada bloco e salva o resultado em
+`supabase/backups/` (gitignored). Conexão em `.env.banco.local` (gitignored). Travas: a URL de cada alvo tem que conter
+o ref certo; só roda arquivo de dentro de `supabase/` (realpath); migration só `supabase/migrations/NNNN_*.sql` e,
+em produção, só com `--aplicar-em-producao`; em produção tudo que não é migration roda com transação `read only`, e
+sonda que escreve e desfaz pede `--sonda-que-escreve`; erro de produção sai sem `detail`. A sessão B de 04/11 foi a
+primeira aplicação em produção por este caminho.
+**Alternativas descartadas:** continuar no SQL Editor (lento, sem registro do resultado); Supabase CLI com `db push`
+(aplicaria migration sem pré-voo nem sonda, fora do roteiro do projeto).
+**Implicações:** o resultado de cada rodada fica em arquivo local e pode ter dado pessoal (SEC-141: falta `--so-arquivo`
+e regra de retenção). Ainda abertos: confirmação por TTY, regra de permissão local, `ssl` verificando certificado e
+troca da senha do `postgres` depois de cada sessão (T-062, R-081).
+**Status:** ✅ aplicada · ⬜ T-062
+
+### DL-078: O aviso de "sem WhatsApp" de quem está no ar leva ao email da equipe, não ao onboarding
+**Data:** 04/11/2026 · **Fase:** F4 · **Card:** T-046 · **Commit:** `e336299` (PR #32) · **Quem decidiu:** o
+`vetria-backend`, na execução; o card pedia o link "para onde se edita (hoje é o onboarding)".
+**Contexto:** conta `active` **não alcança** `/onboarding` (matriz §4, `lib/auth/status.ts` e o guard da página), e o
+editor de perfil é a T-019, que só entra se sobrar tempo. Um link para o onboarding devolveria a pessoa ao painel sem
+explicar nada.
+**Decisão:** o aviso de quem está `active` sem WhatsApp leva ao email da equipe (contato@vetriabrasil.com.br), o mesmo
+caminho que a `PreviaDoPerfil` já oferecia a quem está no ar. Quem está na fila (`pending_validation`) sem WhatsApp
+recebe o link "Completar meu contato" para o cadastro, que ele ainda alcança.
+**Alternativas descartadas:** abrir o onboarding para `active` (muda a matriz §4 e o portão de status; exigiria DL
+próprio e revisão); esconder o aviso até existir o editor (o profissional continuaria sem saber por que ninguém o chama).
+**Implicações:** o número de quem já está no ar é corrigido por uma pessoa da equipe, à mão. Com 0 contas `active` em
+produção hoje, o custo é zero até a abertura. **Não decidido aqui:** se a aprovação do admin passa a exigir WhatsApp
+(T-058 item 5).
+**Status:** ✅ aplicada
+
+### DL-079: Teste que encerra sessão usa `signOut({ scope: 'local' })`, nunca o global
+**Data:** 04/11/2026 · **Fase:** F4 · **Card:** T-043 · **Commits:** `915b55a`, `b442c2e` (PR #31)
+**Contexto:** na T-043 a jornada do vet caía no meio: o navegador perdia a sessão sem nenhum teste ter tocado nela. A
+causa: o `signOut()` padrão do Supabase é **global** e revoga todas as sessões daquela conta no servidor. Os testes
+que entram nas contas fixas pelo cliente de serviço e saem com `signOut()` derrubavam a sessão de outros testes nas
+mesmas contas.
+**Decisão:** todo `signOut` em `tests/` passou a `scope: 'local'`, que encerra só o cliente que chamou.
+**Alternativas descartadas:** rodar os testes das contas fixas em série (a suíte já leva de 5 a 13 minutos); não chamar
+`signOut` (deixa sessão aberta sem dono no banco de teste).
+**Implicações:** teste novo que fizer login e logout segue a mesma regra.
+**Status:** ✅ aplicada

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const ATUALIZADO = "28 de outubro de 2026";
+const ATUALIZADO = "4 de novembro de 2026";
 const ENTREGA = "25 de novembro de 2026";
 
 type Status = "done" | "doing" | "todo" | "later";
@@ -102,8 +102,11 @@ const SPRINTS: Sprint[] = [
       { label: "Página pública do estabelecimento", status: "done" },
       { label: "Prévia do perfil público para o próprio profissional", status: "done" },
       { label: "Páginas preparadas para o Google encontrar", status: "todo" },
-      { label: "Contato direto por WhatsApp (primeira demonstração em 31 de outubro, no site real a partir de 4 de novembro)", status: "doing" },
-      { label: "Cada contato recebido fica registrado para o profissional", status: "todo" },
+      { label: "Contato direto por WhatsApp: pronto e testado de ponta a ponta no ambiente de testes; liga no site real depois da verificação contra robôs", status: "doing" },
+      { label: "Cada contato recebido fica registrado para o profissional, com a contagem do mês no painel", status: "doing" },
+      { label: "O responsável vê os profissionais que já chamou e pode chamar de novo", status: "doing" },
+      { label: "WhatsApp obrigatório para o profissional concluir o cadastro", status: "done" },
+      { label: "O cadastro do profissional guarda cada passo e reabre onde a pessoa parou", status: "done" },
       { label: "O banco de dados recusa informação inválida no cadastro (CRMV, estado, endereço de site)", status: "done" },
       { label: "Senhas mais fortes, com mensagens de erro em português e opção de mostrar a senha", status: "done" },
       { label: "Campos com formato automático no cadastro (CRMV, CNPJ, telefone, CEP e email), para ninguém digitar errado", status: "done" },
@@ -119,13 +122,14 @@ const SPRINTS: Sprint[] = [
     status: "todo",
     goal: "O que separa um sistema que funciona na demonstração de um sistema que pode receber gente de verdade. Vem antes das páginas de venda, de propósito: primeiro o produto seguro, depois a vitrine.",
     items: [
-      { label: "Revisão de segurança a cada entrega (13 revisões até agora)", status: "done" },
+      { label: "Revisão de segurança a cada entrega, e uma revisão completa do sistema em 4 de novembro", status: "done" },
+      { label: "Atualização urgente de segurança da base do site, aplicada no mesmo dia", status: "done" },
       { label: "Testes automáticos rodando a cada publicação", status: "done" },
       { label: "Ambiente de testes separado do site real, para ensaiar cada mudança antes de publicar", status: "done" },
       { label: "Auditoria completa de acesso aos dados (a equipe Vetria já só enxerga os documentos de quem está em validação)", status: "doing" },
-      { label: "Rodada completa de testes internos de segurança e qualidade, com todos os tipos de conta", status: "todo" },
+      { label: "Rodada completa de testes internos de segurança e qualidade, com todos os tipos de conta", status: "doing" },
       { label: "LGPD: consentimento, exportação e exclusão de dados", status: "todo" },
-      { label: "Termos de uso e política de privacidade, escritos a partir do que a plataforma faz de verdade", status: "todo" },
+      { label: "Termos de uso e política de privacidade, escritos a partir do que a plataforma faz de verdade (rascunho pronto, esperando aprovação)", status: "doing" },
       { label: "Velocidade das páginas públicas", status: "todo" },
       { label: "Acessibilidade e telas de erro", status: "todo" },
     ],
@@ -269,7 +273,7 @@ export default function RoadmapPage() {
             <span className="text-[13px] text-corpo-texto">
               <b className="text-[15px] text-principal">{concluidas}</b> de{" "}
               {ENTREGAVEIS.length} etapas concluídas · busca e perfis no ar,
-              agora o contato pelo WhatsApp e as proteções de segurança
+              contato pronto no ambiente de testes, agora as proteções para ligá-lo no site real
             </span>
           </div>
           <div className="flex gap-[3px] overflow-hidden rounded-pill">
