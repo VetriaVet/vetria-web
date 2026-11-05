@@ -423,7 +423,7 @@ if (CONTATO_LIGADO && BUSCA_LIGADA) {
           expect(rpc.error, "um logado chamou registrar_contato direto pelo PostgREST").not.toBeNull();
           expect(JSON.stringify(rpc.data ?? null)).not.toContain(whatsapp.slice(-8));
         } finally {
-          await cliente.auth.signOut().catch(() => {});
+          await cliente.auth.signOut({ scope: "local" }).catch(() => {});
         }
       });
 
