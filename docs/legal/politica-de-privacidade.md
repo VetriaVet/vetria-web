@@ -46,7 +46,8 @@ acontece no WhatsApp: a Vetria não vê e não guarda o que você escreve lá.
 - se você entrar com o Google: o nome e o e-mail que o Google nos envia.
 
 **Responsável.** O cadastro do responsável pergunta sobre o seu animal (nome, espécie, faixa de idade e porte).
-**Hoje essas respostas não são guardadas.** [DECISÃO DO ELBER: ver a pergunta 6 no fim]
+Essas respostas ficam guardadas na sua conta e só você as vê: nem os profissionais nem a equipe da Vetria leem esses
+dados pelo sistema. A cidade que você informa nesse passo fica junto dos seus dados de login.
 
 **Veterinário.** Além do cadastro: nome de exibição, título, número e estado do CRMV, especialidades, tempo de
 experiência, apresentação, cidade, estado e bairro onde atende, formas de atendimento (presencial, domiciliar,
@@ -214,7 +215,7 @@ publicada no mesmo dia em que o código correspondente estiver em produção.
 | 6 | Cadastro grava nome, cidade, tipo de conta e e-mail | `app/cadastro/*/page.tsx` (`signUp` com `full_name`, `cidade`, `role`); `0002_nucleo.sql` linha 787 (`handle_new_user` grava `full_name` em `profiles`); a cidade fica só nos metadados do login |
 | 7 | Senha guardada pelo provedor de login | `app/cadastro/*/page.tsx` usa `supabase.auth.signUp`: a senha nunca passa por tabela da Vetria. (Que o Supabase a guarda cifrada é documentação do Supabase, não do repo) |
 | 8 | Login com Google | `app/login/page.tsx` (`signInWithOAuth`) |
-| 9 | Dados do animal perguntados e NÃO guardados | `app/app/responsavel/onboarding/page.tsx`, `completeOnboarding`: `void formData`, só grava `onboarding_completed`. A tabela `animais` existe (`0002` §4.3) mas nada grava nela |
+| 9 | Dados do animal perguntados e guardados (T-065, DL-080 item 3, 05/11/2026) | `app/app/responsavel/onboarding/actions.ts`, `completeOnboarding`: grava nome, espécie, idade e porte em `animais` com a sessão do responsável; a cidade vai para os metadados do login. Leitura só do dono: policy `animais_select_own` (`0002` §6), sem policy de admin |
 | 10 | Campos do veterinário | `app/app/veterinario/onboarding/campos.ts` (`VetOnboardingPayload`); colunas em `0002` §4.1; WhatsApp em `perfil_privado` (`actions.ts` linha 395) |
 | 11 | Campos do estabelecimento; CNPJ, razão social e responsável técnico privados | `app/app/estabelecimento/onboarding/campos.ts` (`LIMITES`, `ClinicOnboardingPayload`); `0003` cabeçalho (as três colunas descem para `perfil_privado`) |
 | 12 | Documento do CRMV e da empresa | `VetOnboardingForm.tsx` linhas 473 e 474; `ClinicOnboardingForm.tsx` linhas 420 e 421 |
@@ -261,9 +262,8 @@ publicada no mesmo dia em que o código correspondente estiver em produção.
 5. **Prazo dos registros de segurança** (`audit_logs` e logs da Vercel). O Marco Civil (art. 15) obriga quem
    oferece aplicação na internet a guardar registro de acesso por 6 meses; hoje o projeto não guarda IP por
    decisão (DL-047). Isso precisa de uma resposta sua e, depois, do advogado.
-6. **Dados do animal:** o cadastro do responsável pergunta nome, espécie, idade e porte do animal e **descarta**
-   tudo. Ou o formulário para de perguntar (recomendado, cabe na T-054/T-055) ou passa a gravar, e aí a Política
-   muda. Não dá para publicar a Política com a pergunta na tela e a frase "não guardamos" sem você decidir.
+6. **Dados do animal:** ✅ respondida em 05/11/2026 (DL-080 item 3): passam a ser guardados (T-065), e o texto da
+   seção do responsável já diz isso. Falta só o advogado conferir a redação.
 7. **Vercel Web Analytics ou Speed Insights estão ligados no painel da Vercel?** O código não os carrega, mas um
    comentário do `next.config.ts` os cita. Se estiverem ligados, entram na seção 5 e na 7.
 8. **Região dos servidores** do Supabase (produção) e da Vercel, para a seção 6.

@@ -26,8 +26,7 @@ export default async function TutorOnboardingPage() {
         Vamos conhecer seu animal
       </h1>
       <p className="text-corpo-texto text-base mb-8 max-w-xl">
-        Esses dados ajudam a gente a recomendar veterinários e estabelecimentos
-        adequados pro seu companheiro.
+        Esses dados ficam guardados na sua conta, e só você vê.
       </p>
 
       <TutorOnboardingForm action={completeOnboarding} />

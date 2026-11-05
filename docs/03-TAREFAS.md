@@ -124,6 +124,33 @@
 **Docs que atualizei:** `docs/03-TAREFAS.md` (este card), `supabase/migrations/README.md` (linha da 0008 e o hash novo).
 **Commits:** os da PR da T-066.
 
+### T-065: O onboarding do responsável guarda o animal
+- **Estado:** ✅ na `main`. **Sem migration:** as colunas de `animais` (0002 §4.3: `nome`, `especie`, `idade`, `peso`) já batem com o formulário, e a RLS `animais_*_own` já existe em produção
+- **Fase / Semana:** F6 / semana 2 · **Capacidade:** **E1** (*"o dado é real"*) e transversal **LGPD** (a Política passa a dizer a verdade)
+- **Nível:** 🟡 Server Action do onboarding do responsável, formulário e testes
+- **Agente dono:** vetria-backend
+- **Depende de:** DL-080 item 3
+- **Por quê:** o formulário perguntava nome, espécie, idade e porte do animal e a Action descartava tudo (`void formData`), e a Política dizia "não guardamos" (pergunta 6)
+- **Feito quando:**
+  - [x] A Action grava o animal em `animais` com a sessão do responsável (RLS), nunca com `service_role`
+  - [x] Entrada conferida no servidor: listas fechadas para espécie, idade e porte, teto de 60 caracteres no nome e 80 na cidade, espaço das pontas removido
+  - [x] Clique duplo não grava dois animais; falha ao gravar o animal desfaz a conclusão
+  - [x] A recusa volta para a tela com a frase, sem apagar o que foi digitado
+  - [x] E2E no `vetria-e2e`: grava, recusa, não duplica, outro responsável e visitante não leem
+- **Não fazer:** CHECK de lista e teto no banco para `animais` (é a B-6 da T-059); tela de editar o animal depois (fora do card)
+- **Resultado:** ver o handoff abaixo
+
+## HANDOFF · vetria-backend · T-065 · 05/11/2026
+
+**Fiz:** `app/app/responsavel/onboarding/campos.ts` (novo: as listas e `validarAnimal`, lidas pelo formulário e pela Action). `actions.ts`: valida, marca `onboarding_completed` com `.eq("onboarding_completed", false)` (a trava contra o clique duplo), grava em `animais` com a sessão do dono, desfaz a marca se a gravação falhar, guarda a cidade em `user_metadata.cidade` (o mesmo lugar do cadastro), e devolve a frase da recusa como valor (DL-016). `TutorOnboardingForm.tsx`: listas de `campos.ts`, `maxLength`, `onSubmit` (o `action` do React 19 limpava os campos na recusa), `data-hidratado`, botão "Concluir cadastro" (era "Concluir onboarding", jargão). `page.tsx`: a frase do topo deixa de prometer recomendação e diz que só a pessoa vê. Testes: `tests/e2e/onboarding-responsavel.spec.ts` (3 testes) e o helper `tests/apoio/responsavel.ts` com o botão novo. `docs/legal/politica-de-privacidade.md`: o texto do responsável, a linha 9 da tabela de provas e a pergunta 6.
+**Não fiz:** migration. A B-6 (CHECK e teto de linhas em `animais` no banco) fica com a T-059: hoje o próprio responsável ainda pode gravar pela API direta um texto fora da lista na linha dele.
+**Estado agora:** o responsável que conclui o cadastro tem o animal no banco, legível só por ele.
+**Descobri:** a página do onboarding não mostrava erro nenhum: a Action redirecionava com `?error=` e a página não lia o parâmetro. Agora a recusa volta como texto na tela.
+**Bloqueios:** nenhum.
+**Próximo passo óbvio:** mostrar o animal no perfil do responsável (hoje o perfil é casca, `TutorProfileForm.tsx`).
+**Docs que atualizei:** `docs/03-TAREFAS.md` (este card), `docs/legal/politica-de-privacidade.md`.
+**Commits:** os da PR da T-065.
+
 # ✅ FEITA EM 29/10, provada no `vetria-e2e`
 
 ### T-051 — O onboarding salva cada passo no "Continuar" e reabre onde a pessoa parou

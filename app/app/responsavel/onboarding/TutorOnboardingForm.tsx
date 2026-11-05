@@ -1,29 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
+import { ESPECIES, IDADES, LIMITES, PESOS } from "./campos";
 
+// T-065: a Action devolve a frase quando recusa; no sucesso ela redireciona.
+// DL-016: nenhum try/catch em volta da Action.
 type Props = {
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<{ erro: string } | void>;
 };
 
-const SPECIES = [
-  { value: "cao", label: "Cão" },
-  { value: "gato", label: "Gato" },
-  { value: "outro", label: "Outro" },
-];
-
-const AGES = [
-  { value: "filhote", label: "Filhote (0-1 ano)" },
-  { value: "jovem", label: "Jovem (1-3 anos)" },
-  { value: "adulto", label: "Adulto (3-7 anos)" },
-  { value: "senior", label: "Idoso (7+ anos)" },
-];
-
-const WEIGHTS = [
-  { value: "pequeno", label: "Pequeno (até 10kg)" },
-  { value: "medio", label: "Médio (10-25kg)" },
-  { value: "grande", label: "Grande (25kg+)" },
-];
+// Verdadeiro só depois da hidratação, sem `setState` em efeito (o mesmo
+// recurso de `VetOnboardingForm.tsx`).
+const semAssinatura = () => () => {};
 
 const inputClass =
   "w-full rounded-pill bg-fundo-claro/40 border border-transparent px-5 py-3.5 text-[15px] text-titulo placeholder:text-corpo-texto/60 focus:bg-white focus:border-principal focus:ring-2 focus:ring-principal/20 focus:outline-none transition";
@@ -38,16 +26,30 @@ export default function TutorOnboardingForm({ action }: Props) {
   const [cidade, setCidade] = useState("");
   const [msg, setMsg] = useState("");
   const [isPending, startTransition] = useTransition();
+  // `data-hidratado`, o mesmo sinal dos outros onboardings (T-051): o teste
+  // só envia depois que o React assumiu o formulário.
+  const hidratado = useSyncExternalStore(semAssinatura, () => true, () => false);
 
   function handleAction(formData: FormData) {
     setMsg("");
-    startTransition(() => {
-      action(formData);
+    startTransition(async () => {
+      const r = await action(formData);
+      if (r && r.erro) setMsg(r.erro);
     });
   }
 
   return (
-    <form action={handleAction} className="flex flex-col gap-4">
+    // `onSubmit` e não `action`: o `action` do React 19 limpa o formulário
+    // depois de cada envio, e uma recusa do servidor apagaria o que a pessoa
+    // digitou. Aqui a recusa volta e os campos continuam preenchidos.
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleAction(new FormData(e.currentTarget));
+      }}
+      data-hidratado={hidratado ? "sim" : "nao"}
+      className="flex flex-col gap-4"
+    >
       <div>
         <label htmlFor="petName" className={labelClass}>
           Nome do animal
@@ -57,6 +59,7 @@ export default function TutorOnboardingForm({ action }: Props) {
           name="petName"
           type="text"
           required
+          maxLength={LIMITES.nome}
           value={petName}
           onChange={(e) => setPetName(e.target.value)}
           placeholder="Ex: Thor, Luna, Mel..."
@@ -74,7 +77,7 @@ export default function TutorOnboardingForm({ action }: Props) {
           required
           value={petSpecies}
           onChange={(e) => setPetSpecies(e.target.value)}
-          options={SPECIES}
+          options={ESPECIES}
         />
       </div>
 
@@ -88,7 +91,7 @@ export default function TutorOnboardingForm({ action }: Props) {
           required
           value={petAge}
           onChange={(e) => setPetAge(e.target.value)}
-          options={AGES}
+          options={IDADES}
         />
       </div>
 
@@ -102,7 +105,7 @@ export default function TutorOnboardingForm({ action }: Props) {
           required
           value={petWeight}
           onChange={(e) => setPetWeight(e.target.value)}
-          options={WEIGHTS}
+          options={PESOS}
         />
       </div>
 
@@ -115,6 +118,7 @@ export default function TutorOnboardingForm({ action }: Props) {
           name="cidade"
           type="text"
           required
+          maxLength={LIMITES.cidade}
           value={cidade}
           onChange={(e) => setCidade(e.target.value)}
           placeholder="Ex: Palmas, TO"
@@ -128,7 +132,7 @@ export default function TutorOnboardingForm({ action }: Props) {
         aria-busy={isPending}
         className="w-full rounded-pill bg-principal text-white py-3.5 font-semibold text-[15px] hover:bg-[#142E33] transition disabled:opacity-50 mt-2"
       >
-        {isPending ? "Salvando..." : "Concluir onboarding"}
+        {isPending ? "Salvando..." : "Concluir cadastro"}
       </button>
 
       {msg && (
